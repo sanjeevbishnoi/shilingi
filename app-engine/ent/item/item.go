@@ -2,20 +2,39 @@
 
 package item
 
+import (
+	"time"
+)
+
 const (
 	// Label holds the string label denoting the item type in the database.
 	Label = "item"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldCreateTime holds the string denoting the create_time field in the database.
+	FieldCreateTime = "create_time"
+	// FieldUpdateTime holds the string denoting the update_time field in the database.
+	FieldUpdateTime = "update_time"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// EdgePurchases holds the string denoting the purchases edge name in mutations.
+	EdgePurchases = "purchases"
 	// Table holds the table name of the item in the database.
 	Table = "items"
+	// PurchasesTable is the table that holds the purchases relation/edge.
+	PurchasesTable = "shopping_items"
+	// PurchasesInverseTable is the table name for the ShoppingItem entity.
+	// It exists in this package in order to avoid circular dependency with the "shoppingitem" package.
+	PurchasesInverseTable = "shopping_items"
+	// PurchasesColumn is the table column denoting the purchases relation/edge.
+	PurchasesColumn = "item_purchases"
 )
 
 // Columns holds all SQL columns for item fields.
 var Columns = []string{
 	FieldID,
+	FieldCreateTime,
+	FieldUpdateTime,
 	FieldName,
 }
 
@@ -28,3 +47,12 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultCreateTime holds the default value on creation for the "create_time" field.
+	DefaultCreateTime func() time.Time
+	// DefaultUpdateTime holds the default value on creation for the "update_time" field.
+	DefaultUpdateTime func() time.Time
+	// UpdateDefaultUpdateTime holds the default value on update for the "update_time" field.
+	UpdateDefaultUpdateTime func() time.Time
+)

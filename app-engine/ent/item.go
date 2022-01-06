@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
@@ -15,9 +16,34 @@ type Item struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// CreateTime holds the value of the "create_time" field.
+	CreateTime time.Time `json:"create_time,omitempty"`
+	// UpdateTime holds the value of the "update_time" field.
+	UpdateTime time.Time `json:"update_time,omitempty"`
 	// Name holds the value of the "name" field.
 	// A simple name for the item
 	Name string `json:"name,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ItemQuery when eager-loading is set.
+	Edges ItemEdges `json:"edges"`
+}
+
+// ItemEdges holds the relations/edges for other nodes in the graph.
+type ItemEdges struct {
+	// Purchases holds the value of the purchases edge.
+	Purchases []*ShoppingItem `json:"purchases,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// PurchasesOrErr returns the Purchases value or an error if the edge
+// was not loaded in eager-loading.
+func (e ItemEdges) PurchasesOrErr() ([]*ShoppingItem, error) {
+	if e.loadedTypes[0] {
+		return e.Purchases, nil
+	}
+	return nil, &NotLoadedError{edge: "purchases"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -29,6 +55,8 @@ func (*Item) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullInt64)
 		case item.FieldName:
 			values[i] = new(sql.NullString)
+		case item.FieldCreateTime, item.FieldUpdateTime:
+			values[i] = new(sql.NullTime)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Item", columns[i])
 		}
@@ -50,6 +78,18 @@ func (i *Item) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			i.ID = int(value.Int64)
+		case item.FieldCreateTime:
+			if value, ok := values[j].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field create_time", values[j])
+			} else if value.Valid {
+				i.CreateTime = value.Time
+			}
+		case item.FieldUpdateTime:
+			if value, ok := values[j].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field update_time", values[j])
+			} else if value.Valid {
+				i.UpdateTime = value.Time
+			}
 		case item.FieldName:
 			if value, ok := values[j].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[j])
@@ -59,6 +99,11 @@ func (i *Item) assignValues(columns []string, values []interface{}) error {
 		}
 	}
 	return nil
+}
+
+// QueryPurchases queries the "purchases" edge of the Item entity.
+func (i *Item) QueryPurchases() *ShoppingItemQuery {
+	return (&ItemClient{config: i.config}).QueryPurchases(i)
 }
 
 // Update returns a builder for updating this Item.
@@ -84,6 +129,10 @@ func (i *Item) String() string {
 	var builder strings.Builder
 	builder.WriteString("Item(")
 	builder.WriteString(fmt.Sprintf("id=%v", i.ID))
+	builder.WriteString(", create_time=")
+	builder.WriteString(i.CreateTime.Format(time.ANSIC))
+	builder.WriteString(", update_time=")
+	builder.WriteString(i.UpdateTime.Format(time.ANSIC))
 	builder.WriteString(", name=")
 	builder.WriteString(i.Name)
 	builder.WriteByte(')')

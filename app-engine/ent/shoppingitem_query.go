@@ -11,7 +11,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 )
 
@@ -24,6 +26,10 @@ type ShoppingItemQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.ShoppingItem
+	// eager-loading edges.
+	withItem     *ItemQuery
+	withShopping *ShoppingQuery
+	withFKs      bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +64,50 @@ func (siq *ShoppingItemQuery) Unique(unique bool) *ShoppingItemQuery {
 func (siq *ShoppingItemQuery) Order(o ...OrderFunc) *ShoppingItemQuery {
 	siq.order = append(siq.order, o...)
 	return siq
+}
+
+// QueryItem chains the current query on the "item" edge.
+func (siq *ShoppingItemQuery) QueryItem() *ItemQuery {
+	query := &ItemQuery{config: siq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := siq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := siq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppingitem.Table, shoppingitem.FieldID, selector),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, shoppingitem.ItemTable, shoppingitem.ItemColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(siq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryShopping chains the current query on the "shopping" edge.
+func (siq *ShoppingItemQuery) QueryShopping() *ShoppingQuery {
+	query := &ShoppingQuery{config: siq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := siq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := siq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppingitem.Table, shoppingitem.FieldID, selector),
+			sqlgraph.To(shopping.Table, shopping.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, shoppingitem.ShoppingTable, shoppingitem.ShoppingColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(siq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first ShoppingItem entity from the query.
@@ -236,19 +286,56 @@ func (siq *ShoppingItemQuery) Clone() *ShoppingItemQuery {
 		return nil
 	}
 	return &ShoppingItemQuery{
-		config:     siq.config,
-		limit:      siq.limit,
-		offset:     siq.offset,
-		order:      append([]OrderFunc{}, siq.order...),
-		predicates: append([]predicate.ShoppingItem{}, siq.predicates...),
+		config:       siq.config,
+		limit:        siq.limit,
+		offset:       siq.offset,
+		order:        append([]OrderFunc{}, siq.order...),
+		predicates:   append([]predicate.ShoppingItem{}, siq.predicates...),
+		withItem:     siq.withItem.Clone(),
+		withShopping: siq.withShopping.Clone(),
 		// clone intermediate query.
 		sql:  siq.sql.Clone(),
 		path: siq.path,
 	}
 }
 
+// WithItem tells the query-builder to eager-load the nodes that are connected to
+// the "item" edge. The optional arguments are used to configure the query builder of the edge.
+func (siq *ShoppingItemQuery) WithItem(opts ...func(*ItemQuery)) *ShoppingItemQuery {
+	query := &ItemQuery{config: siq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	siq.withItem = query
+	return siq
+}
+
+// WithShopping tells the query-builder to eager-load the nodes that are connected to
+// the "shopping" edge. The optional arguments are used to configure the query builder of the edge.
+func (siq *ShoppingItemQuery) WithShopping(opts ...func(*ShoppingQuery)) *ShoppingItemQuery {
+	query := &ShoppingQuery{config: siq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	siq.withShopping = query
+	return siq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		CreateTime time.Time `json:"create_time,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.ShoppingItem.Query().
+//		GroupBy(shoppingitem.FieldCreateTime).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
+//
 func (siq *ShoppingItemQuery) GroupBy(field string, fields ...string) *ShoppingItemGroupBy {
 	group := &ShoppingItemGroupBy{config: siq.config}
 	group.fields = append([]string{field}, fields...)
@@ -263,6 +350,17 @@ func (siq *ShoppingItemQuery) GroupBy(field string, fields ...string) *ShoppingI
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		CreateTime time.Time `json:"create_time,omitempty"`
+//	}
+//
+//	client.ShoppingItem.Query().
+//		Select(shoppingitem.FieldCreateTime).
+//		Scan(ctx, &v)
+//
 func (siq *ShoppingItemQuery) Select(fields ...string) *ShoppingItemSelect {
 	siq.fields = append(siq.fields, fields...)
 	return &ShoppingItemSelect{ShoppingItemQuery: siq}
@@ -286,9 +384,20 @@ func (siq *ShoppingItemQuery) prepareQuery(ctx context.Context) error {
 
 func (siq *ShoppingItemQuery) sqlAll(ctx context.Context) ([]*ShoppingItem, error) {
 	var (
-		nodes = []*ShoppingItem{}
-		_spec = siq.querySpec()
+		nodes       = []*ShoppingItem{}
+		withFKs     = siq.withFKs
+		_spec       = siq.querySpec()
+		loadedTypes = [2]bool{
+			siq.withItem != nil,
+			siq.withShopping != nil,
+		}
 	)
+	if siq.withItem != nil || siq.withShopping != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, shoppingitem.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &ShoppingItem{config: siq.config}
 		nodes = append(nodes, node)
@@ -299,6 +408,7 @@ func (siq *ShoppingItemQuery) sqlAll(ctx context.Context) ([]*ShoppingItem, erro
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, siq.driver, _spec); err != nil {
@@ -307,6 +417,65 @@ func (siq *ShoppingItemQuery) sqlAll(ctx context.Context) ([]*ShoppingItem, erro
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := siq.withItem; query != nil {
+		ids := make([]int, 0, len(nodes))
+		nodeids := make(map[int][]*ShoppingItem)
+		for i := range nodes {
+			if nodes[i].item_purchases == nil {
+				continue
+			}
+			fk := *nodes[i].item_purchases
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
+		}
+		query.Where(item.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "item_purchases" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Item = n
+			}
+		}
+	}
+
+	if query := siq.withShopping; query != nil {
+		ids := make([]int, 0, len(nodes))
+		nodeids := make(map[int][]*ShoppingItem)
+		for i := range nodes {
+			if nodes[i].shopping_items == nil {
+				continue
+			}
+			fk := *nodes[i].shopping_items
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
+		}
+		query.Where(shopping.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "shopping_items" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Shopping = n
+			}
+		}
+	}
+
 	return nodes, nil
 }
 

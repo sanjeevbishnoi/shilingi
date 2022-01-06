@@ -4,11 +4,14 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 )
 
 // ShoppingCreate is the builder for creating a Shopping entity.
@@ -16,6 +19,61 @@ type ShoppingCreate struct {
 	config
 	mutation *ShoppingMutation
 	hooks    []Hook
+}
+
+// SetCreateTime sets the "create_time" field.
+func (sc *ShoppingCreate) SetCreateTime(t time.Time) *ShoppingCreate {
+	sc.mutation.SetCreateTime(t)
+	return sc
+}
+
+// SetNillableCreateTime sets the "create_time" field if the given value is not nil.
+func (sc *ShoppingCreate) SetNillableCreateTime(t *time.Time) *ShoppingCreate {
+	if t != nil {
+		sc.SetCreateTime(*t)
+	}
+	return sc
+}
+
+// SetUpdateTime sets the "update_time" field.
+func (sc *ShoppingCreate) SetUpdateTime(t time.Time) *ShoppingCreate {
+	sc.mutation.SetUpdateTime(t)
+	return sc
+}
+
+// SetNillableUpdateTime sets the "update_time" field if the given value is not nil.
+func (sc *ShoppingCreate) SetNillableUpdateTime(t *time.Time) *ShoppingCreate {
+	if t != nil {
+		sc.SetUpdateTime(*t)
+	}
+	return sc
+}
+
+// SetDate sets the "date" field.
+func (sc *ShoppingCreate) SetDate(t time.Time) *ShoppingCreate {
+	sc.mutation.SetDate(t)
+	return sc
+}
+
+// SetMarket sets the "market" field.
+func (sc *ShoppingCreate) SetMarket(s string) *ShoppingCreate {
+	sc.mutation.SetMarket(s)
+	return sc
+}
+
+// AddItemIDs adds the "items" edge to the ShoppingItem entity by IDs.
+func (sc *ShoppingCreate) AddItemIDs(ids ...int) *ShoppingCreate {
+	sc.mutation.AddItemIDs(ids...)
+	return sc
+}
+
+// AddItems adds the "items" edges to the ShoppingItem entity.
+func (sc *ShoppingCreate) AddItems(s ...*ShoppingItem) *ShoppingCreate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return sc.AddItemIDs(ids...)
 }
 
 // Mutation returns the ShoppingMutation object of the builder.
@@ -29,6 +87,7 @@ func (sc *ShoppingCreate) Save(ctx context.Context) (*Shopping, error) {
 		err  error
 		node *Shopping
 	)
+	sc.defaults()
 	if len(sc.hooks) == 0 {
 		if err = sc.check(); err != nil {
 			return nil, err
@@ -86,8 +145,32 @@ func (sc *ShoppingCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (sc *ShoppingCreate) defaults() {
+	if _, ok := sc.mutation.CreateTime(); !ok {
+		v := shopping.DefaultCreateTime()
+		sc.mutation.SetCreateTime(v)
+	}
+	if _, ok := sc.mutation.UpdateTime(); !ok {
+		v := shopping.DefaultUpdateTime()
+		sc.mutation.SetUpdateTime(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (sc *ShoppingCreate) check() error {
+	if _, ok := sc.mutation.CreateTime(); !ok {
+		return &ValidationError{Name: "create_time", err: errors.New(`ent: missing required field "create_time"`)}
+	}
+	if _, ok := sc.mutation.UpdateTime(); !ok {
+		return &ValidationError{Name: "update_time", err: errors.New(`ent: missing required field "update_time"`)}
+	}
+	if _, ok := sc.mutation.Date(); !ok {
+		return &ValidationError{Name: "date", err: errors.New(`ent: missing required field "date"`)}
+	}
+	if _, ok := sc.mutation.Market(); !ok {
+		return &ValidationError{Name: "market", err: errors.New(`ent: missing required field "market"`)}
+	}
 	return nil
 }
 
@@ -115,6 +198,57 @@ func (sc *ShoppingCreate) createSpec() (*Shopping, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	if value, ok := sc.mutation.CreateTime(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: shopping.FieldCreateTime,
+		})
+		_node.CreateTime = value
+	}
+	if value, ok := sc.mutation.UpdateTime(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: shopping.FieldUpdateTime,
+		})
+		_node.UpdateTime = value
+	}
+	if value, ok := sc.mutation.Date(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: shopping.FieldDate,
+		})
+		_node.Date = value
+	}
+	if value, ok := sc.mutation.Market(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: shopping.FieldMarket,
+		})
+		_node.Market = value
+	}
+	if nodes := sc.mutation.ItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shopping.ItemsTable,
+			Columns: []string{shopping.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -132,6 +266,7 @@ func (scb *ShoppingCreateBulk) Save(ctx context.Context) ([]*Shopping, error) {
 	for i := range scb.builders {
 		func(i int, root context.Context) {
 			builder := scb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*ShoppingMutation)
 				if !ok {

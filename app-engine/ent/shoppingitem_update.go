@@ -4,13 +4,17 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/shopspring/decimal"
 )
 
 // ShoppingItemUpdate is the builder for updating ShoppingItem entities.
@@ -26,9 +30,116 @@ func (siu *ShoppingItemUpdate) Where(ps ...predicate.ShoppingItem) *ShoppingItem
 	return siu
 }
 
+// SetQuantity sets the "quantity" field.
+func (siu *ShoppingItemUpdate) SetQuantity(f float64) *ShoppingItemUpdate {
+	siu.mutation.ResetQuantity()
+	siu.mutation.SetQuantity(f)
+	return siu
+}
+
+// AddQuantity adds f to the "quantity" field.
+func (siu *ShoppingItemUpdate) AddQuantity(f float64) *ShoppingItemUpdate {
+	siu.mutation.AddQuantity(f)
+	return siu
+}
+
+// SetQuantityType sets the "quantity_type" field.
+func (siu *ShoppingItemUpdate) SetQuantityType(s string) *ShoppingItemUpdate {
+	siu.mutation.SetQuantityType(s)
+	return siu
+}
+
+// SetUnits sets the "units" field.
+func (siu *ShoppingItemUpdate) SetUnits(i int) *ShoppingItemUpdate {
+	siu.mutation.ResetUnits()
+	siu.mutation.SetUnits(i)
+	return siu
+}
+
+// SetNillableUnits sets the "units" field if the given value is not nil.
+func (siu *ShoppingItemUpdate) SetNillableUnits(i *int) *ShoppingItemUpdate {
+	if i != nil {
+		siu.SetUnits(*i)
+	}
+	return siu
+}
+
+// AddUnits adds i to the "units" field.
+func (siu *ShoppingItemUpdate) AddUnits(i int) *ShoppingItemUpdate {
+	siu.mutation.AddUnits(i)
+	return siu
+}
+
+// SetBrand sets the "brand" field.
+func (siu *ShoppingItemUpdate) SetBrand(s string) *ShoppingItemUpdate {
+	siu.mutation.SetBrand(s)
+	return siu
+}
+
+// SetNillableBrand sets the "brand" field if the given value is not nil.
+func (siu *ShoppingItemUpdate) SetNillableBrand(s *string) *ShoppingItemUpdate {
+	if s != nil {
+		siu.SetBrand(*s)
+	}
+	return siu
+}
+
+// ClearBrand clears the value of the "brand" field.
+func (siu *ShoppingItemUpdate) ClearBrand() *ShoppingItemUpdate {
+	siu.mutation.ClearBrand()
+	return siu
+}
+
+// SetPricePerUnit sets the "price_per_unit" field.
+func (siu *ShoppingItemUpdate) SetPricePerUnit(d decimal.Decimal) *ShoppingItemUpdate {
+	siu.mutation.ResetPricePerUnit()
+	siu.mutation.SetPricePerUnit(d)
+	return siu
+}
+
+// AddPricePerUnit adds d to the "price_per_unit" field.
+func (siu *ShoppingItemUpdate) AddPricePerUnit(d decimal.Decimal) *ShoppingItemUpdate {
+	siu.mutation.AddPricePerUnit(d)
+	return siu
+}
+
+// SetItemID sets the "item" edge to the Item entity by ID.
+func (siu *ShoppingItemUpdate) SetItemID(id int) *ShoppingItemUpdate {
+	siu.mutation.SetItemID(id)
+	return siu
+}
+
+// SetItem sets the "item" edge to the Item entity.
+func (siu *ShoppingItemUpdate) SetItem(i *Item) *ShoppingItemUpdate {
+	return siu.SetItemID(i.ID)
+}
+
+// SetShoppingID sets the "shopping" edge to the Shopping entity by ID.
+func (siu *ShoppingItemUpdate) SetShoppingID(id int) *ShoppingItemUpdate {
+	siu.mutation.SetShoppingID(id)
+	return siu
+}
+
+// SetShopping sets the "shopping" edge to the Shopping entity.
+func (siu *ShoppingItemUpdate) SetShopping(s *Shopping) *ShoppingItemUpdate {
+	return siu.SetShoppingID(s.ID)
+}
+
 // Mutation returns the ShoppingItemMutation object of the builder.
 func (siu *ShoppingItemUpdate) Mutation() *ShoppingItemMutation {
 	return siu.mutation
+}
+
+// ClearItem clears the "item" edge to the Item entity.
+func (siu *ShoppingItemUpdate) ClearItem() *ShoppingItemUpdate {
+	siu.mutation.ClearItem()
+	return siu
+}
+
+// ClearShopping clears the "shopping" edge to the Shopping entity.
+func (siu *ShoppingItemUpdate) ClearShopping() *ShoppingItemUpdate {
+	siu.mutation.ClearShopping()
+	return siu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -37,13 +148,20 @@ func (siu *ShoppingItemUpdate) Save(ctx context.Context) (int, error) {
 		err      error
 		affected int
 	)
+	siu.defaults()
 	if len(siu.hooks) == 0 {
+		if err = siu.check(); err != nil {
+			return 0, err
+		}
 		affected, err = siu.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*ShoppingItemMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = siu.check(); err != nil {
+				return 0, err
 			}
 			siu.mutation = mutation
 			affected, err = siu.sqlSave(ctx)
@@ -85,6 +203,25 @@ func (siu *ShoppingItemUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (siu *ShoppingItemUpdate) defaults() {
+	if _, ok := siu.mutation.UpdateTime(); !ok {
+		v := shoppingitem.UpdateDefaultUpdateTime()
+		siu.mutation.SetUpdateTime(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (siu *ShoppingItemUpdate) check() error {
+	if _, ok := siu.mutation.ItemID(); siu.mutation.ItemCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"item\"")
+	}
+	if _, ok := siu.mutation.ShoppingID(); siu.mutation.ShoppingCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"shopping\"")
+	}
+	return nil
+}
+
 func (siu *ShoppingItemUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -102,6 +239,145 @@ func (siu *ShoppingItemUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := siu.mutation.UpdateTime(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: shoppingitem.FieldUpdateTime,
+		})
+	}
+	if value, ok := siu.mutation.Quantity(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: shoppingitem.FieldQuantity,
+		})
+	}
+	if value, ok := siu.mutation.AddedQuantity(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: shoppingitem.FieldQuantity,
+		})
+	}
+	if value, ok := siu.mutation.QuantityType(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: shoppingitem.FieldQuantityType,
+		})
+	}
+	if value, ok := siu.mutation.Units(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: shoppingitem.FieldUnits,
+		})
+	}
+	if value, ok := siu.mutation.AddedUnits(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: shoppingitem.FieldUnits,
+		})
+	}
+	if value, ok := siu.mutation.Brand(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: shoppingitem.FieldBrand,
+		})
+	}
+	if siu.mutation.BrandCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: shoppingitem.FieldBrand,
+		})
+	}
+	if value, ok := siu.mutation.PricePerUnit(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: shoppingitem.FieldPricePerUnit,
+		})
+	}
+	if value, ok := siu.mutation.AddedPricePerUnit(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: shoppingitem.FieldPricePerUnit,
+		})
+	}
+	if siu.mutation.ItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shoppingitem.ItemTable,
+			Columns: []string{shoppingitem.ItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := siu.mutation.ItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shoppingitem.ItemTable,
+			Columns: []string{shoppingitem.ItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if siu.mutation.ShoppingCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shoppingitem.ShoppingTable,
+			Columns: []string{shoppingitem.ShoppingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shopping.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := siu.mutation.ShoppingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shoppingitem.ShoppingTable,
+			Columns: []string{shoppingitem.ShoppingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shopping.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, siu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -122,9 +398,116 @@ type ShoppingItemUpdateOne struct {
 	mutation *ShoppingItemMutation
 }
 
+// SetQuantity sets the "quantity" field.
+func (siuo *ShoppingItemUpdateOne) SetQuantity(f float64) *ShoppingItemUpdateOne {
+	siuo.mutation.ResetQuantity()
+	siuo.mutation.SetQuantity(f)
+	return siuo
+}
+
+// AddQuantity adds f to the "quantity" field.
+func (siuo *ShoppingItemUpdateOne) AddQuantity(f float64) *ShoppingItemUpdateOne {
+	siuo.mutation.AddQuantity(f)
+	return siuo
+}
+
+// SetQuantityType sets the "quantity_type" field.
+func (siuo *ShoppingItemUpdateOne) SetQuantityType(s string) *ShoppingItemUpdateOne {
+	siuo.mutation.SetQuantityType(s)
+	return siuo
+}
+
+// SetUnits sets the "units" field.
+func (siuo *ShoppingItemUpdateOne) SetUnits(i int) *ShoppingItemUpdateOne {
+	siuo.mutation.ResetUnits()
+	siuo.mutation.SetUnits(i)
+	return siuo
+}
+
+// SetNillableUnits sets the "units" field if the given value is not nil.
+func (siuo *ShoppingItemUpdateOne) SetNillableUnits(i *int) *ShoppingItemUpdateOne {
+	if i != nil {
+		siuo.SetUnits(*i)
+	}
+	return siuo
+}
+
+// AddUnits adds i to the "units" field.
+func (siuo *ShoppingItemUpdateOne) AddUnits(i int) *ShoppingItemUpdateOne {
+	siuo.mutation.AddUnits(i)
+	return siuo
+}
+
+// SetBrand sets the "brand" field.
+func (siuo *ShoppingItemUpdateOne) SetBrand(s string) *ShoppingItemUpdateOne {
+	siuo.mutation.SetBrand(s)
+	return siuo
+}
+
+// SetNillableBrand sets the "brand" field if the given value is not nil.
+func (siuo *ShoppingItemUpdateOne) SetNillableBrand(s *string) *ShoppingItemUpdateOne {
+	if s != nil {
+		siuo.SetBrand(*s)
+	}
+	return siuo
+}
+
+// ClearBrand clears the value of the "brand" field.
+func (siuo *ShoppingItemUpdateOne) ClearBrand() *ShoppingItemUpdateOne {
+	siuo.mutation.ClearBrand()
+	return siuo
+}
+
+// SetPricePerUnit sets the "price_per_unit" field.
+func (siuo *ShoppingItemUpdateOne) SetPricePerUnit(d decimal.Decimal) *ShoppingItemUpdateOne {
+	siuo.mutation.ResetPricePerUnit()
+	siuo.mutation.SetPricePerUnit(d)
+	return siuo
+}
+
+// AddPricePerUnit adds d to the "price_per_unit" field.
+func (siuo *ShoppingItemUpdateOne) AddPricePerUnit(d decimal.Decimal) *ShoppingItemUpdateOne {
+	siuo.mutation.AddPricePerUnit(d)
+	return siuo
+}
+
+// SetItemID sets the "item" edge to the Item entity by ID.
+func (siuo *ShoppingItemUpdateOne) SetItemID(id int) *ShoppingItemUpdateOne {
+	siuo.mutation.SetItemID(id)
+	return siuo
+}
+
+// SetItem sets the "item" edge to the Item entity.
+func (siuo *ShoppingItemUpdateOne) SetItem(i *Item) *ShoppingItemUpdateOne {
+	return siuo.SetItemID(i.ID)
+}
+
+// SetShoppingID sets the "shopping" edge to the Shopping entity by ID.
+func (siuo *ShoppingItemUpdateOne) SetShoppingID(id int) *ShoppingItemUpdateOne {
+	siuo.mutation.SetShoppingID(id)
+	return siuo
+}
+
+// SetShopping sets the "shopping" edge to the Shopping entity.
+func (siuo *ShoppingItemUpdateOne) SetShopping(s *Shopping) *ShoppingItemUpdateOne {
+	return siuo.SetShoppingID(s.ID)
+}
+
 // Mutation returns the ShoppingItemMutation object of the builder.
 func (siuo *ShoppingItemUpdateOne) Mutation() *ShoppingItemMutation {
 	return siuo.mutation
+}
+
+// ClearItem clears the "item" edge to the Item entity.
+func (siuo *ShoppingItemUpdateOne) ClearItem() *ShoppingItemUpdateOne {
+	siuo.mutation.ClearItem()
+	return siuo
+}
+
+// ClearShopping clears the "shopping" edge to the Shopping entity.
+func (siuo *ShoppingItemUpdateOne) ClearShopping() *ShoppingItemUpdateOne {
+	siuo.mutation.ClearShopping()
+	return siuo
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -140,13 +523,20 @@ func (siuo *ShoppingItemUpdateOne) Save(ctx context.Context) (*ShoppingItem, err
 		err  error
 		node *ShoppingItem
 	)
+	siuo.defaults()
 	if len(siuo.hooks) == 0 {
+		if err = siuo.check(); err != nil {
+			return nil, err
+		}
 		node, err = siuo.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*ShoppingItemMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = siuo.check(); err != nil {
+				return nil, err
 			}
 			siuo.mutation = mutation
 			node, err = siuo.sqlSave(ctx)
@@ -188,6 +578,25 @@ func (siuo *ShoppingItemUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (siuo *ShoppingItemUpdateOne) defaults() {
+	if _, ok := siuo.mutation.UpdateTime(); !ok {
+		v := shoppingitem.UpdateDefaultUpdateTime()
+		siuo.mutation.SetUpdateTime(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (siuo *ShoppingItemUpdateOne) check() error {
+	if _, ok := siuo.mutation.ItemID(); siuo.mutation.ItemCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"item\"")
+	}
+	if _, ok := siuo.mutation.ShoppingID(); siuo.mutation.ShoppingCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"shopping\"")
+	}
+	return nil
+}
+
 func (siuo *ShoppingItemUpdateOne) sqlSave(ctx context.Context) (_node *ShoppingItem, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -222,6 +631,145 @@ func (siuo *ShoppingItemUpdateOne) sqlSave(ctx context.Context) (_node *Shopping
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := siuo.mutation.UpdateTime(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: shoppingitem.FieldUpdateTime,
+		})
+	}
+	if value, ok := siuo.mutation.Quantity(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: shoppingitem.FieldQuantity,
+		})
+	}
+	if value, ok := siuo.mutation.AddedQuantity(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: shoppingitem.FieldQuantity,
+		})
+	}
+	if value, ok := siuo.mutation.QuantityType(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: shoppingitem.FieldQuantityType,
+		})
+	}
+	if value, ok := siuo.mutation.Units(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: shoppingitem.FieldUnits,
+		})
+	}
+	if value, ok := siuo.mutation.AddedUnits(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: shoppingitem.FieldUnits,
+		})
+	}
+	if value, ok := siuo.mutation.Brand(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: shoppingitem.FieldBrand,
+		})
+	}
+	if siuo.mutation.BrandCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: shoppingitem.FieldBrand,
+		})
+	}
+	if value, ok := siuo.mutation.PricePerUnit(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: shoppingitem.FieldPricePerUnit,
+		})
+	}
+	if value, ok := siuo.mutation.AddedPricePerUnit(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: shoppingitem.FieldPricePerUnit,
+		})
+	}
+	if siuo.mutation.ItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shoppingitem.ItemTable,
+			Columns: []string{shoppingitem.ItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := siuo.mutation.ItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shoppingitem.ItemTable,
+			Columns: []string{shoppingitem.ItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if siuo.mutation.ShoppingCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shoppingitem.ShoppingTable,
+			Columns: []string{shoppingitem.ShoppingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shopping.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := siuo.mutation.ShoppingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shoppingitem.ShoppingTable,
+			Columns: []string{shoppingitem.ShoppingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shopping.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &ShoppingItem{config: siuo.config}
 	_spec.Assign = _node.assignValues

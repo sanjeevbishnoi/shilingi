@@ -15,6 +15,7 @@ import (
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 // Client is the client that holds all ent builders.
@@ -220,6 +221,22 @@ func (c *ItemClient) GetX(ctx context.Context, id int) *Item {
 	return obj
 }
 
+// QueryPurchases queries the purchases edge of a Item.
+func (c *ItemClient) QueryPurchases(i *Item) *ShoppingItemQuery {
+	query := &ShoppingItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := i.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(shoppingitem.Table, shoppingitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, item.PurchasesTable, item.PurchasesColumn),
+		)
+		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ItemClient) Hooks() []Hook {
 	return c.hooks.Item
@@ -310,6 +327,22 @@ func (c *ShoppingClient) GetX(ctx context.Context, id int) *Shopping {
 	return obj
 }
 
+// QueryItems queries the items edge of a Shopping.
+func (c *ShoppingClient) QueryItems(s *Shopping) *ShoppingItemQuery {
+	query := &ShoppingItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shopping.Table, shopping.FieldID, id),
+			sqlgraph.To(shoppingitem.Table, shoppingitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, shopping.ItemsTable, shopping.ItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ShoppingClient) Hooks() []Hook {
 	return c.hooks.Shopping
@@ -398,6 +431,38 @@ func (c *ShoppingItemClient) GetX(ctx context.Context, id int) *ShoppingItem {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryItem queries the item edge of a ShoppingItem.
+func (c *ShoppingItemClient) QueryItem(si *ShoppingItem) *ItemQuery {
+	query := &ItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := si.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppingitem.Table, shoppingitem.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, shoppingitem.ItemTable, shoppingitem.ItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(si.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryShopping queries the shopping edge of a ShoppingItem.
+func (c *ShoppingItemClient) QueryShopping(si *ShoppingItem) *ShoppingQuery {
+	query := &ShoppingQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := si.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppingitem.Table, shoppingitem.FieldID, id),
+			sqlgraph.To(shopping.Table, shopping.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, shoppingitem.ShoppingTable, shoppingitem.ShoppingColumn),
+		)
+		fromV = sqlgraph.Neighbors(si.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

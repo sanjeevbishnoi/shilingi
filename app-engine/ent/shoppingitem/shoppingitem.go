@@ -2,18 +2,68 @@
 
 package shoppingitem
 
+import (
+	"time"
+)
+
 const (
 	// Label holds the string label denoting the shoppingitem type in the database.
 	Label = "shopping_item"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldCreateTime holds the string denoting the create_time field in the database.
+	FieldCreateTime = "create_time"
+	// FieldUpdateTime holds the string denoting the update_time field in the database.
+	FieldUpdateTime = "update_time"
+	// FieldQuantity holds the string denoting the quantity field in the database.
+	FieldQuantity = "quantity"
+	// FieldQuantityType holds the string denoting the quantity_type field in the database.
+	FieldQuantityType = "quantity_type"
+	// FieldUnits holds the string denoting the units field in the database.
+	FieldUnits = "units"
+	// FieldBrand holds the string denoting the brand field in the database.
+	FieldBrand = "brand"
+	// FieldPricePerUnit holds the string denoting the price_per_unit field in the database.
+	FieldPricePerUnit = "price_per_unit"
+	// EdgeItem holds the string denoting the item edge name in mutations.
+	EdgeItem = "item"
+	// EdgeShopping holds the string denoting the shopping edge name in mutations.
+	EdgeShopping = "shopping"
 	// Table holds the table name of the shoppingitem in the database.
 	Table = "shopping_items"
+	// ItemTable is the table that holds the item relation/edge.
+	ItemTable = "shopping_items"
+	// ItemInverseTable is the table name for the Item entity.
+	// It exists in this package in order to avoid circular dependency with the "item" package.
+	ItemInverseTable = "items"
+	// ItemColumn is the table column denoting the item relation/edge.
+	ItemColumn = "item_purchases"
+	// ShoppingTable is the table that holds the shopping relation/edge.
+	ShoppingTable = "shopping_items"
+	// ShoppingInverseTable is the table name for the Shopping entity.
+	// It exists in this package in order to avoid circular dependency with the "shopping" package.
+	ShoppingInverseTable = "shoppings"
+	// ShoppingColumn is the table column denoting the shopping relation/edge.
+	ShoppingColumn = "shopping_items"
 )
 
 // Columns holds all SQL columns for shoppingitem fields.
 var Columns = []string{
 	FieldID,
+	FieldCreateTime,
+	FieldUpdateTime,
+	FieldQuantity,
+	FieldQuantityType,
+	FieldUnits,
+	FieldBrand,
+	FieldPricePerUnit,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "shopping_items"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"item_purchases",
+	"shopping_items",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -23,5 +73,21 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
+			return true
+		}
+	}
 	return false
 }
+
+var (
+	// DefaultCreateTime holds the default value on creation for the "create_time" field.
+	DefaultCreateTime func() time.Time
+	// DefaultUpdateTime holds the default value on creation for the "update_time" field.
+	DefaultUpdateTime func() time.Time
+	// UpdateDefaultUpdateTime holds the default value on update for the "update_time" field.
+	UpdateDefaultUpdateTime func() time.Time
+	// DefaultUnits holds the default value on creation for the "units" field.
+	DefaultUnits int
+)

@@ -5,12 +5,14 @@ package ent
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 )
 
 // ShoppingUpdate is the builder for updating Shopping entities.
@@ -26,9 +28,57 @@ func (su *ShoppingUpdate) Where(ps ...predicate.Shopping) *ShoppingUpdate {
 	return su
 }
 
+// SetDate sets the "date" field.
+func (su *ShoppingUpdate) SetDate(t time.Time) *ShoppingUpdate {
+	su.mutation.SetDate(t)
+	return su
+}
+
+// SetMarket sets the "market" field.
+func (su *ShoppingUpdate) SetMarket(s string) *ShoppingUpdate {
+	su.mutation.SetMarket(s)
+	return su
+}
+
+// AddItemIDs adds the "items" edge to the ShoppingItem entity by IDs.
+func (su *ShoppingUpdate) AddItemIDs(ids ...int) *ShoppingUpdate {
+	su.mutation.AddItemIDs(ids...)
+	return su
+}
+
+// AddItems adds the "items" edges to the ShoppingItem entity.
+func (su *ShoppingUpdate) AddItems(s ...*ShoppingItem) *ShoppingUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return su.AddItemIDs(ids...)
+}
+
 // Mutation returns the ShoppingMutation object of the builder.
 func (su *ShoppingUpdate) Mutation() *ShoppingMutation {
 	return su.mutation
+}
+
+// ClearItems clears all "items" edges to the ShoppingItem entity.
+func (su *ShoppingUpdate) ClearItems() *ShoppingUpdate {
+	su.mutation.ClearItems()
+	return su
+}
+
+// RemoveItemIDs removes the "items" edge to ShoppingItem entities by IDs.
+func (su *ShoppingUpdate) RemoveItemIDs(ids ...int) *ShoppingUpdate {
+	su.mutation.RemoveItemIDs(ids...)
+	return su
+}
+
+// RemoveItems removes "items" edges to ShoppingItem entities.
+func (su *ShoppingUpdate) RemoveItems(s ...*ShoppingItem) *ShoppingUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return su.RemoveItemIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -37,6 +87,7 @@ func (su *ShoppingUpdate) Save(ctx context.Context) (int, error) {
 		err      error
 		affected int
 	)
+	su.defaults()
 	if len(su.hooks) == 0 {
 		affected, err = su.sqlSave(ctx)
 	} else {
@@ -85,6 +136,14 @@ func (su *ShoppingUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (su *ShoppingUpdate) defaults() {
+	if _, ok := su.mutation.UpdateTime(); !ok {
+		v := shopping.UpdateDefaultUpdateTime()
+		su.mutation.SetUpdateTime(v)
+	}
+}
+
 func (su *ShoppingUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -102,6 +161,81 @@ func (su *ShoppingUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := su.mutation.UpdateTime(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: shopping.FieldUpdateTime,
+		})
+	}
+	if value, ok := su.mutation.Date(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: shopping.FieldDate,
+		})
+	}
+	if value, ok := su.mutation.Market(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: shopping.FieldMarket,
+		})
+	}
+	if su.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shopping.ItemsTable,
+			Columns: []string{shopping.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.RemovedItemsIDs(); len(nodes) > 0 && !su.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shopping.ItemsTable,
+			Columns: []string{shopping.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.ItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shopping.ItemsTable,
+			Columns: []string{shopping.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, su.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -122,9 +256,57 @@ type ShoppingUpdateOne struct {
 	mutation *ShoppingMutation
 }
 
+// SetDate sets the "date" field.
+func (suo *ShoppingUpdateOne) SetDate(t time.Time) *ShoppingUpdateOne {
+	suo.mutation.SetDate(t)
+	return suo
+}
+
+// SetMarket sets the "market" field.
+func (suo *ShoppingUpdateOne) SetMarket(s string) *ShoppingUpdateOne {
+	suo.mutation.SetMarket(s)
+	return suo
+}
+
+// AddItemIDs adds the "items" edge to the ShoppingItem entity by IDs.
+func (suo *ShoppingUpdateOne) AddItemIDs(ids ...int) *ShoppingUpdateOne {
+	suo.mutation.AddItemIDs(ids...)
+	return suo
+}
+
+// AddItems adds the "items" edges to the ShoppingItem entity.
+func (suo *ShoppingUpdateOne) AddItems(s ...*ShoppingItem) *ShoppingUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return suo.AddItemIDs(ids...)
+}
+
 // Mutation returns the ShoppingMutation object of the builder.
 func (suo *ShoppingUpdateOne) Mutation() *ShoppingMutation {
 	return suo.mutation
+}
+
+// ClearItems clears all "items" edges to the ShoppingItem entity.
+func (suo *ShoppingUpdateOne) ClearItems() *ShoppingUpdateOne {
+	suo.mutation.ClearItems()
+	return suo
+}
+
+// RemoveItemIDs removes the "items" edge to ShoppingItem entities by IDs.
+func (suo *ShoppingUpdateOne) RemoveItemIDs(ids ...int) *ShoppingUpdateOne {
+	suo.mutation.RemoveItemIDs(ids...)
+	return suo
+}
+
+// RemoveItems removes "items" edges to ShoppingItem entities.
+func (suo *ShoppingUpdateOne) RemoveItems(s ...*ShoppingItem) *ShoppingUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return suo.RemoveItemIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -140,6 +322,7 @@ func (suo *ShoppingUpdateOne) Save(ctx context.Context) (*Shopping, error) {
 		err  error
 		node *Shopping
 	)
+	suo.defaults()
 	if len(suo.hooks) == 0 {
 		node, err = suo.sqlSave(ctx)
 	} else {
@@ -188,6 +371,14 @@ func (suo *ShoppingUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (suo *ShoppingUpdateOne) defaults() {
+	if _, ok := suo.mutation.UpdateTime(); !ok {
+		v := shopping.UpdateDefaultUpdateTime()
+		suo.mutation.SetUpdateTime(v)
+	}
+}
+
 func (suo *ShoppingUpdateOne) sqlSave(ctx context.Context) (_node *Shopping, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -222,6 +413,81 @@ func (suo *ShoppingUpdateOne) sqlSave(ctx context.Context) (_node *Shopping, err
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := suo.mutation.UpdateTime(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: shopping.FieldUpdateTime,
+		})
+	}
+	if value, ok := suo.mutation.Date(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: shopping.FieldDate,
+		})
+	}
+	if value, ok := suo.mutation.Market(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: shopping.FieldMarket,
+		})
+	}
+	if suo.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shopping.ItemsTable,
+			Columns: []string{shopping.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.RemovedItemsIDs(); len(nodes) > 0 && !suo.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shopping.ItemsTable,
+			Columns: []string{shopping.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.ItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shopping.ItemsTable,
+			Columns: []string{shopping.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Shopping{config: suo.config}
 	_spec.Assign = _node.assignValues

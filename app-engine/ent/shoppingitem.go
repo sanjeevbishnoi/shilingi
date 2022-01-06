@@ -5,16 +5,82 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/kingzbauer/shilingi/app-engine/ent/item"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/shopspring/decimal"
 )
 
 // ShoppingItem is the model entity for the ShoppingItem schema.
 type ShoppingItem struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// CreateTime holds the value of the "create_time" field.
+	CreateTime time.Time `json:"create_time,omitempty"`
+	// UpdateTime holds the value of the "update_time" field.
+	UpdateTime time.Time `json:"update_time,omitempty"`
+	// Quantity holds the value of the "quantity" field.
+	// This is the raw value. Enhances it's semantics together with quantity type
+	Quantity float64 `json:"quantity,omitempty"`
+	// QuantityType holds the value of the "quantity_type" field.
+	// E.g liters, grams, kilograms etc.
+	QuantityType string `json:"quantity_type,omitempty"`
+	// Units holds the value of the "units" field.
+	// How many individual items purchase
+	Units int `json:"units,omitempty"`
+	// Brand holds the value of the "brand" field.
+	// If the specific item is of a particular brand, company
+	Brand string `json:"brand,omitempty"`
+	// PricePerUnit holds the value of the "price_per_unit" field.
+	PricePerUnit decimal.Decimal `json:"price_per_unit,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ShoppingItemQuery when eager-loading is set.
+	Edges          ShoppingItemEdges `json:"edges"`
+	item_purchases *int
+	shopping_items *int
+}
+
+// ShoppingItemEdges holds the relations/edges for other nodes in the graph.
+type ShoppingItemEdges struct {
+	// Item holds the value of the item edge.
+	Item *Item `json:"item,omitempty"`
+	// Shopping holds the value of the shopping edge.
+	Shopping *Shopping `json:"shopping,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [2]bool
+}
+
+// ItemOrErr returns the Item value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ShoppingItemEdges) ItemOrErr() (*Item, error) {
+	if e.loadedTypes[0] {
+		if e.Item == nil {
+			// The edge item was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: item.Label}
+		}
+		return e.Item, nil
+	}
+	return nil, &NotLoadedError{edge: "item"}
+}
+
+// ShoppingOrErr returns the Shopping value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ShoppingItemEdges) ShoppingOrErr() (*Shopping, error) {
+	if e.loadedTypes[1] {
+		if e.Shopping == nil {
+			// The edge shopping was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: shopping.Label}
+		}
+		return e.Shopping, nil
+	}
+	return nil, &NotLoadedError{edge: "shopping"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -22,7 +88,19 @@ func (*ShoppingItem) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case shoppingitem.FieldID:
+		case shoppingitem.FieldPricePerUnit:
+			values[i] = new(decimal.Decimal)
+		case shoppingitem.FieldQuantity:
+			values[i] = new(sql.NullFloat64)
+		case shoppingitem.FieldID, shoppingitem.FieldUnits:
+			values[i] = new(sql.NullInt64)
+		case shoppingitem.FieldQuantityType, shoppingitem.FieldBrand:
+			values[i] = new(sql.NullString)
+		case shoppingitem.FieldCreateTime, shoppingitem.FieldUpdateTime:
+			values[i] = new(sql.NullTime)
+		case shoppingitem.ForeignKeys[0]: // item_purchases
+			values[i] = new(sql.NullInt64)
+		case shoppingitem.ForeignKeys[1]: // shopping_items
 			values[i] = new(sql.NullInt64)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type ShoppingItem", columns[i])
@@ -45,9 +123,75 @@ func (si *ShoppingItem) assignValues(columns []string, values []interface{}) err
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			si.ID = int(value.Int64)
+		case shoppingitem.FieldCreateTime:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field create_time", values[i])
+			} else if value.Valid {
+				si.CreateTime = value.Time
+			}
+		case shoppingitem.FieldUpdateTime:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field update_time", values[i])
+			} else if value.Valid {
+				si.UpdateTime = value.Time
+			}
+		case shoppingitem.FieldQuantity:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field quantity", values[i])
+			} else if value.Valid {
+				si.Quantity = value.Float64
+			}
+		case shoppingitem.FieldQuantityType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field quantity_type", values[i])
+			} else if value.Valid {
+				si.QuantityType = value.String
+			}
+		case shoppingitem.FieldUnits:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field units", values[i])
+			} else if value.Valid {
+				si.Units = int(value.Int64)
+			}
+		case shoppingitem.FieldBrand:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field brand", values[i])
+			} else if value.Valid {
+				si.Brand = value.String
+			}
+		case shoppingitem.FieldPricePerUnit:
+			if value, ok := values[i].(*decimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field price_per_unit", values[i])
+			} else if value != nil {
+				si.PricePerUnit = *value
+			}
+		case shoppingitem.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field item_purchases", value)
+			} else if value.Valid {
+				si.item_purchases = new(int)
+				*si.item_purchases = int(value.Int64)
+			}
+		case shoppingitem.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field shopping_items", value)
+			} else if value.Valid {
+				si.shopping_items = new(int)
+				*si.shopping_items = int(value.Int64)
+			}
 		}
 	}
 	return nil
+}
+
+// QueryItem queries the "item" edge of the ShoppingItem entity.
+func (si *ShoppingItem) QueryItem() *ItemQuery {
+	return (&ShoppingItemClient{config: si.config}).QueryItem(si)
+}
+
+// QueryShopping queries the "shopping" edge of the ShoppingItem entity.
+func (si *ShoppingItem) QueryShopping() *ShoppingQuery {
+	return (&ShoppingItemClient{config: si.config}).QueryShopping(si)
 }
 
 // Update returns a builder for updating this ShoppingItem.
@@ -73,6 +217,20 @@ func (si *ShoppingItem) String() string {
 	var builder strings.Builder
 	builder.WriteString("ShoppingItem(")
 	builder.WriteString(fmt.Sprintf("id=%v", si.ID))
+	builder.WriteString(", create_time=")
+	builder.WriteString(si.CreateTime.Format(time.ANSIC))
+	builder.WriteString(", update_time=")
+	builder.WriteString(si.UpdateTime.Format(time.ANSIC))
+	builder.WriteString(", quantity=")
+	builder.WriteString(fmt.Sprintf("%v", si.Quantity))
+	builder.WriteString(", quantity_type=")
+	builder.WriteString(si.QuantityType)
+	builder.WriteString(", units=")
+	builder.WriteString(fmt.Sprintf("%v", si.Units))
+	builder.WriteString(", brand=")
+	builder.WriteString(si.Brand)
+	builder.WriteString(", price_per_unit=")
+	builder.WriteString(fmt.Sprintf("%v", si.PricePerUnit))
 	builder.WriteByte(')')
 	return builder.String()
 }

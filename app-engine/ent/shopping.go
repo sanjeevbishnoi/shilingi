@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
@@ -12,9 +13,40 @@ import (
 
 // Shopping is the model entity for the Shopping schema.
 type Shopping struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// CreateTime holds the value of the "create_time" field.
+	CreateTime time.Time `json:"create_time,omitempty"`
+	// UpdateTime holds the value of the "update_time" field.
+	UpdateTime time.Time `json:"update_time,omitempty"`
+	// Date holds the value of the "date" field.
+	// When was the shopping done
+	Date time.Time `json:"date,omitempty"`
+	// Market holds the value of the "market" field.
+	// This is the place where you bought the items from
+	Market string `json:"market,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ShoppingQuery when eager-loading is set.
+	Edges ShoppingEdges `json:"edges"`
+}
+
+// ShoppingEdges holds the relations/edges for other nodes in the graph.
+type ShoppingEdges struct {
+	// Items holds the value of the items edge.
+	Items []*ShoppingItem `json:"items,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// ItemsOrErr returns the Items value or an error if the edge
+// was not loaded in eager-loading.
+func (e ShoppingEdges) ItemsOrErr() ([]*ShoppingItem, error) {
+	if e.loadedTypes[0] {
+		return e.Items, nil
+	}
+	return nil, &NotLoadedError{edge: "items"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -24,6 +56,10 @@ func (*Shopping) scanValues(columns []string) ([]interface{}, error) {
 		switch columns[i] {
 		case shopping.FieldID:
 			values[i] = new(sql.NullInt64)
+		case shopping.FieldMarket:
+			values[i] = new(sql.NullString)
+		case shopping.FieldCreateTime, shopping.FieldUpdateTime, shopping.FieldDate:
+			values[i] = new(sql.NullTime)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Shopping", columns[i])
 		}
@@ -45,9 +81,38 @@ func (s *Shopping) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			s.ID = int(value.Int64)
+		case shopping.FieldCreateTime:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field create_time", values[i])
+			} else if value.Valid {
+				s.CreateTime = value.Time
+			}
+		case shopping.FieldUpdateTime:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field update_time", values[i])
+			} else if value.Valid {
+				s.UpdateTime = value.Time
+			}
+		case shopping.FieldDate:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field date", values[i])
+			} else if value.Valid {
+				s.Date = value.Time
+			}
+		case shopping.FieldMarket:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field market", values[i])
+			} else if value.Valid {
+				s.Market = value.String
+			}
 		}
 	}
 	return nil
+}
+
+// QueryItems queries the "items" edge of the Shopping entity.
+func (s *Shopping) QueryItems() *ShoppingItemQuery {
+	return (&ShoppingClient{config: s.config}).QueryItems(s)
 }
 
 // Update returns a builder for updating this Shopping.
@@ -73,6 +138,14 @@ func (s *Shopping) String() string {
 	var builder strings.Builder
 	builder.WriteString("Shopping(")
 	builder.WriteString(fmt.Sprintf("id=%v", s.ID))
+	builder.WriteString(", create_time=")
+	builder.WriteString(s.CreateTime.Format(time.ANSIC))
+	builder.WriteString(", update_time=")
+	builder.WriteString(s.UpdateTime.Format(time.ANSIC))
+	builder.WriteString(", date=")
+	builder.WriteString(s.Date.Format(time.ANSIC))
+	builder.WriteString(", market=")
+	builder.WriteString(s.Market)
 	builder.WriteByte(')')
 	return builder.String()
 }

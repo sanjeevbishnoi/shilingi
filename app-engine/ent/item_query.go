@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -13,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 )
 
 // ItemQuery is the builder for querying Item entities.
@@ -24,6 +26,8 @@ type ItemQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Item
+	// eager-loading edges.
+	withPurchases *ShoppingItemQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +62,28 @@ func (iq *ItemQuery) Unique(unique bool) *ItemQuery {
 func (iq *ItemQuery) Order(o ...OrderFunc) *ItemQuery {
 	iq.order = append(iq.order, o...)
 	return iq
+}
+
+// QueryPurchases chains the current query on the "purchases" edge.
+func (iq *ItemQuery) QueryPurchases() *ShoppingItemQuery {
+	query := &ShoppingItemQuery{config: iq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := iq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := iq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, selector),
+			sqlgraph.To(shoppingitem.Table, shoppingitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, item.PurchasesTable, item.PurchasesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Item entity from the query.
@@ -236,15 +262,27 @@ func (iq *ItemQuery) Clone() *ItemQuery {
 		return nil
 	}
 	return &ItemQuery{
-		config:     iq.config,
-		limit:      iq.limit,
-		offset:     iq.offset,
-		order:      append([]OrderFunc{}, iq.order...),
-		predicates: append([]predicate.Item{}, iq.predicates...),
+		config:        iq.config,
+		limit:         iq.limit,
+		offset:        iq.offset,
+		order:         append([]OrderFunc{}, iq.order...),
+		predicates:    append([]predicate.Item{}, iq.predicates...),
+		withPurchases: iq.withPurchases.Clone(),
 		// clone intermediate query.
 		sql:  iq.sql.Clone(),
 		path: iq.path,
 	}
+}
+
+// WithPurchases tells the query-builder to eager-load the nodes that are connected to
+// the "purchases" edge. The optional arguments are used to configure the query builder of the edge.
+func (iq *ItemQuery) WithPurchases(opts ...func(*ShoppingItemQuery)) *ItemQuery {
+	query := &ShoppingItemQuery{config: iq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	iq.withPurchases = query
+	return iq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -253,12 +291,12 @@ func (iq *ItemQuery) Clone() *ItemQuery {
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		CreateTime time.Time `json:"create_time,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Item.Query().
-//		GroupBy(item.FieldName).
+//		GroupBy(item.FieldCreateTime).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 //
@@ -280,11 +318,11 @@ func (iq *ItemQuery) GroupBy(field string, fields ...string) *ItemGroupBy {
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		CreateTime time.Time `json:"create_time,omitempty"`
 //	}
 //
 //	client.Item.Query().
-//		Select(item.FieldName).
+//		Select(item.FieldCreateTime).
 //		Scan(ctx, &v)
 //
 func (iq *ItemQuery) Select(fields ...string) *ItemSelect {
@@ -310,8 +348,11 @@ func (iq *ItemQuery) prepareQuery(ctx context.Context) error {
 
 func (iq *ItemQuery) sqlAll(ctx context.Context) ([]*Item, error) {
 	var (
-		nodes = []*Item{}
-		_spec = iq.querySpec()
+		nodes       = []*Item{}
+		_spec       = iq.querySpec()
+		loadedTypes = [1]bool{
+			iq.withPurchases != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Item{config: iq.config}
@@ -323,6 +364,7 @@ func (iq *ItemQuery) sqlAll(ctx context.Context) ([]*Item, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, iq.driver, _spec); err != nil {
@@ -331,6 +373,36 @@ func (iq *ItemQuery) sqlAll(ctx context.Context) ([]*Item, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := iq.withPurchases; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*Item)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Purchases = []*ShoppingItem{}
+		}
+		query.withFKs = true
+		query.Where(predicate.ShoppingItem(func(s *sql.Selector) {
+			s.Where(sql.InValues(item.PurchasesColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.item_purchases
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "item_purchases" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "item_purchases" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Purchases = append(node.Edges.Purchases, n)
+		}
+	}
+
 	return nodes, nil
 }
 

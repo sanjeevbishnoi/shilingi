@@ -6,10 +6,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 )
 
 // ItemCreate is the builder for creating a Item entity.
@@ -19,10 +21,53 @@ type ItemCreate struct {
 	hooks    []Hook
 }
 
+// SetCreateTime sets the "create_time" field.
+func (ic *ItemCreate) SetCreateTime(t time.Time) *ItemCreate {
+	ic.mutation.SetCreateTime(t)
+	return ic
+}
+
+// SetNillableCreateTime sets the "create_time" field if the given value is not nil.
+func (ic *ItemCreate) SetNillableCreateTime(t *time.Time) *ItemCreate {
+	if t != nil {
+		ic.SetCreateTime(*t)
+	}
+	return ic
+}
+
+// SetUpdateTime sets the "update_time" field.
+func (ic *ItemCreate) SetUpdateTime(t time.Time) *ItemCreate {
+	ic.mutation.SetUpdateTime(t)
+	return ic
+}
+
+// SetNillableUpdateTime sets the "update_time" field if the given value is not nil.
+func (ic *ItemCreate) SetNillableUpdateTime(t *time.Time) *ItemCreate {
+	if t != nil {
+		ic.SetUpdateTime(*t)
+	}
+	return ic
+}
+
 // SetName sets the "name" field.
 func (ic *ItemCreate) SetName(s string) *ItemCreate {
 	ic.mutation.SetName(s)
 	return ic
+}
+
+// AddPurchaseIDs adds the "purchases" edge to the ShoppingItem entity by IDs.
+func (ic *ItemCreate) AddPurchaseIDs(ids ...int) *ItemCreate {
+	ic.mutation.AddPurchaseIDs(ids...)
+	return ic
+}
+
+// AddPurchases adds the "purchases" edges to the ShoppingItem entity.
+func (ic *ItemCreate) AddPurchases(s ...*ShoppingItem) *ItemCreate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return ic.AddPurchaseIDs(ids...)
 }
 
 // Mutation returns the ItemMutation object of the builder.
@@ -36,6 +81,7 @@ func (ic *ItemCreate) Save(ctx context.Context) (*Item, error) {
 		err  error
 		node *Item
 	)
+	ic.defaults()
 	if len(ic.hooks) == 0 {
 		if err = ic.check(); err != nil {
 			return nil, err
@@ -93,8 +139,26 @@ func (ic *ItemCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (ic *ItemCreate) defaults() {
+	if _, ok := ic.mutation.CreateTime(); !ok {
+		v := item.DefaultCreateTime()
+		ic.mutation.SetCreateTime(v)
+	}
+	if _, ok := ic.mutation.UpdateTime(); !ok {
+		v := item.DefaultUpdateTime()
+		ic.mutation.SetUpdateTime(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (ic *ItemCreate) check() error {
+	if _, ok := ic.mutation.CreateTime(); !ok {
+		return &ValidationError{Name: "create_time", err: errors.New(`ent: missing required field "create_time"`)}
+	}
+	if _, ok := ic.mutation.UpdateTime(); !ok {
+		return &ValidationError{Name: "update_time", err: errors.New(`ent: missing required field "update_time"`)}
+	}
 	if _, ok := ic.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "name"`)}
 	}
@@ -125,6 +189,22 @@ func (ic *ItemCreate) createSpec() (*Item, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	if value, ok := ic.mutation.CreateTime(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: item.FieldCreateTime,
+		})
+		_node.CreateTime = value
+	}
+	if value, ok := ic.mutation.UpdateTime(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: item.FieldUpdateTime,
+		})
+		_node.UpdateTime = value
+	}
 	if value, ok := ic.mutation.Name(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
@@ -132,6 +212,25 @@ func (ic *ItemCreate) createSpec() (*Item, *sqlgraph.CreateSpec) {
 			Column: item.FieldName,
 		})
 		_node.Name = value
+	}
+	if nodes := ic.mutation.PurchasesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.PurchasesTable,
+			Columns: []string{item.PurchasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
@@ -150,6 +249,7 @@ func (icb *ItemCreateBulk) Save(ctx context.Context) ([]*Item, error) {
 	for i := range icb.builders {
 		func(i int, root context.Context) {
 			builder := icb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*ItemMutation)
 				if !ok {

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 )
 
 // ItemUpdate is the builder for updating Item entities.
@@ -32,9 +33,45 @@ func (iu *ItemUpdate) SetName(s string) *ItemUpdate {
 	return iu
 }
 
+// AddPurchaseIDs adds the "purchases" edge to the ShoppingItem entity by IDs.
+func (iu *ItemUpdate) AddPurchaseIDs(ids ...int) *ItemUpdate {
+	iu.mutation.AddPurchaseIDs(ids...)
+	return iu
+}
+
+// AddPurchases adds the "purchases" edges to the ShoppingItem entity.
+func (iu *ItemUpdate) AddPurchases(s ...*ShoppingItem) *ItemUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return iu.AddPurchaseIDs(ids...)
+}
+
 // Mutation returns the ItemMutation object of the builder.
 func (iu *ItemUpdate) Mutation() *ItemMutation {
 	return iu.mutation
+}
+
+// ClearPurchases clears all "purchases" edges to the ShoppingItem entity.
+func (iu *ItemUpdate) ClearPurchases() *ItemUpdate {
+	iu.mutation.ClearPurchases()
+	return iu
+}
+
+// RemovePurchaseIDs removes the "purchases" edge to ShoppingItem entities by IDs.
+func (iu *ItemUpdate) RemovePurchaseIDs(ids ...int) *ItemUpdate {
+	iu.mutation.RemovePurchaseIDs(ids...)
+	return iu
+}
+
+// RemovePurchases removes "purchases" edges to ShoppingItem entities.
+func (iu *ItemUpdate) RemovePurchases(s ...*ShoppingItem) *ItemUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return iu.RemovePurchaseIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -43,6 +80,7 @@ func (iu *ItemUpdate) Save(ctx context.Context) (int, error) {
 		err      error
 		affected int
 	)
+	iu.defaults()
 	if len(iu.hooks) == 0 {
 		affected, err = iu.sqlSave(ctx)
 	} else {
@@ -91,6 +129,14 @@ func (iu *ItemUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (iu *ItemUpdate) defaults() {
+	if _, ok := iu.mutation.UpdateTime(); !ok {
+		v := item.UpdateDefaultUpdateTime()
+		iu.mutation.SetUpdateTime(v)
+	}
+}
+
 func (iu *ItemUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -109,12 +155,73 @@ func (iu *ItemUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
+	if value, ok := iu.mutation.UpdateTime(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: item.FieldUpdateTime,
+		})
+	}
 	if value, ok := iu.mutation.Name(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
 			Value:  value,
 			Column: item.FieldName,
 		})
+	}
+	if iu.mutation.PurchasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.PurchasesTable,
+			Columns: []string{item.PurchasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iu.mutation.RemovedPurchasesIDs(); len(nodes) > 0 && !iu.mutation.PurchasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.PurchasesTable,
+			Columns: []string{item.PurchasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iu.mutation.PurchasesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.PurchasesTable,
+			Columns: []string{item.PurchasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, iu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -141,9 +248,45 @@ func (iuo *ItemUpdateOne) SetName(s string) *ItemUpdateOne {
 	return iuo
 }
 
+// AddPurchaseIDs adds the "purchases" edge to the ShoppingItem entity by IDs.
+func (iuo *ItemUpdateOne) AddPurchaseIDs(ids ...int) *ItemUpdateOne {
+	iuo.mutation.AddPurchaseIDs(ids...)
+	return iuo
+}
+
+// AddPurchases adds the "purchases" edges to the ShoppingItem entity.
+func (iuo *ItemUpdateOne) AddPurchases(s ...*ShoppingItem) *ItemUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return iuo.AddPurchaseIDs(ids...)
+}
+
 // Mutation returns the ItemMutation object of the builder.
 func (iuo *ItemUpdateOne) Mutation() *ItemMutation {
 	return iuo.mutation
+}
+
+// ClearPurchases clears all "purchases" edges to the ShoppingItem entity.
+func (iuo *ItemUpdateOne) ClearPurchases() *ItemUpdateOne {
+	iuo.mutation.ClearPurchases()
+	return iuo
+}
+
+// RemovePurchaseIDs removes the "purchases" edge to ShoppingItem entities by IDs.
+func (iuo *ItemUpdateOne) RemovePurchaseIDs(ids ...int) *ItemUpdateOne {
+	iuo.mutation.RemovePurchaseIDs(ids...)
+	return iuo
+}
+
+// RemovePurchases removes "purchases" edges to ShoppingItem entities.
+func (iuo *ItemUpdateOne) RemovePurchases(s ...*ShoppingItem) *ItemUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return iuo.RemovePurchaseIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -159,6 +302,7 @@ func (iuo *ItemUpdateOne) Save(ctx context.Context) (*Item, error) {
 		err  error
 		node *Item
 	)
+	iuo.defaults()
 	if len(iuo.hooks) == 0 {
 		node, err = iuo.sqlSave(ctx)
 	} else {
@@ -207,6 +351,14 @@ func (iuo *ItemUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (iuo *ItemUpdateOne) defaults() {
+	if _, ok := iuo.mutation.UpdateTime(); !ok {
+		v := item.UpdateDefaultUpdateTime()
+		iuo.mutation.SetUpdateTime(v)
+	}
+}
+
 func (iuo *ItemUpdateOne) sqlSave(ctx context.Context) (_node *Item, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -242,12 +394,73 @@ func (iuo *ItemUpdateOne) sqlSave(ctx context.Context) (_node *Item, err error) 
 			}
 		}
 	}
+	if value, ok := iuo.mutation.UpdateTime(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: item.FieldUpdateTime,
+		})
+	}
 	if value, ok := iuo.mutation.Name(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
 			Value:  value,
 			Column: item.FieldName,
 		})
+	}
+	if iuo.mutation.PurchasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.PurchasesTable,
+			Columns: []string{item.PurchasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iuo.mutation.RemovedPurchasesIDs(); len(nodes) > 0 && !iuo.mutation.PurchasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.PurchasesTable,
+			Columns: []string{item.PurchasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iuo.mutation.PurchasesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.PurchasesTable,
+			Columns: []string{item.PurchasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Item{config: iuo.config}
 	_spec.Assign = _node.assignValues
