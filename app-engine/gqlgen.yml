@@ -58,3 +58,6 @@ models:
   Node:
     model:
       - github.com/kingzbauer/shilingi/app-engine/ent.Noder
+  Decimal:
+    model:
+      - github.com/kingzbauer/shilingi/app-engine/ent/schema/customtypes.Decimal

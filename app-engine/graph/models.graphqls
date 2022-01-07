@@ -17,7 +17,7 @@ input ShoppingItemInput {
   item: Int!
 }
 
-input ShippingInput {
+input ShoppingInput {
   date: Time!
   market: String!
   items: [ShoppingItemInput!]!
@@ -27,7 +27,7 @@ type ShoppingItem implements Node {
   id: ID!
   quantity: Float!
   quantityType: String!
-  units: String
+  units: Int
   brand: String 
   pricePerUnit: Float!
 }

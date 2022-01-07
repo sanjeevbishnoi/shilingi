@@ -2,6 +2,25 @@
 
 package model
 
+import (
+	"time"
+)
+
 type ItemInput struct {
 	Name string `json:"name"`
+}
+
+type ShoppingInput struct {
+	Date   time.Time            `json:"date"`
+	Market string               `json:"market"`
+	Items  []*ShoppingItemInput `json:"items"`
+}
+
+type ShoppingItemInput struct {
+	Quantity     float64 `json:"quantity"`
+	QuantityType string  `json:"quantityType"`
+	Units        *string `json:"units"`
+	Brand        *string `json:"brand"`
+	PricePerUnit float64 `json:"pricePerUnit"`
+	Item         int     `json:"item"`
 }
