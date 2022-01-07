@@ -28,6 +28,8 @@ func UnmarshalDecimal(val interface{}) (decimal.Decimal, error) {
 		return decimal.NewFromString(t)
 	case []byte:
 		return decimal.NewFromString(string(t))
+	case int64:
+		return decimal.NewFromInt(t), nil
 	default:
 		return decimal.Decimal{}, fmt.Errorf("unsupported type for decimal: %T", t)
 	}
