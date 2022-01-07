@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
@@ -13,11 +12,12 @@ import (
 )
 
 func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error) {
-	panic(fmt.Errorf("not implemented"))
+	cli := ent.FromContext(ctx)
+	return cli.Item.Create().SetName(input.Name).Save(ctx)
 }
 
 func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.cli.Item.Query().All(ctx)
 }
 
 // Mutation returns generated.MutationResolver implementation.

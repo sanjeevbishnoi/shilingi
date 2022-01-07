@@ -1,14 +1,20 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 
+	"entgo.io/contrib/entgql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	_ "github.com/mattn/go-sqlite3"
+
+	"github.com/kingzbauer/shilingi/app-engine/ent"
+	"github.com/kingzbauer/shilingi/app-engine/ent/migrate"
+	_ "github.com/kingzbauer/shilingi/app-engine/ent/runtime"
 	"github.com/kingzbauer/shilingi/app-engine/graph"
-	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
 )
 
 const defaultPort = "8080"
@@ -19,7 +25,21 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	// Open a DB connection
+	cli, err := ent.Open("sqlite3", "file:shilingi.db?mode=rwc&_fk=1&cache=shared")
+	if err != nil {
+		log.Fatal("opening ent client", err)
+	}
+	defer cli.Close()
+
+	ctx := context.Background()
+	cli.Schema.Create(
+		ctx,
+		migrate.WithGlobalUniqueID(true),
+	)
+
+	srv := handler.NewDefaultServer(graph.NewSchema(cli))
+	srv.Use(entgql.Transactioner{TxOpener: cli})
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
