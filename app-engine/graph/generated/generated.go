@@ -73,6 +73,7 @@ type ComplexityRoot struct {
 	ShoppingItem struct {
 		Brand        func(childComplexity int) int
 		ID           func(childComplexity int) int
+		Item         func(childComplexity int) int
 		PricePerUnit func(childComplexity int) int
 		Quantity     func(childComplexity int) int
 		QuantityType func(childComplexity int) int
@@ -198,6 +199,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ShoppingItem.ID(childComplexity), true
 
+	case "ShoppingItem.item":
+		if e.complexity.ShoppingItem.Item == nil {
+			break
+		}
+
+		return e.complexity.ShoppingItem.Item(childComplexity), true
+
 	case "ShoppingItem.pricePerUnit":
 		if e.complexity.ShoppingItem.PricePerUnit == nil {
 			break
@@ -322,6 +330,7 @@ type ShoppingItem implements Node {
   units: Int
   brand: String 
   pricePerUnit: Decimal!
+  item: Item!
 }
 
 type Shopping implements Node {
@@ -1069,6 +1078,41 @@ func (ec *executionContext) _ShoppingItem_pricePerUnit(ctx context.Context, fiel
 	res := resTmp.(decimal.Decimal)
 	fc.Result = res
 	return ec.marshalNDecimal2githubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingItem_item(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItem) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingItem",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Item(ctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Item)
+	fc.Result = res
+	return ec.marshalNItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItem(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2535,17 +2579,17 @@ func (ec *executionContext) _ShoppingItem(ctx context.Context, sel ast.Selection
 		case "id":
 			out.Values[i] = ec._ShoppingItem_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "quantity":
 			out.Values[i] = ec._ShoppingItem_quantity(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "quantityType":
 			out.Values[i] = ec._ShoppingItem_quantityType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "units":
 			out.Values[i] = ec._ShoppingItem_units(ctx, field, obj)
@@ -2554,8 +2598,22 @@ func (ec *executionContext) _ShoppingItem(ctx context.Context, sel ast.Selection
 		case "pricePerUnit":
 			out.Values[i] = ec._ShoppingItem_pricePerUnit(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
+		case "item":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ShoppingItem_item(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

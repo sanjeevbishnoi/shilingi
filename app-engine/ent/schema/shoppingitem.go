@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"entgo.io/contrib/entgql"
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/edge"
@@ -43,7 +44,8 @@ func (ShoppingItem) Edges() []ent.Edge {
 		edge.From("item", Item.Type).
 			Ref("purchases").
 			Unique().
-			Required(),
+			Required().
+			Annotations(entgql.Bind()),
 		edge.From("shopping", Shopping.Type).
 			Ref("items").
 			Unique().

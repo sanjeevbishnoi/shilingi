@@ -49,5 +49,13 @@ func (si *ShoppingItemQuery) CollectFields(ctx context.Context, satisfies ...str
 }
 
 func (si *ShoppingItemQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *ShoppingItemQuery {
+	for _, field := range graphql.CollectFields(ctx, field.Selections, satisfies) {
+		switch field.Name {
+		case "item":
+			si = si.WithItem(func(query *ItemQuery) {
+				query.collectField(ctx, field)
+			})
+		}
+	}
 	return si
 }
