@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
@@ -18,7 +17,32 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput
 }
 
 func (r *mutationResolver) CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error) {
-	panic(fmt.Errorf("not implemented"))
+	cli := ent.FromContext(ctx)
+	shopping, err := cli.Shopping.Create().
+		SetDate(input.Date).
+		SetMarket(input.Market).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	itemCreate := []*ent.ShoppingItemCreate{}
+	for _, item := range input.Items {
+		shoppingItem := cli.ShoppingItem.Create().
+			SetQuantity(item.Quantity).
+			SetQuantityType(item.QuantityType).
+			// SetNillableUnits(item.Units).
+			SetNillableBrand(item.Brand).
+			SetPricePerUnit(item.PricePerUnit).
+			SetItemID(item.Item).
+			SetShopping(shopping)
+		itemCreate = append(itemCreate, shoppingItem)
+	}
+	if _, err = cli.ShoppingItem.CreateBulk(itemCreate...).Save(ctx); err != nil {
+		return nil, err
+	}
+
+	return shopping, nil
 }
 
 func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
@@ -26,7 +50,7 @@ func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
 }
 
 func (r *queryResolver) Purchases(ctx context.Context) ([]*ent.Shopping, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.cli.Shopping.Query().All(ctx)
 }
 
 // Mutation returns generated.MutationResolver implementation.
