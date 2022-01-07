@@ -15,7 +15,9 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
 	"github.com/kingzbauer/shilingi/app-engine/ent"
+	"github.com/kingzbauer/shilingi/app-engine/ent/schema/customtypes"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
+	"github.com/shopspring/decimal"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -40,7 +42,6 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
-	ShoppingItem() ShoppingItemResolver
 }
 
 type DirectiveRoot struct {
@@ -86,11 +87,6 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Items(ctx context.Context) ([]*ent.Item, error)
 	Purchases(ctx context.Context) ([]*ent.Shopping, error)
-}
-type ShoppingItemResolver interface {
-	Units(ctx context.Context, obj *ent.ShoppingItem) (*string, error)
-
-	PricePerUnit(ctx context.Context, obj *ent.ShoppingItem) (float64, error)
 }
 
 type executableSchema struct {
@@ -308,7 +304,7 @@ input ShoppingItemInput {
   quantityType: String!
   units: String
   brand: String 
-  pricePerUnit: Float!
+  pricePerUnit: Decimal!
   # Add a validator for checking the provided id for an item exists
   item: Int!
 }
@@ -323,9 +319,9 @@ type ShoppingItem implements Node {
   id: ID!
   quantity: Float!
   quantityType: String!
-  units: String
+  units: Int
   brand: String 
-  pricePerUnit: Float!
+  pricePerUnit: Decimal!
 }
 
 type Shopping implements Node {
@@ -336,6 +332,7 @@ type Shopping implements Node {
 }
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `scalar Time
+scalar Decimal
 
 interface Node {
   id: ID!
@@ -986,14 +983,14 @@ func (ec *executionContext) _ShoppingItem_units(ctx context.Context, field graph
 		Object:     "ShoppingItem",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ShoppingItem().Units(rctx, obj)
+		return obj.Units, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1002,9 +999,9 @@ func (ec *executionContext) _ShoppingItem_units(ctx context.Context, field graph
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ShoppingItem_brand(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItem) (ret graphql.Marshaler) {
@@ -1050,14 +1047,14 @@ func (ec *executionContext) _ShoppingItem_pricePerUnit(ctx context.Context, fiel
 		Object:     "ShoppingItem",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ShoppingItem().PricePerUnit(rctx, obj)
+		return obj.PricePerUnit, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1069,9 +1066,9 @@ func (ec *executionContext) _ShoppingItem_pricePerUnit(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.(float64)
+	res := resTmp.(decimal.Decimal)
 	fc.Result = res
-	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+	return ec.marshalNDecimal2githubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2303,7 +2300,7 @@ func (ec *executionContext) unmarshalInputShoppingItemInput(ctx context.Context,
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pricePerUnit"))
-			it.PricePerUnit, err = ec.unmarshalNFloat2float64(ctx, v)
+			it.PricePerUnit, err = ec.unmarshalNDecimal2githubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2538,45 +2535,27 @@ func (ec *executionContext) _ShoppingItem(ctx context.Context, sel ast.Selection
 		case "id":
 			out.Values[i] = ec._ShoppingItem_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "quantity":
 			out.Values[i] = ec._ShoppingItem_quantity(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "quantityType":
 			out.Values[i] = ec._ShoppingItem_quantityType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "units":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShoppingItem_units(ctx, field, obj)
-				return res
-			})
+			out.Values[i] = ec._ShoppingItem_units(ctx, field, obj)
 		case "brand":
 			out.Values[i] = ec._ShoppingItem_brand(ctx, field, obj)
 		case "pricePerUnit":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShoppingItem_pricePerUnit(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._ShoppingItem_pricePerUnit(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2845,6 +2824,21 @@ func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interf
 
 func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
 	res := graphql.MarshalBoolean(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNDecimal2githubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx context.Context, v interface{}) (decimal.Decimal, error) {
+	res, err := customtypes.UnmarshalDecimal(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDecimal2githubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx context.Context, sel ast.SelectionSet, v decimal.Decimal) graphql.Marshaler {
+	res := customtypes.MarshalDecimal(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3405,6 +3399,15 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
+}
+
+func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	return graphql.MarshalInt(v)
 }
 
 func (ec *executionContext) marshalOItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItem(ctx context.Context, sel ast.SelectionSet, v *ent.Item) graphql.Marshaler {

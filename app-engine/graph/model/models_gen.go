@@ -4,6 +4,8 @@ package model
 
 import (
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 type ItemInput struct {
@@ -17,10 +19,10 @@ type ShoppingInput struct {
 }
 
 type ShoppingItemInput struct {
-	Quantity     float64 `json:"quantity"`
-	QuantityType string  `json:"quantityType"`
-	Units        *string `json:"units"`
-	Brand        *string `json:"brand"`
-	PricePerUnit float64 `json:"pricePerUnit"`
-	Item         int     `json:"item"`
+	Quantity     float64         `json:"quantity"`
+	QuantityType string          `json:"quantityType"`
+	Units        *string         `json:"units"`
+	Brand        *string         `json:"brand"`
+	PricePerUnit decimal.Decimal `json:"pricePerUnit"`
+	Item         int             `json:"item"`
 }

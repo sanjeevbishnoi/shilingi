@@ -12,7 +12,7 @@ input ShoppingItemInput {
   quantityType: String!
   units: String
   brand: String 
-  pricePerUnit: Float!
+  pricePerUnit: Decimal!
   # Add a validator for checking the provided id for an item exists
   item: Int!
 }
@@ -29,7 +29,7 @@ type ShoppingItem implements Node {
   quantityType: String!
   units: Int
   brand: String 
-  pricePerUnit: Float!
+  pricePerUnit: Decimal!
 }
 
 type Shopping implements Node {
