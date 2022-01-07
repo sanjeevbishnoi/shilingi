@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"entgo.io/contrib/entgql"
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -25,7 +26,8 @@ func (Shopping) Fields() []ent.Field {
 // Edges of the Shopping.
 func (Shopping) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("items", ShoppingItem.Type),
+		edge.To("items", ShoppingItem.Type).
+			Annotations(entgql.Bind()),
 	}
 }
 

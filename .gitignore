@@ -1,2 +1,5 @@
 # Ignore vim generated temp files
 .*.sw?
+
+# sqlite db
+*.db

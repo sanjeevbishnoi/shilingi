@@ -6,3 +6,35 @@ type Item implements Node {
 input ItemInput {
   name: String!
 }
+
+input ShoppingItemInput {
+  quantity: Float!
+  quantityType: String!
+  units: String
+  brand: String 
+  pricePerUnit: Float!
+  # Add a validator for checking the provided id for an item exists
+  item: Int!
+}
+
+input ShippingInput {
+  date: Time!
+  market: String!
+  items: [ShoppingItemInput!]!
+}
+
+type ShoppingItem implements Node {
+  id: ID!
+  quantity: Float!
+  quantityType: String!
+  units: String
+  brand: String 
+  pricePerUnit: Float!
+}
+
+type Shopping implements Node {
+  id: ID!
+  date: Time!
+  market: String!
+  items: [ShoppingItem!]!
+}

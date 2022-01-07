@@ -1,11 +1,15 @@
+scalar Time
+
 interface Node {
   id: ID!
 }
 
 type Query {
   items: [Item!]!
+  purchases: [Shopping!]!
 }
 
 type Mutation {
-  createItem(input: ItemInput!): Item!
+  createItem(input: ItemInput!): Item
+  createPurchase(input: ShoppingInput!): Shopping
 }
