@@ -7,15 +7,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
 )
 
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
+func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
+func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
