@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"time"
+
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
@@ -17,7 +19,8 @@ type Shopping struct {
 func (Shopping) Fields() []ent.Field {
 	return []ent.Field{
 		field.Time("date").
-			Comment("When was the shopping done"),
+			Comment("When was the shopping done").
+			Default(time.Now),
 		field.String("market").
 			Comment("This is the place where you bought the items from"),
 	}
