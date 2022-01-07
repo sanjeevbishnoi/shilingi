@@ -34,6 +34,14 @@ func (su *ShoppingUpdate) SetDate(t time.Time) *ShoppingUpdate {
 	return su
 }
 
+// SetNillableDate sets the "date" field if the given value is not nil.
+func (su *ShoppingUpdate) SetNillableDate(t *time.Time) *ShoppingUpdate {
+	if t != nil {
+		su.SetDate(*t)
+	}
+	return su
+}
+
 // SetMarket sets the "market" field.
 func (su *ShoppingUpdate) SetMarket(s string) *ShoppingUpdate {
 	su.mutation.SetMarket(s)
@@ -259,6 +267,14 @@ type ShoppingUpdateOne struct {
 // SetDate sets the "date" field.
 func (suo *ShoppingUpdateOne) SetDate(t time.Time) *ShoppingUpdateOne {
 	suo.mutation.SetDate(t)
+	return suo
+}
+
+// SetNillableDate sets the "date" field if the given value is not nil.
+func (suo *ShoppingUpdateOne) SetNillableDate(t *time.Time) *ShoppingUpdateOne {
+	if t != nil {
+		suo.SetDate(*t)
+	}
 	return suo
 }
 

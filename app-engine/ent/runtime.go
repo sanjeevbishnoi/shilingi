@@ -45,6 +45,10 @@ func init() {
 	shopping.DefaultUpdateTime = shoppingDescUpdateTime.Default.(func() time.Time)
 	// shopping.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
 	shopping.UpdateDefaultUpdateTime = shoppingDescUpdateTime.UpdateDefault.(func() time.Time)
+	// shoppingDescDate is the schema descriptor for date field.
+	shoppingDescDate := shoppingFields[0].Descriptor()
+	// shopping.DefaultDate holds the default value on creation for the date field.
+	shopping.DefaultDate = shoppingDescDate.Default.(func() time.Time)
 	shoppingitemMixin := schema.ShoppingItem{}.Mixin()
 	shoppingitemMixinFields0 := shoppingitemMixin[0].Fields()
 	_ = shoppingitemMixinFields0

@@ -58,4 +58,6 @@ var (
 	DefaultUpdateTime func() time.Time
 	// UpdateDefaultUpdateTime holds the default value on update for the "update_time" field.
 	UpdateDefaultUpdateTime func() time.Time
+	// DefaultDate holds the default value on creation for the "date" field.
+	DefaultDate func() time.Time
 )

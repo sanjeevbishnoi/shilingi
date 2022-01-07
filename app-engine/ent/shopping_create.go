@@ -55,6 +55,14 @@ func (sc *ShoppingCreate) SetDate(t time.Time) *ShoppingCreate {
 	return sc
 }
 
+// SetNillableDate sets the "date" field if the given value is not nil.
+func (sc *ShoppingCreate) SetNillableDate(t *time.Time) *ShoppingCreate {
+	if t != nil {
+		sc.SetDate(*t)
+	}
+	return sc
+}
+
 // SetMarket sets the "market" field.
 func (sc *ShoppingCreate) SetMarket(s string) *ShoppingCreate {
 	sc.mutation.SetMarket(s)
@@ -154,6 +162,10 @@ func (sc *ShoppingCreate) defaults() {
 	if _, ok := sc.mutation.UpdateTime(); !ok {
 		v := shopping.DefaultUpdateTime()
 		sc.mutation.SetUpdateTime(v)
+	}
+	if _, ok := sc.mutation.Date(); !ok {
+		v := shopping.DefaultDate()
+		sc.mutation.SetDate(v)
 	}
 }
 
