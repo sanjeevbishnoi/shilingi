@@ -18,10 +18,12 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput
 
 func (r *mutationResolver) CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error) {
 	cli := ent.FromContext(ctx)
-	shopping, err := cli.Shopping.Create().
-		SetDate(input.Date).
-		SetMarket(input.Market).
-		Save(ctx)
+	shoppingCreate := cli.Shopping.Create().
+		SetMarket(input.Market)
+	if input.Date != nil {
+		shoppingCreate.SetDate(*input.Date)
+	}
+	shopping, err := shoppingCreate.Save(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,7 @@ type ItemInput struct {
 }
 
 type ShoppingInput struct {
-	Date   time.Time            `json:"date"`
+	Date   *time.Time           `json:"date"`
 	Market string               `json:"market"`
 	Items  []*ShoppingItemInput `json:"items"`
 }

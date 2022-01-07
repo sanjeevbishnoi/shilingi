@@ -18,7 +18,7 @@ input ShoppingItemInput {
 }
 
 input ShoppingInput {
-  date: Time!
+  date: Time
   market: String!
   items: [ShoppingItemInput!]!
 }
