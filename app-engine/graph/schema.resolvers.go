@@ -31,7 +31,7 @@ func (r *mutationResolver) CreatePurchase(ctx context.Context, input model.Shopp
 		shoppingItem := cli.ShoppingItem.Create().
 			SetQuantity(item.Quantity).
 			SetQuantityType(item.QuantityType).
-			// SetNillableUnits(item.Units).
+			SetNillableUnits(item.Units).
 			SetNillableBrand(item.Brand).
 			SetPricePerUnit(item.PricePerUnit).
 			SetItemID(item.Item).
