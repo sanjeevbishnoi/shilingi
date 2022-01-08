@@ -1,0 +1,12 @@
+version: "3.7"
+networks:
+  shilingi:
+services:
+  app-engine:
+    image: localhost:5000/app-engine:${APP_ENGINE_VERSION:-v0.0.1}
+    build:
+      context: .
+    ports:
+      - '8080:8080'
+    networks:
+      - shilingi
