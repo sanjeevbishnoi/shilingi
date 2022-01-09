@@ -20,6 +20,7 @@ input ShoppingItemInput {
 input ShoppingInput {
   date: Time
   market: String!
+  vendor: VendorInput!
   items: [ShoppingItemInput!]!
 }
 
@@ -37,5 +38,17 @@ type Shopping implements Node {
   id: ID!
   date: Time!
   market: String!
+  vendor: Vendor!
   items: [ShoppingItem!]!
+}
+
+type Vendor implements Node {
+  id: ID!
+  name: String!
+  slug: String!
+  purchases: [Shopping!]!
+}
+
+input VendorInput  {
+  name: String!
 }
