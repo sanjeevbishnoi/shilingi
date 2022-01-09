@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -18,6 +19,34 @@ type VendorCreate struct {
 	config
 	mutation *VendorMutation
 	hooks    []Hook
+}
+
+// SetCreateTime sets the "create_time" field.
+func (vc *VendorCreate) SetCreateTime(t time.Time) *VendorCreate {
+	vc.mutation.SetCreateTime(t)
+	return vc
+}
+
+// SetNillableCreateTime sets the "create_time" field if the given value is not nil.
+func (vc *VendorCreate) SetNillableCreateTime(t *time.Time) *VendorCreate {
+	if t != nil {
+		vc.SetCreateTime(*t)
+	}
+	return vc
+}
+
+// SetUpdateTime sets the "update_time" field.
+func (vc *VendorCreate) SetUpdateTime(t time.Time) *VendorCreate {
+	vc.mutation.SetUpdateTime(t)
+	return vc
+}
+
+// SetNillableUpdateTime sets the "update_time" field if the given value is not nil.
+func (vc *VendorCreate) SetNillableUpdateTime(t *time.Time) *VendorCreate {
+	if t != nil {
+		vc.SetUpdateTime(*t)
+	}
+	return vc
 }
 
 // SetName sets the "name" field.
@@ -58,6 +87,7 @@ func (vc *VendorCreate) Save(ctx context.Context) (*Vendor, error) {
 		err  error
 		node *Vendor
 	)
+	vc.defaults()
 	if len(vc.hooks) == 0 {
 		if err = vc.check(); err != nil {
 			return nil, err
@@ -115,8 +145,26 @@ func (vc *VendorCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (vc *VendorCreate) defaults() {
+	if _, ok := vc.mutation.CreateTime(); !ok {
+		v := vendor.DefaultCreateTime()
+		vc.mutation.SetCreateTime(v)
+	}
+	if _, ok := vc.mutation.UpdateTime(); !ok {
+		v := vendor.DefaultUpdateTime()
+		vc.mutation.SetUpdateTime(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (vc *VendorCreate) check() error {
+	if _, ok := vc.mutation.CreateTime(); !ok {
+		return &ValidationError{Name: "create_time", err: errors.New(`ent: missing required field "create_time"`)}
+	}
+	if _, ok := vc.mutation.UpdateTime(); !ok {
+		return &ValidationError{Name: "update_time", err: errors.New(`ent: missing required field "update_time"`)}
+	}
 	if _, ok := vc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "name"`)}
 	}
@@ -150,6 +198,22 @@ func (vc *VendorCreate) createSpec() (*Vendor, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	if value, ok := vc.mutation.CreateTime(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: vendor.FieldCreateTime,
+		})
+		_node.CreateTime = value
+	}
+	if value, ok := vc.mutation.UpdateTime(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: vendor.FieldUpdateTime,
+		})
+		_node.UpdateTime = value
+	}
 	if value, ok := vc.mutation.Name(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
@@ -202,6 +266,7 @@ func (vcb *VendorCreateBulk) Save(ctx context.Context) ([]*Vendor, error) {
 	for i := range vcb.builders {
 		func(i int, root context.Context) {
 			builder := vcb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*VendorMutation)
 				if !ok {

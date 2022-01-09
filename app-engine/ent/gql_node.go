@@ -248,14 +248,30 @@ func (v *Vendor) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     v.ID,
 		Type:   "Vendor",
-		Fields: make([]*Field, 2),
+		Fields: make([]*Field, 4),
 		Edges:  make([]*Edge, 1),
 	}
 	var buf []byte
-	if buf, err = json.Marshal(v.Name); err != nil {
+	if buf, err = json.Marshal(v.CreateTime); err != nil {
 		return nil, err
 	}
 	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "create_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(v.UpdateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "update_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(v.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
 		Type:  "string",
 		Name:  "name",
 		Value: string(buf),
@@ -263,7 +279,7 @@ func (v *Vendor) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(v.Slug); err != nil {
 		return nil, err
 	}
-	node.Fields[1] = &Field{
+	node.Fields[3] = &Field{
 		Type:  "string",
 		Name:  "slug",
 		Value: string(buf),

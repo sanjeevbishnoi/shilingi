@@ -291,12 +291,12 @@ func (vq *VendorQuery) WithPurchases(opts ...func(*ShoppingQuery)) *VendorQuery 
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		CreateTime time.Time `json:"create_time,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Vendor.Query().
-//		GroupBy(vendor.FieldName).
+//		GroupBy(vendor.FieldCreateTime).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 //
@@ -318,11 +318,11 @@ func (vq *VendorQuery) GroupBy(field string, fields ...string) *VendorGroupBy {
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		CreateTime time.Time `json:"create_time,omitempty"`
 //	}
 //
 //	client.Vendor.Query().
-//		Select(vendor.FieldName).
+//		Select(vendor.FieldCreateTime).
 //		Scan(ctx, &v)
 //
 func (vq *VendorQuery) Select(fields ...string) *VendorSelect {

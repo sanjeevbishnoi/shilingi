@@ -9,6 +9,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/schema"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -68,4 +69,19 @@ func init() {
 	shoppingitemDescUnits := shoppingitemFields[2].Descriptor()
 	// shoppingitem.DefaultUnits holds the default value on creation for the units field.
 	shoppingitem.DefaultUnits = shoppingitemDescUnits.Default.(int)
+	vendorMixin := schema.Vendor{}.Mixin()
+	vendorMixinFields0 := vendorMixin[0].Fields()
+	_ = vendorMixinFields0
+	vendorFields := schema.Vendor{}.Fields()
+	_ = vendorFields
+	// vendorDescCreateTime is the schema descriptor for create_time field.
+	vendorDescCreateTime := vendorMixinFields0[0].Descriptor()
+	// vendor.DefaultCreateTime holds the default value on creation for the create_time field.
+	vendor.DefaultCreateTime = vendorDescCreateTime.Default.(func() time.Time)
+	// vendorDescUpdateTime is the schema descriptor for update_time field.
+	vendorDescUpdateTime := vendorMixinFields0[1].Descriptor()
+	// vendor.DefaultUpdateTime holds the default value on creation for the update_time field.
+	vendor.DefaultUpdateTime = vendorDescUpdateTime.Default.(func() time.Time)
+	// vendor.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	vendor.UpdateDefaultUpdateTime = vendorDescUpdateTime.UpdateDefault.(func() time.Time)
 }

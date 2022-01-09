@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
@@ -15,6 +16,10 @@ type Vendor struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// CreateTime holds the value of the "create_time" field.
+	CreateTime time.Time `json:"create_time,omitempty"`
+	// UpdateTime holds the value of the "update_time" field.
+	UpdateTime time.Time `json:"update_time,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Slug holds the value of the "slug" field.
@@ -51,6 +56,8 @@ func (*Vendor) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullInt64)
 		case vendor.FieldName, vendor.FieldSlug:
 			values[i] = new(sql.NullString)
+		case vendor.FieldCreateTime, vendor.FieldUpdateTime:
+			values[i] = new(sql.NullTime)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Vendor", columns[i])
 		}
@@ -72,6 +79,18 @@ func (v *Vendor) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			v.ID = int(value.Int64)
+		case vendor.FieldCreateTime:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field create_time", values[i])
+			} else if value.Valid {
+				v.CreateTime = value.Time
+			}
+		case vendor.FieldUpdateTime:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field update_time", values[i])
+			} else if value.Valid {
+				v.UpdateTime = value.Time
+			}
 		case vendor.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
@@ -117,6 +136,10 @@ func (v *Vendor) String() string {
 	var builder strings.Builder
 	builder.WriteString("Vendor(")
 	builder.WriteString(fmt.Sprintf("id=%v", v.ID))
+	builder.WriteString(", create_time=")
+	builder.WriteString(v.CreateTime.Format(time.ANSIC))
+	builder.WriteString(", update_time=")
+	builder.WriteString(v.UpdateTime.Format(time.ANSIC))
 	builder.WriteString(", name=")
 	builder.WriteString(v.Name)
 	builder.WriteString(", slug=")

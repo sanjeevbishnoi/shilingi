@@ -2006,6 +2006,8 @@ type VendorMutation struct {
 	op               Op
 	typ              string
 	id               *int
+	create_time      *time.Time
+	update_time      *time.Time
 	name             *string
 	slug             *string
 	clearedFields    map[string]struct{}
@@ -2094,6 +2096,78 @@ func (m *VendorMutation) ID() (id int, exists bool) {
 		return
 	}
 	return *m.id, true
+}
+
+// SetCreateTime sets the "create_time" field.
+func (m *VendorMutation) SetCreateTime(t time.Time) {
+	m.create_time = &t
+}
+
+// CreateTime returns the value of the "create_time" field in the mutation.
+func (m *VendorMutation) CreateTime() (r time.Time, exists bool) {
+	v := m.create_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateTime returns the old "create_time" field's value of the Vendor entity.
+// If the Vendor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VendorMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldCreateTime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldCreateTime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateTime: %w", err)
+	}
+	return oldValue.CreateTime, nil
+}
+
+// ResetCreateTime resets all changes to the "create_time" field.
+func (m *VendorMutation) ResetCreateTime() {
+	m.create_time = nil
+}
+
+// SetUpdateTime sets the "update_time" field.
+func (m *VendorMutation) SetUpdateTime(t time.Time) {
+	m.update_time = &t
+}
+
+// UpdateTime returns the value of the "update_time" field in the mutation.
+func (m *VendorMutation) UpdateTime() (r time.Time, exists bool) {
+	v := m.update_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdateTime returns the old "update_time" field's value of the Vendor entity.
+// If the Vendor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VendorMutation) OldUpdateTime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldUpdateTime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldUpdateTime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdateTime: %w", err)
+	}
+	return oldValue.UpdateTime, nil
+}
+
+// ResetUpdateTime resets all changes to the "update_time" field.
+func (m *VendorMutation) ResetUpdateTime() {
+	m.update_time = nil
 }
 
 // SetName sets the "name" field.
@@ -2241,7 +2315,13 @@ func (m *VendorMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *VendorMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 4)
+	if m.create_time != nil {
+		fields = append(fields, vendor.FieldCreateTime)
+	}
+	if m.update_time != nil {
+		fields = append(fields, vendor.FieldUpdateTime)
+	}
 	if m.name != nil {
 		fields = append(fields, vendor.FieldName)
 	}
@@ -2256,6 +2336,10 @@ func (m *VendorMutation) Fields() []string {
 // schema.
 func (m *VendorMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case vendor.FieldCreateTime:
+		return m.CreateTime()
+	case vendor.FieldUpdateTime:
+		return m.UpdateTime()
 	case vendor.FieldName:
 		return m.Name()
 	case vendor.FieldSlug:
@@ -2269,6 +2353,10 @@ func (m *VendorMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *VendorMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case vendor.FieldCreateTime:
+		return m.OldCreateTime(ctx)
+	case vendor.FieldUpdateTime:
+		return m.OldUpdateTime(ctx)
 	case vendor.FieldName:
 		return m.OldName(ctx)
 	case vendor.FieldSlug:
@@ -2282,6 +2370,20 @@ func (m *VendorMutation) OldField(ctx context.Context, name string) (ent.Value, 
 // type.
 func (m *VendorMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case vendor.FieldCreateTime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateTime(v)
+		return nil
+	case vendor.FieldUpdateTime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdateTime(v)
+		return nil
 	case vendor.FieldName:
 		v, ok := value.(string)
 		if !ok {
@@ -2345,6 +2447,12 @@ func (m *VendorMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *VendorMutation) ResetField(name string) error {
 	switch name {
+	case vendor.FieldCreateTime:
+		m.ResetCreateTime()
+		return nil
+	case vendor.FieldUpdateTime:
+		m.ResetUpdateTime()
+		return nil
 	case vendor.FieldName:
 		m.ResetName()
 		return nil

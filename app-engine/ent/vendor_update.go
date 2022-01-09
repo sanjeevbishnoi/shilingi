@@ -86,6 +86,7 @@ func (vu *VendorUpdate) Save(ctx context.Context) (int, error) {
 		err      error
 		affected int
 	)
+	vu.defaults()
 	if len(vu.hooks) == 0 {
 		affected, err = vu.sqlSave(ctx)
 	} else {
@@ -134,6 +135,14 @@ func (vu *VendorUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (vu *VendorUpdate) defaults() {
+	if _, ok := vu.mutation.UpdateTime(); !ok {
+		v := vendor.UpdateDefaultUpdateTime()
+		vu.mutation.SetUpdateTime(v)
+	}
+}
+
 func (vu *VendorUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -151,6 +160,13 @@ func (vu *VendorUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := vu.mutation.UpdateTime(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: vendor.FieldUpdateTime,
+		})
 	}
 	if value, ok := vu.mutation.Name(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
@@ -305,6 +321,7 @@ func (vuo *VendorUpdateOne) Save(ctx context.Context) (*Vendor, error) {
 		err  error
 		node *Vendor
 	)
+	vuo.defaults()
 	if len(vuo.hooks) == 0 {
 		node, err = vuo.sqlSave(ctx)
 	} else {
@@ -353,6 +370,14 @@ func (vuo *VendorUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (vuo *VendorUpdateOne) defaults() {
+	if _, ok := vuo.mutation.UpdateTime(); !ok {
+		v := vendor.UpdateDefaultUpdateTime()
+		vuo.mutation.SetUpdateTime(v)
+	}
+}
+
 func (vuo *VendorUpdateOne) sqlSave(ctx context.Context) (_node *Vendor, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -387,6 +412,13 @@ func (vuo *VendorUpdateOne) sqlSave(ctx context.Context) (_node *Vendor, err err
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := vuo.mutation.UpdateTime(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: vendor.FieldUpdateTime,
+		})
 	}
 	if value, ok := vuo.mutation.Name(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
