@@ -31,6 +31,8 @@ class Main extends StatelessWidget {
       appBar: AppBar(title: const Text('Shilingi')),
       body: const PurchasesPage(),
       backgroundColor: const Color(0xFFF8F8F8),
+      floatingActionButton:
+          FloatingActionButton(child: const Icon(Icons.add), onPressed: () {}),
     );
   }
 }
