@@ -13,6 +13,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 )
 
 // ShoppingUpdate is the builder for updating Shopping entities.
@@ -63,6 +64,25 @@ func (su *ShoppingUpdate) AddItems(s ...*ShoppingItem) *ShoppingUpdate {
 	return su.AddItemIDs(ids...)
 }
 
+// SetVendorID sets the "vendor" edge to the Vendor entity by ID.
+func (su *ShoppingUpdate) SetVendorID(id int) *ShoppingUpdate {
+	su.mutation.SetVendorID(id)
+	return su
+}
+
+// SetNillableVendorID sets the "vendor" edge to the Vendor entity by ID if the given value is not nil.
+func (su *ShoppingUpdate) SetNillableVendorID(id *int) *ShoppingUpdate {
+	if id != nil {
+		su = su.SetVendorID(*id)
+	}
+	return su
+}
+
+// SetVendor sets the "vendor" edge to the Vendor entity.
+func (su *ShoppingUpdate) SetVendor(v *Vendor) *ShoppingUpdate {
+	return su.SetVendorID(v.ID)
+}
+
 // Mutation returns the ShoppingMutation object of the builder.
 func (su *ShoppingUpdate) Mutation() *ShoppingMutation {
 	return su.mutation
@@ -87,6 +107,12 @@ func (su *ShoppingUpdate) RemoveItems(s ...*ShoppingItem) *ShoppingUpdate {
 		ids[i] = s[i].ID
 	}
 	return su.RemoveItemIDs(ids...)
+}
+
+// ClearVendor clears the "vendor" edge to the Vendor entity.
+func (su *ShoppingUpdate) ClearVendor() *ShoppingUpdate {
+	su.mutation.ClearVendor()
+	return su
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -245,6 +271,41 @@ func (su *ShoppingUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if su.mutation.VendorCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shopping.VendorTable,
+			Columns: []string{shopping.VendorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: vendor.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.VendorIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shopping.VendorTable,
+			Columns: []string{shopping.VendorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: vendor.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, su.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{shopping.Label}
@@ -299,6 +360,25 @@ func (suo *ShoppingUpdateOne) AddItems(s ...*ShoppingItem) *ShoppingUpdateOne {
 	return suo.AddItemIDs(ids...)
 }
 
+// SetVendorID sets the "vendor" edge to the Vendor entity by ID.
+func (suo *ShoppingUpdateOne) SetVendorID(id int) *ShoppingUpdateOne {
+	suo.mutation.SetVendorID(id)
+	return suo
+}
+
+// SetNillableVendorID sets the "vendor" edge to the Vendor entity by ID if the given value is not nil.
+func (suo *ShoppingUpdateOne) SetNillableVendorID(id *int) *ShoppingUpdateOne {
+	if id != nil {
+		suo = suo.SetVendorID(*id)
+	}
+	return suo
+}
+
+// SetVendor sets the "vendor" edge to the Vendor entity.
+func (suo *ShoppingUpdateOne) SetVendor(v *Vendor) *ShoppingUpdateOne {
+	return suo.SetVendorID(v.ID)
+}
+
 // Mutation returns the ShoppingMutation object of the builder.
 func (suo *ShoppingUpdateOne) Mutation() *ShoppingMutation {
 	return suo.mutation
@@ -323,6 +403,12 @@ func (suo *ShoppingUpdateOne) RemoveItems(s ...*ShoppingItem) *ShoppingUpdateOne
 		ids[i] = s[i].ID
 	}
 	return suo.RemoveItemIDs(ids...)
+}
+
+// ClearVendor clears the "vendor" edge to the Vendor entity.
+func (suo *ShoppingUpdateOne) ClearVendor() *ShoppingUpdateOne {
+	suo.mutation.ClearVendor()
+	return suo
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -497,6 +583,41 @@ func (suo *ShoppingUpdateOne) sqlSave(ctx context.Context) (_node *Shopping, err
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if suo.mutation.VendorCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shopping.VendorTable,
+			Columns: []string{shopping.VendorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: vendor.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.VendorIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shopping.VendorTable,
+			Columns: []string{shopping.VendorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: vendor.FieldID,
 				},
 			},
 		}

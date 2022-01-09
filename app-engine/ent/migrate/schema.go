@@ -28,12 +28,21 @@ var (
 		{Name: "update_time", Type: field.TypeTime},
 		{Name: "date", Type: field.TypeTime},
 		{Name: "market", Type: field.TypeString},
+		{Name: "vendor_purchases", Type: field.TypeInt, Nullable: true},
 	}
 	// ShoppingsTable holds the schema information for the "shoppings" table.
 	ShoppingsTable = &schema.Table{
 		Name:       "shoppings",
 		Columns:    ShoppingsColumns,
 		PrimaryKey: []*schema.Column{ShoppingsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "shoppings_vendors_purchases",
+				Columns:    []*schema.Column{ShoppingsColumns[5]},
+				RefColumns: []*schema.Column{VendorsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// ShoppingItemsColumns holds the columns for the "shopping_items" table.
 	ShoppingItemsColumns = []*schema.Column{
@@ -68,15 +77,29 @@ var (
 			},
 		},
 	}
+	// VendorsColumns holds the columns for the "vendors" table.
+	VendorsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "slug", Type: field.TypeString, Unique: true},
+	}
+	// VendorsTable holds the schema information for the "vendors" table.
+	VendorsTable = &schema.Table{
+		Name:       "vendors",
+		Columns:    VendorsColumns,
+		PrimaryKey: []*schema.Column{VendorsColumns[0]},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		ItemsTable,
 		ShoppingsTable,
 		ShoppingItemsTable,
+		VendorsTable,
 	}
 )
 
 func init() {
+	ShoppingsTable.ForeignKeys[0].RefTable = VendorsTable
 	ShoppingItemsTable.ForeignKeys[0].RefTable = ItemsTable
 	ShoppingItemsTable.ForeignKeys[1].RefTable = ShoppingsTable
 }

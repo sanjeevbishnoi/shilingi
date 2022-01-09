@@ -18,6 +18,8 @@ type Tx struct {
 	Shopping *ShoppingClient
 	// ShoppingItem is the client for interacting with the ShoppingItem builders.
 	ShoppingItem *ShoppingItemClient
+	// Vendor is the client for interacting with the Vendor builders.
+	Vendor *VendorClient
 
 	// lazily loaded.
 	client     *Client
@@ -156,6 +158,7 @@ func (tx *Tx) init() {
 	tx.Item = NewItemClient(tx.config)
 	tx.Shopping = NewShoppingClient(tx.config)
 	tx.ShoppingItem = NewShoppingItemClient(tx.config)
+	tx.Vendor = NewVendorClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

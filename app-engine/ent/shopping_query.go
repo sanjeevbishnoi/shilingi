@@ -15,6 +15,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 )
 
 // ShoppingQuery is the builder for querying Shopping entities.
@@ -27,7 +28,9 @@ type ShoppingQuery struct {
 	fields     []string
 	predicates []predicate.Shopping
 	// eager-loading edges.
-	withItems *ShoppingItemQuery
+	withItems  *ShoppingItemQuery
+	withVendor *VendorQuery
+	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -79,6 +82,28 @@ func (sq *ShoppingQuery) QueryItems() *ShoppingItemQuery {
 			sqlgraph.From(shopping.Table, shopping.FieldID, selector),
 			sqlgraph.To(shoppingitem.Table, shoppingitem.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, shopping.ItemsTable, shopping.ItemsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryVendor chains the current query on the "vendor" edge.
+func (sq *ShoppingQuery) QueryVendor() *VendorQuery {
+	query := &VendorQuery{config: sq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shopping.Table, shopping.FieldID, selector),
+			sqlgraph.To(vendor.Table, vendor.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, shopping.VendorTable, shopping.VendorColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
 		return fromU, nil
@@ -268,6 +293,7 @@ func (sq *ShoppingQuery) Clone() *ShoppingQuery {
 		order:      append([]OrderFunc{}, sq.order...),
 		predicates: append([]predicate.Shopping{}, sq.predicates...),
 		withItems:  sq.withItems.Clone(),
+		withVendor: sq.withVendor.Clone(),
 		// clone intermediate query.
 		sql:  sq.sql.Clone(),
 		path: sq.path,
@@ -282,6 +308,17 @@ func (sq *ShoppingQuery) WithItems(opts ...func(*ShoppingItemQuery)) *ShoppingQu
 		opt(query)
 	}
 	sq.withItems = query
+	return sq
+}
+
+// WithVendor tells the query-builder to eager-load the nodes that are connected to
+// the "vendor" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *ShoppingQuery) WithVendor(opts ...func(*VendorQuery)) *ShoppingQuery {
+	query := &VendorQuery{config: sq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	sq.withVendor = query
 	return sq
 }
 
@@ -349,11 +386,19 @@ func (sq *ShoppingQuery) prepareQuery(ctx context.Context) error {
 func (sq *ShoppingQuery) sqlAll(ctx context.Context) ([]*Shopping, error) {
 	var (
 		nodes       = []*Shopping{}
+		withFKs     = sq.withFKs
 		_spec       = sq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			sq.withItems != nil,
+			sq.withVendor != nil,
 		}
 	)
+	if sq.withVendor != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, shopping.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Shopping{config: sq.config}
 		nodes = append(nodes, node)
@@ -400,6 +445,35 @@ func (sq *ShoppingQuery) sqlAll(ctx context.Context) ([]*Shopping, error) {
 				return nil, fmt.Errorf(`unexpected foreign-key "shopping_items" returned %v for node %v`, *fk, n.ID)
 			}
 			node.Edges.Items = append(node.Edges.Items, n)
+		}
+	}
+
+	if query := sq.withVendor; query != nil {
+		ids := make([]int, 0, len(nodes))
+		nodeids := make(map[int][]*Shopping)
+		for i := range nodes {
+			if nodes[i].vendor_purchases == nil {
+				continue
+			}
+			fk := *nodes[i].vendor_purchases
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
+		}
+		query.Where(vendor.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "vendor_purchases" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Vendor = n
+			}
 		}
 	}
 

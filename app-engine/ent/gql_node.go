@@ -18,6 +18,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -98,7 +99,7 @@ func (s *Shopping) Node(ctx context.Context) (node *Node, err error) {
 		ID:     s.ID,
 		Type:   "Shopping",
 		Fields: make([]*Field, 4),
-		Edges:  make([]*Edge, 1),
+		Edges:  make([]*Edge, 2),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(s.CreateTime); err != nil {
@@ -140,6 +141,16 @@ func (s *Shopping) Node(ctx context.Context) (node *Node, err error) {
 	err = s.QueryItems().
 		Select(shoppingitem.FieldID).
 		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "Vendor",
+		Name: "vendor",
+	}
+	err = s.QueryVendor().
+		Select(vendor.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -227,6 +238,43 @@ func (si *ShoppingItem) Node(ctx context.Context) (node *Node, err error) {
 	err = si.QueryShopping().
 		Select(shopping.FieldID).
 		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (v *Vendor) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     v.ID,
+		Type:   "Vendor",
+		Fields: make([]*Field, 2),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(v.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(v.Slug); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "string",
+		Name:  "slug",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Shopping",
+		Name: "purchases",
+	}
+	err = v.QueryPurchases().
+		Select(shopping.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -322,6 +370,15 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 		n, err := c.ShoppingItem.Query().
 			Where(shoppingitem.ID(id)).
 			CollectFields(ctx, "ShoppingItem").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case vendor.Table:
+		n, err := c.Vendor.Query().
+			Where(vendor.ID(id)).
+			CollectFields(ctx, "Vendor").
 			Only(ctx)
 		if err != nil {
 			return nil, err
@@ -430,6 +487,19 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		nodes, err := c.ShoppingItem.Query().
 			Where(shoppingitem.IDIn(ids...)).
 			CollectFields(ctx, "ShoppingItem").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case vendor.Table:
+		nodes, err := c.Vendor.Query().
+			Where(vendor.IDIn(ids...)).
+			CollectFields(ctx, "Vendor").
 			All(ctx)
 		if err != nil {
 			return nil, err

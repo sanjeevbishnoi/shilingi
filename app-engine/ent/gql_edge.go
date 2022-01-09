@@ -20,6 +20,14 @@ func (s *Shopping) Items(ctx context.Context) ([]*ShoppingItem, error) {
 	return result, err
 }
 
+func (s *Shopping) Vendor(ctx context.Context) (*Vendor, error) {
+	result, err := s.Edges.VendorOrErr()
+	if IsNotLoaded(err) {
+		result, err = s.QueryVendor().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
 func (si *ShoppingItem) Item(ctx context.Context) (*Item, error) {
 	result, err := si.Edges.ItemOrErr()
 	if IsNotLoaded(err) {
@@ -32,6 +40,14 @@ func (si *ShoppingItem) Shopping(ctx context.Context) (*Shopping, error) {
 	result, err := si.Edges.ShoppingOrErr()
 	if IsNotLoaded(err) {
 		result, err = si.QueryShopping().Only(ctx)
+	}
+	return result, err
+}
+
+func (v *Vendor) Purchases(ctx context.Context) ([]*Shopping, error) {
+	result, err := v.Edges.PurchasesOrErr()
+	if IsNotLoaded(err) {
+		result, err = v.QueryPurchases().All(ctx)
 	}
 	return result, err
 }

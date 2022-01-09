@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
+	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 )
 
 // Shopping is the model entity for the Shopping schema.
@@ -28,16 +29,19 @@ type Shopping struct {
 	Market string `json:"market,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ShoppingQuery when eager-loading is set.
-	Edges ShoppingEdges `json:"edges"`
+	Edges            ShoppingEdges `json:"edges"`
+	vendor_purchases *int
 }
 
 // ShoppingEdges holds the relations/edges for other nodes in the graph.
 type ShoppingEdges struct {
 	// Items holds the value of the items edge.
 	Items []*ShoppingItem `json:"items,omitempty"`
+	// Vendor holds the value of the vendor edge.
+	Vendor *Vendor `json:"vendor,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // ItemsOrErr returns the Items value or an error if the edge
@@ -47,6 +51,20 @@ func (e ShoppingEdges) ItemsOrErr() ([]*ShoppingItem, error) {
 		return e.Items, nil
 	}
 	return nil, &NotLoadedError{edge: "items"}
+}
+
+// VendorOrErr returns the Vendor value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ShoppingEdges) VendorOrErr() (*Vendor, error) {
+	if e.loadedTypes[1] {
+		if e.Vendor == nil {
+			// The edge vendor was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: vendor.Label}
+		}
+		return e.Vendor, nil
+	}
+	return nil, &NotLoadedError{edge: "vendor"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -60,6 +78,8 @@ func (*Shopping) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullString)
 		case shopping.FieldCreateTime, shopping.FieldUpdateTime, shopping.FieldDate:
 			values[i] = new(sql.NullTime)
+		case shopping.ForeignKeys[0]: // vendor_purchases
+			values[i] = new(sql.NullInt64)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Shopping", columns[i])
 		}
@@ -105,6 +125,13 @@ func (s *Shopping) assignValues(columns []string, values []interface{}) error {
 			} else if value.Valid {
 				s.Market = value.String
 			}
+		case shopping.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field vendor_purchases", value)
+			} else if value.Valid {
+				s.vendor_purchases = new(int)
+				*s.vendor_purchases = int(value.Int64)
+			}
 		}
 	}
 	return nil
@@ -113,6 +140,11 @@ func (s *Shopping) assignValues(columns []string, values []interface{}) error {
 // QueryItems queries the "items" edge of the Shopping entity.
 func (s *Shopping) QueryItems() *ShoppingItemQuery {
 	return (&ShoppingClient{config: s.config}).QueryItems(s)
+}
+
+// QueryVendor queries the "vendor" edge of the Shopping entity.
+func (s *Shopping) QueryVendor() *VendorQuery {
+	return (&ShoppingClient{config: s.config}).QueryVendor(s)
 }
 
 // Update returns a builder for updating this Shopping.

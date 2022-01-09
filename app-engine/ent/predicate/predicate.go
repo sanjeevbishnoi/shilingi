@@ -14,3 +14,6 @@ type Shopping func(*sql.Selector)
 
 // ShoppingItem is the predicate function for shoppingitem builders.
 type ShoppingItem func(*sql.Selector)
+
+// Vendor is the predicate function for vendor builders.
+type Vendor func(*sql.Selector)

@@ -35,6 +35,10 @@ func (s *ShoppingQuery) collectField(ctx *graphql.OperationContext, field graphq
 			s = s.WithItems(func(query *ShoppingItemQuery) {
 				query.collectField(ctx, field)
 			})
+		case "vendor":
+			s = s.WithVendor(func(query *VendorQuery) {
+				query.collectField(ctx, field)
+			})
 		}
 	}
 	return s
@@ -58,4 +62,24 @@ func (si *ShoppingItemQuery) collectField(ctx *graphql.OperationContext, field g
 		}
 	}
 	return si
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (v *VendorQuery) CollectFields(ctx context.Context, satisfies ...string) *VendorQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		v = v.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return v
+}
+
+func (v *VendorQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *VendorQuery {
+	for _, field := range graphql.CollectFields(ctx, field.Selections, satisfies) {
+		switch field.Name {
+		case "purchases":
+			v = v.WithPurchases(func(query *ShoppingQuery) {
+				query.collectField(ctx, field)
+			})
+		}
+	}
+	return v
 }

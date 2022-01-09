@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 )
 
 // ShoppingCreate is the builder for creating a Shopping entity.
@@ -82,6 +83,25 @@ func (sc *ShoppingCreate) AddItems(s ...*ShoppingItem) *ShoppingCreate {
 		ids[i] = s[i].ID
 	}
 	return sc.AddItemIDs(ids...)
+}
+
+// SetVendorID sets the "vendor" edge to the Vendor entity by ID.
+func (sc *ShoppingCreate) SetVendorID(id int) *ShoppingCreate {
+	sc.mutation.SetVendorID(id)
+	return sc
+}
+
+// SetNillableVendorID sets the "vendor" edge to the Vendor entity by ID if the given value is not nil.
+func (sc *ShoppingCreate) SetNillableVendorID(id *int) *ShoppingCreate {
+	if id != nil {
+		sc = sc.SetVendorID(*id)
+	}
+	return sc
+}
+
+// SetVendor sets the "vendor" edge to the Vendor entity.
+func (sc *ShoppingCreate) SetVendor(v *Vendor) *ShoppingCreate {
+	return sc.SetVendorID(v.ID)
 }
 
 // Mutation returns the ShoppingMutation object of the builder.
@@ -259,6 +279,26 @@ func (sc *ShoppingCreate) createSpec() (*Shopping, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sc.mutation.VendorIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   shopping.VendorTable,
+			Columns: []string{shopping.VendorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: vendor.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.vendor_purchases = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

@@ -21,6 +21,8 @@ const (
 	FieldMarket = "market"
 	// EdgeItems holds the string denoting the items edge name in mutations.
 	EdgeItems = "items"
+	// EdgeVendor holds the string denoting the vendor edge name in mutations.
+	EdgeVendor = "vendor"
 	// Table holds the table name of the shopping in the database.
 	Table = "shoppings"
 	// ItemsTable is the table that holds the items relation/edge.
@@ -30,6 +32,13 @@ const (
 	ItemsInverseTable = "shopping_items"
 	// ItemsColumn is the table column denoting the items relation/edge.
 	ItemsColumn = "shopping_items"
+	// VendorTable is the table that holds the vendor relation/edge.
+	VendorTable = "shoppings"
+	// VendorInverseTable is the table name for the Vendor entity.
+	// It exists in this package in order to avoid circular dependency with the "vendor" package.
+	VendorInverseTable = "vendors"
+	// VendorColumn is the table column denoting the vendor relation/edge.
+	VendorColumn = "vendor_purchases"
 )
 
 // Columns holds all SQL columns for shopping fields.
@@ -41,10 +50,21 @@ var Columns = []string{
 	FieldMarket,
 }
 
+// ForeignKeys holds the SQL foreign-keys that are owned by the "shoppings"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"vendor_purchases",
+}
+
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}

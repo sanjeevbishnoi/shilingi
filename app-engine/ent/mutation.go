@@ -12,6 +12,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/shopspring/decimal"
 
 	"entgo.io/ent"
@@ -29,6 +30,7 @@ const (
 	TypeItem         = "Item"
 	TypeShopping     = "Shopping"
 	TypeShoppingItem = "ShoppingItem"
+	TypeVendor       = "Vendor"
 )
 
 // ItemMutation represents an operation that mutates the Item nodes in the graph.
@@ -538,6 +540,8 @@ type ShoppingMutation struct {
 	items         map[int]struct{}
 	removeditems  map[int]struct{}
 	cleareditems  bool
+	vendor        *int
+	clearedvendor bool
 	done          bool
 	oldValue      func(context.Context) (*Shopping, error)
 	predicates    []predicate.Shopping
@@ -820,6 +824,45 @@ func (m *ShoppingMutation) ResetItems() {
 	m.removeditems = nil
 }
 
+// SetVendorID sets the "vendor" edge to the Vendor entity by id.
+func (m *ShoppingMutation) SetVendorID(id int) {
+	m.vendor = &id
+}
+
+// ClearVendor clears the "vendor" edge to the Vendor entity.
+func (m *ShoppingMutation) ClearVendor() {
+	m.clearedvendor = true
+}
+
+// VendorCleared reports if the "vendor" edge to the Vendor entity was cleared.
+func (m *ShoppingMutation) VendorCleared() bool {
+	return m.clearedvendor
+}
+
+// VendorID returns the "vendor" edge ID in the mutation.
+func (m *ShoppingMutation) VendorID() (id int, exists bool) {
+	if m.vendor != nil {
+		return *m.vendor, true
+	}
+	return
+}
+
+// VendorIDs returns the "vendor" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// VendorID instead. It exists only for internal usage by the builders.
+func (m *ShoppingMutation) VendorIDs() (ids []int) {
+	if id := m.vendor; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetVendor resets all changes to the "vendor" edge.
+func (m *ShoppingMutation) ResetVendor() {
+	m.vendor = nil
+	m.clearedvendor = false
+}
+
 // Where appends a list predicates to the ShoppingMutation builder.
 func (m *ShoppingMutation) Where(ps ...predicate.Shopping) {
 	m.predicates = append(m.predicates, ps...)
@@ -989,9 +1032,12 @@ func (m *ShoppingMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ShoppingMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.items != nil {
 		edges = append(edges, shopping.EdgeItems)
+	}
+	if m.vendor != nil {
+		edges = append(edges, shopping.EdgeVendor)
 	}
 	return edges
 }
@@ -1006,13 +1052,17 @@ func (m *ShoppingMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case shopping.EdgeVendor:
+		if id := m.vendor; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ShoppingMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removeditems != nil {
 		edges = append(edges, shopping.EdgeItems)
 	}
@@ -1035,9 +1085,12 @@ func (m *ShoppingMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ShoppingMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.cleareditems {
 		edges = append(edges, shopping.EdgeItems)
+	}
+	if m.clearedvendor {
+		edges = append(edges, shopping.EdgeVendor)
 	}
 	return edges
 }
@@ -1048,6 +1101,8 @@ func (m *ShoppingMutation) EdgeCleared(name string) bool {
 	switch name {
 	case shopping.EdgeItems:
 		return m.cleareditems
+	case shopping.EdgeVendor:
+		return m.clearedvendor
 	}
 	return false
 }
@@ -1056,6 +1111,9 @@ func (m *ShoppingMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *ShoppingMutation) ClearEdge(name string) error {
 	switch name {
+	case shopping.EdgeVendor:
+		m.ClearVendor()
+		return nil
 	}
 	return fmt.Errorf("unknown Shopping unique edge %s", name)
 }
@@ -1066,6 +1124,9 @@ func (m *ShoppingMutation) ResetEdge(name string) error {
 	switch name {
 	case shopping.EdgeItems:
 		m.ResetItems()
+		return nil
+	case shopping.EdgeVendor:
+		m.ResetVendor()
 		return nil
 	}
 	return fmt.Errorf("unknown Shopping edge %s", name)
@@ -1937,4 +1998,443 @@ func (m *ShoppingItemMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown ShoppingItem edge %s", name)
+}
+
+// VendorMutation represents an operation that mutates the Vendor nodes in the graph.
+type VendorMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *int
+	name             *string
+	slug             *string
+	clearedFields    map[string]struct{}
+	purchases        map[int]struct{}
+	removedpurchases map[int]struct{}
+	clearedpurchases bool
+	done             bool
+	oldValue         func(context.Context) (*Vendor, error)
+	predicates       []predicate.Vendor
+}
+
+var _ ent.Mutation = (*VendorMutation)(nil)
+
+// vendorOption allows management of the mutation configuration using functional options.
+type vendorOption func(*VendorMutation)
+
+// newVendorMutation creates new mutation for the Vendor entity.
+func newVendorMutation(c config, op Op, opts ...vendorOption) *VendorMutation {
+	m := &VendorMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeVendor,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withVendorID sets the ID field of the mutation.
+func withVendorID(id int) vendorOption {
+	return func(m *VendorMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Vendor
+		)
+		m.oldValue = func(ctx context.Context) (*Vendor, error) {
+			once.Do(func() {
+				if m.done {
+					err = fmt.Errorf("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Vendor.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withVendor sets the old Vendor of the mutation.
+func withVendor(node *Vendor) vendorOption {
+	return func(m *VendorMutation) {
+		m.oldValue = func(context.Context) (*Vendor, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m VendorMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m VendorMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *VendorMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// SetName sets the "name" field.
+func (m *VendorMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *VendorMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Vendor entity.
+// If the Vendor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VendorMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *VendorMutation) ResetName() {
+	m.name = nil
+}
+
+// SetSlug sets the "slug" field.
+func (m *VendorMutation) SetSlug(s string) {
+	m.slug = &s
+}
+
+// Slug returns the value of the "slug" field in the mutation.
+func (m *VendorMutation) Slug() (r string, exists bool) {
+	v := m.slug
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlug returns the old "slug" field's value of the Vendor entity.
+// If the Vendor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VendorMutation) OldSlug(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldSlug is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldSlug requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlug: %w", err)
+	}
+	return oldValue.Slug, nil
+}
+
+// ResetSlug resets all changes to the "slug" field.
+func (m *VendorMutation) ResetSlug() {
+	m.slug = nil
+}
+
+// AddPurchaseIDs adds the "purchases" edge to the Shopping entity by ids.
+func (m *VendorMutation) AddPurchaseIDs(ids ...int) {
+	if m.purchases == nil {
+		m.purchases = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.purchases[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPurchases clears the "purchases" edge to the Shopping entity.
+func (m *VendorMutation) ClearPurchases() {
+	m.clearedpurchases = true
+}
+
+// PurchasesCleared reports if the "purchases" edge to the Shopping entity was cleared.
+func (m *VendorMutation) PurchasesCleared() bool {
+	return m.clearedpurchases
+}
+
+// RemovePurchaseIDs removes the "purchases" edge to the Shopping entity by IDs.
+func (m *VendorMutation) RemovePurchaseIDs(ids ...int) {
+	if m.removedpurchases == nil {
+		m.removedpurchases = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.purchases, ids[i])
+		m.removedpurchases[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPurchases returns the removed IDs of the "purchases" edge to the Shopping entity.
+func (m *VendorMutation) RemovedPurchasesIDs() (ids []int) {
+	for id := range m.removedpurchases {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PurchasesIDs returns the "purchases" edge IDs in the mutation.
+func (m *VendorMutation) PurchasesIDs() (ids []int) {
+	for id := range m.purchases {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPurchases resets all changes to the "purchases" edge.
+func (m *VendorMutation) ResetPurchases() {
+	m.purchases = nil
+	m.clearedpurchases = false
+	m.removedpurchases = nil
+}
+
+// Where appends a list predicates to the VendorMutation builder.
+func (m *VendorMutation) Where(ps ...predicate.Vendor) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *VendorMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (Vendor).
+func (m *VendorMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *VendorMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.name != nil {
+		fields = append(fields, vendor.FieldName)
+	}
+	if m.slug != nil {
+		fields = append(fields, vendor.FieldSlug)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *VendorMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case vendor.FieldName:
+		return m.Name()
+	case vendor.FieldSlug:
+		return m.Slug()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *VendorMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case vendor.FieldName:
+		return m.OldName(ctx)
+	case vendor.FieldSlug:
+		return m.OldSlug(ctx)
+	}
+	return nil, fmt.Errorf("unknown Vendor field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *VendorMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case vendor.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case vendor.FieldSlug:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlug(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Vendor field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *VendorMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *VendorMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *VendorMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Vendor numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *VendorMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *VendorMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *VendorMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Vendor nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *VendorMutation) ResetField(name string) error {
+	switch name {
+	case vendor.FieldName:
+		m.ResetName()
+		return nil
+	case vendor.FieldSlug:
+		m.ResetSlug()
+		return nil
+	}
+	return fmt.Errorf("unknown Vendor field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *VendorMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.purchases != nil {
+		edges = append(edges, vendor.EdgePurchases)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *VendorMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case vendor.EdgePurchases:
+		ids := make([]ent.Value, 0, len(m.purchases))
+		for id := range m.purchases {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *VendorMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedpurchases != nil {
+		edges = append(edges, vendor.EdgePurchases)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *VendorMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case vendor.EdgePurchases:
+		ids := make([]ent.Value, 0, len(m.removedpurchases))
+		for id := range m.removedpurchases {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *VendorMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedpurchases {
+		edges = append(edges, vendor.EdgePurchases)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *VendorMutation) EdgeCleared(name string) bool {
+	switch name {
+	case vendor.EdgePurchases:
+		return m.clearedpurchases
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *VendorMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Vendor unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *VendorMutation) ResetEdge(name string) error {
+	switch name {
+	case vendor.EdgePurchases:
+		m.ResetPurchases()
+		return nil
+	}
+	return fmt.Errorf("unknown Vendor edge %s", name)
 }

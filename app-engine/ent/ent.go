@@ -11,6 +11,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -34,6 +35,7 @@ func columnChecker(table string) func(string) error {
 		item.Table:         item.ValidColumn,
 		shopping.Table:     shopping.ValidColumn,
 		shoppingitem.Table: shoppingitem.ValidColumn,
+		vendor.Table:       vendor.ValidColumn,
 	}
 	check, ok := checks[table]
 	if !ok {
