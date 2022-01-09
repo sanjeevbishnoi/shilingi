@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/mixin"
 )
 
 // Vendor holds the schema definition for the Vendor entity.
@@ -26,5 +27,12 @@ func (Vendor) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("purchases", Shopping.Type).
 			Annotations(entgql.Bind()),
+	}
+}
+
+// Mixin of the Vendor
+func (Vendor) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		mixin.Time{},
 	}
 }
