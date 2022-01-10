@@ -15,6 +15,7 @@ type ItemInput struct {
 type ShoppingInput struct {
 	Date   *time.Time           `json:"date"`
 	Market string               `json:"market"`
+	Vendor *VendorInput         `json:"vendor"`
 	Items  []*ShoppingItemInput `json:"items"`
 }
 
@@ -25,4 +26,8 @@ type ShoppingItemInput struct {
 	Brand        *string         `json:"brand"`
 	PricePerUnit decimal.Decimal `json:"pricePerUnit"`
 	Item         int             `json:"item"`
+}
+
+type VendorInput struct {
+	Name string `json:"name"`
 }

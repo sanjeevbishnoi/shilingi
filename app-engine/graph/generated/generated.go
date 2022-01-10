@@ -68,6 +68,7 @@ type ComplexityRoot struct {
 		ID     func(childComplexity int) int
 		Items  func(childComplexity int) int
 		Market func(childComplexity int) int
+		Vendor func(childComplexity int) int
 	}
 
 	ShoppingItem struct {
@@ -78,6 +79,13 @@ type ComplexityRoot struct {
 		Quantity     func(childComplexity int) int
 		QuantityType func(childComplexity int) int
 		Units        func(childComplexity int) int
+	}
+
+	Vendor struct {
+		ID        func(childComplexity int) int
+		Name      func(childComplexity int) int
+		Purchases func(childComplexity int) int
+		Slug      func(childComplexity int) int
 	}
 }
 
@@ -185,6 +193,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Shopping.Market(childComplexity), true
 
+	case "Shopping.vendor":
+		if e.complexity.Shopping.Vendor == nil {
+			break
+		}
+
+		return e.complexity.Shopping.Vendor(childComplexity), true
+
 	case "ShoppingItem.brand":
 		if e.complexity.ShoppingItem.Brand == nil {
 			break
@@ -233,6 +248,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ShoppingItem.Units(childComplexity), true
+
+	case "Vendor.id":
+		if e.complexity.Vendor.ID == nil {
+			break
+		}
+
+		return e.complexity.Vendor.ID(childComplexity), true
+
+	case "Vendor.name":
+		if e.complexity.Vendor.Name == nil {
+			break
+		}
+
+		return e.complexity.Vendor.Name(childComplexity), true
+
+	case "Vendor.purchases":
+		if e.complexity.Vendor.Purchases == nil {
+			break
+		}
+
+		return e.complexity.Vendor.Purchases(childComplexity), true
+
+	case "Vendor.slug":
+		if e.complexity.Vendor.Slug == nil {
+			break
+		}
+
+		return e.complexity.Vendor.Slug(childComplexity), true
 
 	}
 	return 0, false
@@ -320,6 +363,7 @@ input ShoppingItemInput {
 input ShoppingInput {
   date: Time
   market: String!
+  vendor: VendorInput!
   items: [ShoppingItemInput!]!
 }
 
@@ -337,7 +381,19 @@ type Shopping implements Node {
   id: ID!
   date: Time!
   market: String!
+  vendor: Vendor!
   items: [ShoppingItem!]!
+}
+
+type Vendor implements Node {
+  id: ID!
+  name: String!
+  slug: String!
+  purchases: [Shopping!]!
+}
+
+input VendorInput  {
+  name: String!
 }
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `scalar Time
@@ -841,6 +897,41 @@ func (ec *executionContext) _Shopping_market(ctx context.Context, field graphql.
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Shopping_vendor(ctx context.Context, field graphql.CollectedField, obj *ent.Shopping) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Shopping",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Vendor(ctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Vendor)
+	fc.Result = res
+	return ec.marshalNVendor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐVendor(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Shopping_items(ctx context.Context, field graphql.CollectedField, obj *ent.Shopping) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1113,6 +1204,146 @@ func (ec *executionContext) _ShoppingItem_item(ctx context.Context, field graphq
 	res := resTmp.(*ent.Item)
 	fc.Result = res
 	return ec.marshalNItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItem(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Vendor_id(ctx context.Context, field graphql.CollectedField, obj *ent.Vendor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Vendor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNID2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Vendor_name(ctx context.Context, field graphql.CollectedField, obj *ent.Vendor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Vendor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Vendor_slug(ctx context.Context, field graphql.CollectedField, obj *ent.Vendor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Vendor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Slug, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Vendor_purchases(ctx context.Context, field graphql.CollectedField, obj *ent.Vendor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Vendor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Purchases(ctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.Shopping)
+	fc.Result = res
+	return ec.marshalNShopping2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2285,6 +2516,14 @@ func (ec *executionContext) unmarshalInputShoppingInput(ctx context.Context, obj
 			if err != nil {
 				return it, err
 			}
+		case "vendor":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("vendor"))
+			it.Vendor, err = ec.unmarshalNVendorInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "items":
 			var err error
 
@@ -2362,6 +2601,29 @@ func (ec *executionContext) unmarshalInputShoppingItemInput(ctx context.Context,
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputVendorInput(ctx context.Context, obj interface{}) (model.VendorInput, error) {
+	var it model.VendorInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2385,6 +2647,11 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Shopping(ctx, sel, obj)
+	case *ent.Vendor:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Vendor(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -2540,6 +2807,20 @@ func (ec *executionContext) _Shopping(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "vendor":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Shopping_vendor(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "items":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -2609,6 +2890,57 @@ func (ec *executionContext) _ShoppingItem(ctx context.Context, sel ast.Selection
 					}
 				}()
 				res = ec._ShoppingItem_item(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var vendorImplementors = []string{"Vendor", "Node"}
+
+func (ec *executionContext) _Vendor(ctx context.Context, sel ast.SelectionSet, obj *ent.Vendor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, vendorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Vendor")
+		case "id":
+			out.Values[i] = ec._Vendor_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "name":
+			out.Values[i] = ec._Vendor_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "slug":
+			out.Values[i] = ec._Vendor_slug(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "purchases":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Vendor_purchases(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -3176,6 +3508,21 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNVendor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐVendor(ctx context.Context, sel ast.SelectionSet, v *ent.Vendor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Vendor(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNVendorInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx context.Context, v interface{}) (*model.VendorInput, error) {
+	res, err := ec.unmarshalInputVendorInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
