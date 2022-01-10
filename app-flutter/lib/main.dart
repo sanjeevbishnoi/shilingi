@@ -17,22 +17,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const SafeArea(child: Main()),
-    );
-  }
-}
-
-class Main extends StatelessWidget {
-  const Main([Key? key]) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Shilingi')),
-      body: const PurchasesPage(),
-      backgroundColor: const Color(0xFFF8F8F8),
-      floatingActionButton:
-          FloatingActionButton(child: const Icon(Icons.add), onPressed: () {}),
+      initialRoute: '/',
+      routes: {'/': (context) => const PurchasesPage()},
     );
   }
 }

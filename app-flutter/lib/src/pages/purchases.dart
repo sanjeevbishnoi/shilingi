@@ -36,14 +36,20 @@ class _PurchasesPageState extends State<PurchasesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: ListView(children: [
-        for (var purchase in purchases) ...[
-          WPurchase(purchase),
-          const SizedBox(height: 12.0)
-        ],
-      ]),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Shilingi')),
+      body: Padding(
+        padding: const EdgeInsets.all(8),
+        child: ListView(children: [
+          for (var purchase in purchases) ...[
+            WPurchase(purchase),
+            const SizedBox(height: 12.0)
+          ],
+        ]),
+      ),
+      backgroundColor: const Color(0xFFF8F8F8),
+      floatingActionButton:
+          FloatingActionButton(child: const Icon(Icons.add), onPressed: () {}),
     );
   }
 }
