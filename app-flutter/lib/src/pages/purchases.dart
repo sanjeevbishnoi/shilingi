@@ -48,8 +48,11 @@ class _PurchasesPageState extends State<PurchasesPage> {
         ]),
       ),
       backgroundColor: const Color(0xFFF8F8F8),
-      floatingActionButton:
-          FloatingActionButton(child: const Icon(Icons.add), onPressed: () {}),
+      floatingActionButton: FloatingActionButton(
+          child: const Icon(Icons.add),
+          onPressed: () {
+            Navigator.pushNamed(context, '/new-purchase');
+          }),
     );
   }
 }

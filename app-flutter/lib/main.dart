@@ -18,7 +18,10 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       initialRoute: '/',
-      routes: {'/': (context) => const PurchasesPage()},
+      routes: {
+        '/': (context) => const PurchasesPage(),
+        '/new-purchase': (context) => const NewPurchasePage()
+      },
     );
   }
 }
