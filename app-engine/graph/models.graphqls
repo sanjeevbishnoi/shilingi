@@ -37,6 +37,7 @@ type Shopping implements Node {
   id: ID!
   date: Time!
   vendor: Vendor!
+  total: Decimal!
   items: [ShoppingItem!]!
 }
 
