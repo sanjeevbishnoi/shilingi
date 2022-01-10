@@ -21,8 +21,6 @@ func (Shopping) Fields() []ent.Field {
 		field.Time("date").
 			Comment("When was the shopping done").
 			Default(time.Now),
-		field.String("market").
-			Comment("This is the place where you bought the items from"),
 	}
 }
 

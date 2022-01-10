@@ -18,8 +18,7 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput
 
 func (r *mutationResolver) CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error) {
 	cli := ent.FromContext(ctx)
-	shoppingCreate := cli.Shopping.Create().
-		SetMarket(input.Market)
+	shoppingCreate := cli.Shopping.Create()
 	if input.Date != nil {
 		shoppingCreate.SetDate(*input.Date)
 	}
