@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
+	"github.com/kingzbauer/shilingi/app-engine/entops"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
 )
@@ -17,33 +18,7 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput
 }
 
 func (r *mutationResolver) CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error) {
-	cli := ent.FromContext(ctx)
-	shoppingCreate := cli.Shopping.Create()
-	if input.Date != nil {
-		shoppingCreate.SetDate(*input.Date)
-	}
-	shopping, err := shoppingCreate.Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	itemCreate := []*ent.ShoppingItemCreate{}
-	for _, item := range input.Items {
-		shoppingItem := cli.ShoppingItem.Create().
-			SetQuantity(item.Quantity).
-			SetQuantityType(item.QuantityType).
-			SetNillableUnits(item.Units).
-			SetNillableBrand(item.Brand).
-			SetPricePerUnit(item.PricePerUnit).
-			SetItemID(item.Item).
-			SetShopping(shopping)
-		itemCreate = append(itemCreate, shoppingItem)
-	}
-	if _, err = cli.ShoppingItem.CreateBulk(itemCreate...).Save(ctx); err != nil {
-		return nil, err
-	}
-
-	return shopping, nil
+	return entops.CreatePurchase(ctx, input)
 }
 
 func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
