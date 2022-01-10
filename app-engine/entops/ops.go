@@ -68,5 +68,5 @@ func Slugify(val string) string {
 	val = strings.TrimSpace(val)
 	val = regexp.MustCompile(`[^\w_\-\s]`).ReplaceAllString(val, "")
 	val = regexp.MustCompile(`\s+`).ReplaceAllString(val, "-")
-	return val
+	return strings.ToLower(val)
 }
