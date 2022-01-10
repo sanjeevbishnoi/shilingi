@@ -42,6 +42,7 @@ type ItemMutation struct {
 	create_time      *time.Time
 	update_time      *time.Time
 	name             *string
+	slug             *string
 	clearedFields    map[string]struct{}
 	purchases        map[int]struct{}
 	removedpurchases map[int]struct{}
@@ -238,6 +239,42 @@ func (m *ItemMutation) ResetName() {
 	m.name = nil
 }
 
+// SetSlug sets the "slug" field.
+func (m *ItemMutation) SetSlug(s string) {
+	m.slug = &s
+}
+
+// Slug returns the value of the "slug" field in the mutation.
+func (m *ItemMutation) Slug() (r string, exists bool) {
+	v := m.slug
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlug returns the old "slug" field's value of the Item entity.
+// If the Item object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ItemMutation) OldSlug(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldSlug is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldSlug requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlug: %w", err)
+	}
+	return oldValue.Slug, nil
+}
+
+// ResetSlug resets all changes to the "slug" field.
+func (m *ItemMutation) ResetSlug() {
+	m.slug = nil
+}
+
 // AddPurchaseIDs adds the "purchases" edge to the ShoppingItem entity by ids.
 func (m *ItemMutation) AddPurchaseIDs(ids ...int) {
 	if m.purchases == nil {
@@ -311,7 +348,7 @@ func (m *ItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ItemMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.create_time != nil {
 		fields = append(fields, item.FieldCreateTime)
 	}
@@ -320,6 +357,9 @@ func (m *ItemMutation) Fields() []string {
 	}
 	if m.name != nil {
 		fields = append(fields, item.FieldName)
+	}
+	if m.slug != nil {
+		fields = append(fields, item.FieldSlug)
 	}
 	return fields
 }
@@ -335,6 +375,8 @@ func (m *ItemMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdateTime()
 	case item.FieldName:
 		return m.Name()
+	case item.FieldSlug:
+		return m.Slug()
 	}
 	return nil, false
 }
@@ -350,6 +392,8 @@ func (m *ItemMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldUpdateTime(ctx)
 	case item.FieldName:
 		return m.OldName(ctx)
+	case item.FieldSlug:
+		return m.OldSlug(ctx)
 	}
 	return nil, fmt.Errorf("unknown Item field %s", name)
 }
@@ -379,6 +423,13 @@ func (m *ItemMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
+		return nil
+	case item.FieldSlug:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlug(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Item field %s", name)
@@ -437,6 +488,9 @@ func (m *ItemMutation) ResetField(name string) error {
 		return nil
 	case item.FieldName:
 		m.ResetName()
+		return nil
+	case item.FieldSlug:
+		m.ResetSlug()
 		return nil
 	}
 	return fmt.Errorf("unknown Item field %s", name)

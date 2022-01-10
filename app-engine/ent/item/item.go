@@ -17,6 +17,8 @@ const (
 	FieldUpdateTime = "update_time"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldSlug holds the string denoting the slug field in the database.
+	FieldSlug = "slug"
 	// EdgePurchases holds the string denoting the purchases edge name in mutations.
 	EdgePurchases = "purchases"
 	// Table holds the table name of the item in the database.
@@ -36,6 +38,7 @@ var Columns = []string{
 	FieldCreateTime,
 	FieldUpdateTime,
 	FieldName,
+	FieldSlug,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -55,4 +58,6 @@ var (
 	DefaultUpdateTime func() time.Time
 	// UpdateDefaultUpdateTime holds the default value on update for the "update_time" field.
 	UpdateDefaultUpdateTime func() time.Time
+	// SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	SlugValidator func(string) error
 )

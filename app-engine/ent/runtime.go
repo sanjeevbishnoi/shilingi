@@ -31,6 +31,10 @@ func init() {
 	item.DefaultUpdateTime = itemDescUpdateTime.Default.(func() time.Time)
 	// item.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
 	item.UpdateDefaultUpdateTime = itemDescUpdateTime.UpdateDefault.(func() time.Time)
+	// itemDescSlug is the schema descriptor for slug field.
+	itemDescSlug := itemFields[1].Descriptor()
+	// item.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	item.SlugValidator = itemDescSlug.Validators[0].(func(string) error)
 	shoppingMixin := schema.Shopping{}.Mixin()
 	shoppingMixinFields0 := shoppingMixin[0].Fields()
 	_ = shoppingMixinFields0

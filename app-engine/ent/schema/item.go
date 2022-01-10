@@ -17,6 +17,10 @@ func (Item) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name").
 			Comment("A simple name for the item"),
+		field.String("slug").
+			Comment("slug is used to uniquely identify a particular item").
+			MaxLen(250).
+			Unique(),
 	}
 }
 

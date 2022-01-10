@@ -23,6 +23,9 @@ type Item struct {
 	// Name holds the value of the "name" field.
 	// A simple name for the item
 	Name string `json:"name,omitempty"`
+	// Slug holds the value of the "slug" field.
+	// slug is used to uniquely identify a particular item
+	Slug string `json:"slug,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ItemQuery when eager-loading is set.
 	Edges ItemEdges `json:"edges"`
@@ -53,7 +56,7 @@ func (*Item) scanValues(columns []string) ([]interface{}, error) {
 		switch columns[i] {
 		case item.FieldID:
 			values[i] = new(sql.NullInt64)
-		case item.FieldName:
+		case item.FieldName, item.FieldSlug:
 			values[i] = new(sql.NullString)
 		case item.FieldCreateTime, item.FieldUpdateTime:
 			values[i] = new(sql.NullTime)
@@ -96,6 +99,12 @@ func (i *Item) assignValues(columns []string, values []interface{}) error {
 			} else if value.Valid {
 				i.Name = value.String
 			}
+		case item.FieldSlug:
+			if value, ok := values[j].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field slug", values[j])
+			} else if value.Valid {
+				i.Slug = value.String
+			}
 		}
 	}
 	return nil
@@ -135,6 +144,8 @@ func (i *Item) String() string {
 	builder.WriteString(i.UpdateTime.Format(time.ANSIC))
 	builder.WriteString(", name=")
 	builder.WriteString(i.Name)
+	builder.WriteString(", slug=")
+	builder.WriteString(i.Slug)
 	builder.WriteByte(')')
 	return builder.String()
 }

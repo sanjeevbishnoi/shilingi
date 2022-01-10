@@ -55,6 +55,12 @@ func (ic *ItemCreate) SetName(s string) *ItemCreate {
 	return ic
 }
 
+// SetSlug sets the "slug" field.
+func (ic *ItemCreate) SetSlug(s string) *ItemCreate {
+	ic.mutation.SetSlug(s)
+	return ic
+}
+
 // AddPurchaseIDs adds the "purchases" edge to the ShoppingItem entity by IDs.
 func (ic *ItemCreate) AddPurchaseIDs(ids ...int) *ItemCreate {
 	ic.mutation.AddPurchaseIDs(ids...)
@@ -162,6 +168,14 @@ func (ic *ItemCreate) check() error {
 	if _, ok := ic.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "name"`)}
 	}
+	if _, ok := ic.mutation.Slug(); !ok {
+		return &ValidationError{Name: "slug", err: errors.New(`ent: missing required field "slug"`)}
+	}
+	if v, ok := ic.mutation.Slug(); ok {
+		if err := item.SlugValidator(v); err != nil {
+			return &ValidationError{Name: "slug", err: fmt.Errorf(`ent: validator failed for field "slug": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -212,6 +226,14 @@ func (ic *ItemCreate) createSpec() (*Item, *sqlgraph.CreateSpec) {
 			Column: item.FieldName,
 		})
 		_node.Name = value
+	}
+	if value, ok := ic.mutation.Slug(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: item.FieldSlug,
+		})
+		_node.Slug = value
 	}
 	if nodes := ic.mutation.PurchasesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

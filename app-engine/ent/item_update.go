@@ -33,6 +33,12 @@ func (iu *ItemUpdate) SetName(s string) *ItemUpdate {
 	return iu
 }
 
+// SetSlug sets the "slug" field.
+func (iu *ItemUpdate) SetSlug(s string) *ItemUpdate {
+	iu.mutation.SetSlug(s)
+	return iu
+}
+
 // AddPurchaseIDs adds the "purchases" edge to the ShoppingItem entity by IDs.
 func (iu *ItemUpdate) AddPurchaseIDs(ids ...int) *ItemUpdate {
 	iu.mutation.AddPurchaseIDs(ids...)
@@ -82,12 +88,18 @@ func (iu *ItemUpdate) Save(ctx context.Context) (int, error) {
 	)
 	iu.defaults()
 	if len(iu.hooks) == 0 {
+		if err = iu.check(); err != nil {
+			return 0, err
+		}
 		affected, err = iu.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*ItemMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = iu.check(); err != nil {
+				return 0, err
 			}
 			iu.mutation = mutation
 			affected, err = iu.sqlSave(ctx)
@@ -137,6 +149,16 @@ func (iu *ItemUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (iu *ItemUpdate) check() error {
+	if v, ok := iu.mutation.Slug(); ok {
+		if err := item.SlugValidator(v); err != nil {
+			return &ValidationError{Name: "slug", err: fmt.Errorf("ent: validator failed for field \"slug\": %w", err)}
+		}
+	}
+	return nil
+}
+
 func (iu *ItemUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -167,6 +189,13 @@ func (iu *ItemUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Type:   field.TypeString,
 			Value:  value,
 			Column: item.FieldName,
+		})
+	}
+	if value, ok := iu.mutation.Slug(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: item.FieldSlug,
 		})
 	}
 	if iu.mutation.PurchasesCleared() {
@@ -248,6 +277,12 @@ func (iuo *ItemUpdateOne) SetName(s string) *ItemUpdateOne {
 	return iuo
 }
 
+// SetSlug sets the "slug" field.
+func (iuo *ItemUpdateOne) SetSlug(s string) *ItemUpdateOne {
+	iuo.mutation.SetSlug(s)
+	return iuo
+}
+
 // AddPurchaseIDs adds the "purchases" edge to the ShoppingItem entity by IDs.
 func (iuo *ItemUpdateOne) AddPurchaseIDs(ids ...int) *ItemUpdateOne {
 	iuo.mutation.AddPurchaseIDs(ids...)
@@ -304,12 +339,18 @@ func (iuo *ItemUpdateOne) Save(ctx context.Context) (*Item, error) {
 	)
 	iuo.defaults()
 	if len(iuo.hooks) == 0 {
+		if err = iuo.check(); err != nil {
+			return nil, err
+		}
 		node, err = iuo.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*ItemMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = iuo.check(); err != nil {
+				return nil, err
 			}
 			iuo.mutation = mutation
 			node, err = iuo.sqlSave(ctx)
@@ -359,6 +400,16 @@ func (iuo *ItemUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (iuo *ItemUpdateOne) check() error {
+	if v, ok := iuo.mutation.Slug(); ok {
+		if err := item.SlugValidator(v); err != nil {
+			return &ValidationError{Name: "slug", err: fmt.Errorf("ent: validator failed for field \"slug\": %w", err)}
+		}
+	}
+	return nil
+}
+
 func (iuo *ItemUpdateOne) sqlSave(ctx context.Context) (_node *Item, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -406,6 +457,13 @@ func (iuo *ItemUpdateOne) sqlSave(ctx context.Context) (_node *Item, err error) 
 			Type:   field.TypeString,
 			Value:  value,
 			Column: item.FieldName,
+		})
+	}
+	if value, ok := iuo.mutation.Slug(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: item.FieldSlug,
 		})
 	}
 	if iuo.mutation.PurchasesCleared() {
