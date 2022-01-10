@@ -114,13 +114,6 @@ func Date(v time.Time) predicate.Shopping {
 	})
 }
 
-// Market applies equality check predicate on the "market" field. It's identical to MarketEQ.
-func Market(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldMarket), v))
-	})
-}
-
 // CreateTimeEQ applies the EQ predicate on the "create_time" field.
 func CreateTimeEQ(v time.Time) predicate.Shopping {
 	return predicate.Shopping(func(s *sql.Selector) {
@@ -346,117 +339,6 @@ func DateLT(v time.Time) predicate.Shopping {
 func DateLTE(v time.Time) predicate.Shopping {
 	return predicate.Shopping(func(s *sql.Selector) {
 		s.Where(sql.LTE(s.C(FieldDate), v))
-	})
-}
-
-// MarketEQ applies the EQ predicate on the "market" field.
-func MarketEQ(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldMarket), v))
-	})
-}
-
-// MarketNEQ applies the NEQ predicate on the "market" field.
-func MarketNEQ(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldMarket), v))
-	})
-}
-
-// MarketIn applies the In predicate on the "market" field.
-func MarketIn(vs ...string) predicate.Shopping {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Shopping(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
-		s.Where(sql.In(s.C(FieldMarket), v...))
-	})
-}
-
-// MarketNotIn applies the NotIn predicate on the "market" field.
-func MarketNotIn(vs ...string) predicate.Shopping {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Shopping(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
-		s.Where(sql.NotIn(s.C(FieldMarket), v...))
-	})
-}
-
-// MarketGT applies the GT predicate on the "market" field.
-func MarketGT(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldMarket), v))
-	})
-}
-
-// MarketGTE applies the GTE predicate on the "market" field.
-func MarketGTE(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldMarket), v))
-	})
-}
-
-// MarketLT applies the LT predicate on the "market" field.
-func MarketLT(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldMarket), v))
-	})
-}
-
-// MarketLTE applies the LTE predicate on the "market" field.
-func MarketLTE(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldMarket), v))
-	})
-}
-
-// MarketContains applies the Contains predicate on the "market" field.
-func MarketContains(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.Contains(s.C(FieldMarket), v))
-	})
-}
-
-// MarketHasPrefix applies the HasPrefix predicate on the "market" field.
-func MarketHasPrefix(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.HasPrefix(s.C(FieldMarket), v))
-	})
-}
-
-// MarketHasSuffix applies the HasSuffix predicate on the "market" field.
-func MarketHasSuffix(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.HasSuffix(s.C(FieldMarket), v))
-	})
-}
-
-// MarketEqualFold applies the EqualFold predicate on the "market" field.
-func MarketEqualFold(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.EqualFold(s.C(FieldMarket), v))
-	})
-}
-
-// MarketContainsFold applies the ContainsFold predicate on the "market" field.
-func MarketContainsFold(v string) predicate.Shopping {
-	return predicate.Shopping(func(s *sql.Selector) {
-		s.Where(sql.ContainsFold(s.C(FieldMarket), v))
 	})
 }
 

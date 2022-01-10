@@ -535,7 +535,6 @@ type ShoppingMutation struct {
 	create_time   *time.Time
 	update_time   *time.Time
 	date          *time.Time
-	market        *string
 	clearedFields map[string]struct{}
 	items         map[int]struct{}
 	removeditems  map[int]struct{}
@@ -734,42 +733,6 @@ func (m *ShoppingMutation) ResetDate() {
 	m.date = nil
 }
 
-// SetMarket sets the "market" field.
-func (m *ShoppingMutation) SetMarket(s string) {
-	m.market = &s
-}
-
-// Market returns the value of the "market" field in the mutation.
-func (m *ShoppingMutation) Market() (r string, exists bool) {
-	v := m.market
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMarket returns the old "market" field's value of the Shopping entity.
-// If the Shopping object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ShoppingMutation) OldMarket(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldMarket is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldMarket requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMarket: %w", err)
-	}
-	return oldValue.Market, nil
-}
-
-// ResetMarket resets all changes to the "market" field.
-func (m *ShoppingMutation) ResetMarket() {
-	m.market = nil
-}
-
 // AddItemIDs adds the "items" edge to the ShoppingItem entity by ids.
 func (m *ShoppingMutation) AddItemIDs(ids ...int) {
 	if m.items == nil {
@@ -882,7 +845,7 @@ func (m *ShoppingMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ShoppingMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 3)
 	if m.create_time != nil {
 		fields = append(fields, shopping.FieldCreateTime)
 	}
@@ -891,9 +854,6 @@ func (m *ShoppingMutation) Fields() []string {
 	}
 	if m.date != nil {
 		fields = append(fields, shopping.FieldDate)
-	}
-	if m.market != nil {
-		fields = append(fields, shopping.FieldMarket)
 	}
 	return fields
 }
@@ -909,8 +869,6 @@ func (m *ShoppingMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdateTime()
 	case shopping.FieldDate:
 		return m.Date()
-	case shopping.FieldMarket:
-		return m.Market()
 	}
 	return nil, false
 }
@@ -926,8 +884,6 @@ func (m *ShoppingMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldUpdateTime(ctx)
 	case shopping.FieldDate:
 		return m.OldDate(ctx)
-	case shopping.FieldMarket:
-		return m.OldMarket(ctx)
 	}
 	return nil, fmt.Errorf("unknown Shopping field %s", name)
 }
@@ -957,13 +913,6 @@ func (m *ShoppingMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDate(v)
-		return nil
-	case shopping.FieldMarket:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMarket(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Shopping field %s", name)
@@ -1022,9 +971,6 @@ func (m *ShoppingMutation) ResetField(name string) error {
 		return nil
 	case shopping.FieldDate:
 		m.ResetDate()
-		return nil
-	case shopping.FieldMarket:
-		m.ResetMarket()
 		return nil
 	}
 	return fmt.Errorf("unknown Shopping field %s", name)

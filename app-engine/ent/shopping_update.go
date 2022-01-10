@@ -43,12 +43,6 @@ func (su *ShoppingUpdate) SetNillableDate(t *time.Time) *ShoppingUpdate {
 	return su
 }
 
-// SetMarket sets the "market" field.
-func (su *ShoppingUpdate) SetMarket(s string) *ShoppingUpdate {
-	su.mutation.SetMarket(s)
-	return su
-}
-
 // AddItemIDs adds the "items" edge to the ShoppingItem entity by IDs.
 func (su *ShoppingUpdate) AddItemIDs(ids ...int) *ShoppingUpdate {
 	su.mutation.AddItemIDs(ids...)
@@ -210,13 +204,6 @@ func (su *ShoppingUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: shopping.FieldDate,
 		})
 	}
-	if value, ok := su.mutation.Market(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: shopping.FieldMarket,
-		})
-	}
 	if su.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -336,12 +323,6 @@ func (suo *ShoppingUpdateOne) SetNillableDate(t *time.Time) *ShoppingUpdateOne {
 	if t != nil {
 		suo.SetDate(*t)
 	}
-	return suo
-}
-
-// SetMarket sets the "market" field.
-func (suo *ShoppingUpdateOne) SetMarket(s string) *ShoppingUpdateOne {
-	suo.mutation.SetMarket(s)
 	return suo
 }
 
@@ -528,13 +509,6 @@ func (suo *ShoppingUpdateOne) sqlSave(ctx context.Context) (_node *Shopping, err
 			Type:   field.TypeTime,
 			Value:  value,
 			Column: shopping.FieldDate,
-		})
-	}
-	if value, ok := suo.mutation.Market(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: shopping.FieldMarket,
 		})
 	}
 	if suo.mutation.ItemsCleared() {

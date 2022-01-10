@@ -98,7 +98,7 @@ func (s *Shopping) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     s.ID,
 		Type:   "Shopping",
-		Fields: make([]*Field, 4),
+		Fields: make([]*Field, 3),
 		Edges:  make([]*Edge, 2),
 	}
 	var buf []byte
@@ -124,14 +124,6 @@ func (s *Shopping) Node(ctx context.Context) (node *Node, err error) {
 	node.Fields[2] = &Field{
 		Type:  "time.Time",
 		Name:  "date",
-		Value: string(buf),
-	}
-	if buf, err = json.Marshal(s.Market); err != nil {
-		return nil, err
-	}
-	node.Fields[3] = &Field{
-		Type:  "string",
-		Name:  "market",
 		Value: string(buf),
 	}
 	node.Edges[0] = &Edge{

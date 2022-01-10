@@ -27,7 +27,6 @@ var (
 		{Name: "create_time", Type: field.TypeTime},
 		{Name: "update_time", Type: field.TypeTime},
 		{Name: "date", Type: field.TypeTime},
-		{Name: "market", Type: field.TypeString},
 		{Name: "vendor_purchases", Type: field.TypeInt, Nullable: true},
 	}
 	// ShoppingsTable holds the schema information for the "shoppings" table.
@@ -38,7 +37,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "shoppings_vendors_purchases",
-				Columns:    []*schema.Column{ShoppingsColumns[5]},
+				Columns:    []*schema.Column{ShoppingsColumns[4]},
 				RefColumns: []*schema.Column{VendorsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

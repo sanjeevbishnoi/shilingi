@@ -64,12 +64,6 @@ func (sc *ShoppingCreate) SetNillableDate(t *time.Time) *ShoppingCreate {
 	return sc
 }
 
-// SetMarket sets the "market" field.
-func (sc *ShoppingCreate) SetMarket(s string) *ShoppingCreate {
-	sc.mutation.SetMarket(s)
-	return sc
-}
-
 // AddItemIDs adds the "items" edge to the ShoppingItem entity by IDs.
 func (sc *ShoppingCreate) AddItemIDs(ids ...int) *ShoppingCreate {
 	sc.mutation.AddItemIDs(ids...)
@@ -200,9 +194,6 @@ func (sc *ShoppingCreate) check() error {
 	if _, ok := sc.mutation.Date(); !ok {
 		return &ValidationError{Name: "date", err: errors.New(`ent: missing required field "date"`)}
 	}
-	if _, ok := sc.mutation.Market(); !ok {
-		return &ValidationError{Name: "market", err: errors.New(`ent: missing required field "market"`)}
-	}
 	return nil
 }
 
@@ -253,14 +244,6 @@ func (sc *ShoppingCreate) createSpec() (*Shopping, *sqlgraph.CreateSpec) {
 			Column: shopping.FieldDate,
 		})
 		_node.Date = value
-	}
-	if value, ok := sc.mutation.Market(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: shopping.FieldMarket,
-		})
-		_node.Market = value
 	}
 	if nodes := sc.mutation.ItemsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

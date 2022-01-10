@@ -24,9 +24,6 @@ type Shopping struct {
 	// Date holds the value of the "date" field.
 	// When was the shopping done
 	Date time.Time `json:"date,omitempty"`
-	// Market holds the value of the "market" field.
-	// This is the place where you bought the items from
-	Market string `json:"market,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ShoppingQuery when eager-loading is set.
 	Edges            ShoppingEdges `json:"edges"`
@@ -74,8 +71,6 @@ func (*Shopping) scanValues(columns []string) ([]interface{}, error) {
 		switch columns[i] {
 		case shopping.FieldID:
 			values[i] = new(sql.NullInt64)
-		case shopping.FieldMarket:
-			values[i] = new(sql.NullString)
 		case shopping.FieldCreateTime, shopping.FieldUpdateTime, shopping.FieldDate:
 			values[i] = new(sql.NullTime)
 		case shopping.ForeignKeys[0]: // vendor_purchases
@@ -118,12 +113,6 @@ func (s *Shopping) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field date", values[i])
 			} else if value.Valid {
 				s.Date = value.Time
-			}
-		case shopping.FieldMarket:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field market", values[i])
-			} else if value.Valid {
-				s.Market = value.String
 			}
 		case shopping.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -176,8 +165,6 @@ func (s *Shopping) String() string {
 	builder.WriteString(s.UpdateTime.Format(time.ANSIC))
 	builder.WriteString(", date=")
 	builder.WriteString(s.Date.Format(time.ANSIC))
-	builder.WriteString(", market=")
-	builder.WriteString(s.Market)
 	builder.WriteByte(')')
 	return builder.String()
 }

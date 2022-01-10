@@ -17,8 +17,6 @@ const (
 	FieldUpdateTime = "update_time"
 	// FieldDate holds the string denoting the date field in the database.
 	FieldDate = "date"
-	// FieldMarket holds the string denoting the market field in the database.
-	FieldMarket = "market"
 	// EdgeItems holds the string denoting the items edge name in mutations.
 	EdgeItems = "items"
 	// EdgeVendor holds the string denoting the vendor edge name in mutations.
@@ -47,7 +45,6 @@ var Columns = []string{
 	FieldCreateTime,
 	FieldUpdateTime,
 	FieldDate,
-	FieldMarket,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "shoppings"
