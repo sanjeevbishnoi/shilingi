@@ -13,8 +13,7 @@ import (
 )
 
 func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error) {
-	cli := ent.FromContext(ctx)
-	return cli.Item.Create().SetName(input.Name).Save(ctx)
+	return entops.GetItem(ctx, input.Name)
 }
 
 func (r *mutationResolver) CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error) {

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
+	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
 )
@@ -43,6 +44,7 @@ func CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shoppi
 		return nil, err
 	}
 
+	// TODO: Validate item id provided
 	// update the purchase items
 	itemCreate := []*ent.ShoppingItemCreate{}
 	for _, item := range input.Items {
@@ -69,4 +71,26 @@ func Slugify(val string) string {
 	val = regexp.MustCompile(`[^\w_\-\s]`).ReplaceAllString(val, "")
 	val = regexp.MustCompile(`\s+`).ReplaceAllString(val, "-")
 	return strings.ToLower(val)
+}
+
+// GetItem retrieves or creates a new item based on it's name
+func GetItem(ctx context.Context, name string) (*ent.Item, error) {
+	cli := ent.FromContext(ctx)
+	nameSlug := Slugify(name)
+	i, err := cli.Item.Query().
+		Where(
+			item.Slug(nameSlug),
+		).Only(ctx)
+	switch err.(type) {
+	case *ent.NotFoundError:
+		if i, err = cli.Item.Create().
+			SetName(name).
+			SetSlug(nameSlug).
+			Save(ctx); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, err
+	}
+	return i, nil
 }
