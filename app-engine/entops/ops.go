@@ -81,6 +81,12 @@ func GetItem(ctx context.Context, name string) (*ent.Item, error) {
 		Where(
 			item.Slug(nameSlug),
 		).Only(ctx)
+
+	// If exists, return
+	if err == nil {
+		return i, nil
+	}
+
 	switch err.(type) {
 	case *ent.NotFoundError:
 		if i, err = cli.Item.Create().
@@ -89,8 +95,8 @@ func GetItem(ctx context.Context, name string) (*ent.Item, error) {
 			Save(ctx); err != nil {
 			return nil, err
 		}
+		return i, nil
 	default:
 		return nil, err
 	}
-	return i, nil
 }

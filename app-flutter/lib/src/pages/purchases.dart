@@ -39,7 +39,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Shilingi')),
       body: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 30.0),
         child: ListView(children: [
           for (var purchase in purchases) ...[
             WPurchase(purchase),

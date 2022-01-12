@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:google_fonts/google_fonts.dart';
+
 import './src/pages/pages.dart';
 
 void main() {
@@ -16,6 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'Shilingi',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        textTheme: GoogleFonts.rubikTextTheme(),
       ),
       initialRoute: '/',
       routes: {
