@@ -22,6 +22,10 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
       appBar: AppBar(title: const Text('New purchase')),
       backgroundColor: const Color(0xFFF8F8F8),
       body: _Body(),
+      floatingActionButton: FloatingActionButton.extended(
+          icon: const Icon(Icons.add),
+          label: Text('New item'),
+          onPressed: () {}),
     );
   }
 }
