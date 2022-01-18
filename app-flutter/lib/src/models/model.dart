@@ -6,13 +6,15 @@ class PurchaseItem {
   final double pricePerUnit;
   final Item item;
 
-  PurchaseItem(
+  const PurchaseItem(
       {required this.quantity,
       required this.quantityType,
       required this.units,
       this.brand,
       required this.pricePerUnit,
       required this.item});
+
+  double get total => units * pricePerUnit;
 }
 
 class Item {
