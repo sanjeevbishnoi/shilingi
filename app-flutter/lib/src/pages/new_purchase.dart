@@ -5,6 +5,7 @@ import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../models/model.dart';
+import '../components/components.dart';
 
 var f = NumberFormat('#,##0.00', 'en_US');
 
@@ -18,25 +19,41 @@ class NewPurchasePage extends StatefulWidget {
 class _NewPurchasePageState extends State<NewPurchasePage> {
   @override
   Widget build(BuildContext context) {
+    var state = _BodyState();
     return Scaffold(
       appBar: AppBar(title: const Text('New purchase')),
       backgroundColor: const Color(0xFFF8F8F8),
-      body: _Body(),
+      body: _Body(state: state),
       floatingActionButton: FloatingActionButton.extended(
           icon: const Icon(Icons.add),
-          label: Text('New item'),
-          onPressed: () {}),
+          label: const Text('New item'),
+          onPressed: () {
+            showModalBottomSheet(
+                context: context,
+                builder: (context) {
+                  return NewItemModalSheet(
+                    addItem: (item) {
+                      state.addItem(item);
+                    },
+                  );
+                });
+          }),
     );
   }
 }
 
 class _Body extends StatefulWidget {
+  final _BodyState state;
+
+  const _Body({required this.state});
+
   @override
-  State createState() => _BodyState();
+  State createState() => state;
 }
 
 class _BodyState extends State<_Body> {
   DateTime? _date;
+  final List<PurchaseItem> _items = [];
 
   @override
   Widget build(BuildContext context) {
@@ -121,6 +138,12 @@ class _BodyState extends State<_Body> {
       setState(() {
         _date = dt;
       });
+    });
+  }
+
+  void addItem(PurchaseItem item) {
+    setState(() {
+      _items.add(item);
     });
   }
 }

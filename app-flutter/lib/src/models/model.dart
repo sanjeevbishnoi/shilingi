@@ -1,3 +1,8 @@
+import 'package:json_annotation/json_annotation.dart';
+
+part 'model.g.dart';
+
+@JsonSerializable()
 class PurchaseItem {
   final double quantity;
   final String quantityType;
@@ -15,12 +20,22 @@ class PurchaseItem {
       required this.item});
 
   double get total => units * pricePerUnit;
+
+  Map<String, dynamic> toJson() => _$PurchaseItemToJson(this);
+
+  factory PurchaseItem.fromJson(Map<String, dynamic> json) =>
+      _$PurchaseItemFromJson(json);
 }
 
+@JsonSerializable()
 class Item {
   final String name;
 
   const Item({required this.name});
+
+  Map<String, dynamic> toJson() => _$ItemToJson(this);
+
+  factory Item.fromJson(Map<String, dynamic> json) => _$ItemFromJson(json);
 }
 
 class Purchase {
