@@ -29,7 +29,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('New purchase')),
       backgroundColor: const Color(0xFFF8F8F8),
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       body: _Body(state: _bodyState!),
       floatingActionButton: FloatingActionButton.extended(
           icon: const Icon(Icons.add),

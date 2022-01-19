@@ -2,24 +2,35 @@ import 'package:flutter/material.dart';
 
 typedef Validator = String? Function(String?);
 
-class CustomTextFormField extends StatelessWidget {
+class CustomTextFormField extends StatefulWidget {
   final String labelText;
   final TextInputType? keyboardType;
   final Validator? validator;
   final String fieldName;
-  TextEditingController? _controller;
+  final Map<String, dynamic>? data;
 
-  CustomTextFormField(
+  const CustomTextFormField(
       {Key? key,
       required this.labelText,
       this.keyboardType,
       this.validator,
       required this.fieldName,
-      Map<String, TextEditingController>? data})
-      : super(key: key) {
+      this.data})
+      : super(key: key);
+  @override
+  State createState() => _CustomTextFormField();
+}
+
+class _CustomTextFormField extends State<CustomTextFormField> {
+  TextEditingController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
     _controller = TextEditingController();
-    if (data != null) {
-      data[fieldName] = _controller!;
+
+    if (widget.data != null) {
+      widget.data![widget.fieldName] = _controller!;
     }
   }
 
@@ -30,8 +41,8 @@ class CustomTextFormField extends StatelessWidget {
       borderRadius: BorderRadius.circular(8.0),
       color: Colors.white,
       child: TextFormField(
-        keyboardType: keyboardType,
-        validator: validator,
+        keyboardType: widget.keyboardType,
+        validator: widget.validator,
         controller: _controller,
         decoration: InputDecoration(
           filled: true,
@@ -40,10 +51,16 @@ class CustomTextFormField extends StatelessWidget {
             borderSide: BorderSide.none,
             borderRadius: BorderRadius.circular(10.0),
           ),
-          labelText: labelText,
+          labelText: widget.labelText,
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _controller?.dispose();
   }
 }
 

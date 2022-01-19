@@ -103,7 +103,32 @@ class _NewItemFormWidget extends State<NewItemModalSheet> {
   _submit(BuildContext context) {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      for (var v in data.entries) {}
+      var d = <String, dynamic>{};
+      for (var v in data.entries) {
+        switch (v.key) {
+          case 'itemName':
+            d['item'] = {'name': v.value.text};
+            break;
+          case 'quantity':
+            d['quantity'] = double.parse(v.value.text);
+            break;
+          case 'quantityType':
+            d['quantityType'] = v.value.text;
+            break;
+          case 'units':
+            d['units'] = int.parse(v.value.text);
+            break;
+          case 'brand':
+            d['brand'] = v.value.text;
+            break;
+          case 'pricePerUnit':
+            d['pricePerUnit'] = double.parse(v.value.text);
+            break;
+        }
+      }
+      var item = PurchaseItem.fromJson(d);
+      widget.addItem(item);
+      Navigator.of(context).pop();
     }
   }
 
@@ -113,13 +138,5 @@ class _NewItemFormWidget extends State<NewItemModalSheet> {
       return data['itemName']!.text;
     }
     return null;
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    for (var c in data.values) {
-      c.dispose();
-    }
   }
 }
