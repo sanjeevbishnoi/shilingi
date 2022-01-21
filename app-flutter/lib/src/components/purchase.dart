@@ -30,7 +30,7 @@ class WPurchase extends StatelessWidget {
                       children: [
                         Expanded(
                           child: ListTitleText(
-                            purchase.market,
+                            purchase.vendor.name,
                           ),
                         ),
                         Text('Kes 2,000',

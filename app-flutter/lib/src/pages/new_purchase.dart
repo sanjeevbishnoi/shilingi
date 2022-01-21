@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:date_field/date_field.dart';
 
@@ -120,20 +119,6 @@ class _BodyState extends State<_Body> {
         ),
       ),
     );
-  }
-
-  String _dateString() {
-    return _date != null
-        ? DateFormat("EEE, MMM d, ''yy'").format(_date!)
-        : 'Date of purchase';
-  }
-
-  void _showDatePicker() {
-    DatePicker.showDatePicker(context, onConfirm: (dt) {
-      setState(() {
-        _date = dt;
-      });
-    });
   }
 
   void addItem(PurchaseItem item) {
