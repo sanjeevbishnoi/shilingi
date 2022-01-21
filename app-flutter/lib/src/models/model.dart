@@ -40,9 +40,24 @@ class Item {
 
 class Purchase {
   final DateTime date;
-  final String market;
+  final Vendor vendor;
   final List<PurchaseItem> items;
 
   const Purchase(
-      {required this.date, required this.market, required this.items});
+      {required this.date, required this.vendor, required this.items});
+
+  factory Purchase.fromJson(Map<String, dynamic> json) =>
+      _$PurchaseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PurchaseToJson(this);
+}
+
+@JsonSerializable()
+class Vendor {
+  final String name;
+
+  const Vendor({required this.name});
+
+  factory Vendor.fromJson(Map<String, dynamic> json) => _$VendorFromJson(json);
+  Map<String, dynamic> toJson() => _$VendorToJson(this);
 }
