@@ -61,6 +61,7 @@ class _Body extends StatefulWidget {
 
 class _BodyState extends State<_Body> {
   DateTime? _date;
+  String? _vendor;
   final List<PurchaseItem> _items = [];
   final _formKey = GlobalKey<FormState>();
 
@@ -84,6 +85,9 @@ class _BodyState extends State<_Body> {
               ),
               validator: requiredValidatorWithMessage(
                   'Provide the specific vendor you purchased from'),
+              onChanged: (vendor) {
+                _vendor = vendor;
+              },
             ),
             const SizedBox(height: 12.0),
             DateTimeFormField(
@@ -103,6 +107,9 @@ class _BodyState extends State<_Body> {
                   return 'When did you make this purchase?';
                 }
                 return null;
+              },
+              onDateSelected: (d) {
+                _date = d;
               },
             ),
             const SizedBox(height: 24.0),
@@ -145,6 +152,10 @@ class _BodyState extends State<_Body> {
                 ],
               );
             });
+      } else {
+        var purchase = Purchase(
+            date: _date!, vendor: Vendor(name: _vendor!), items: _items);
+        print(purchase.toJson());
       }
     }
   }
