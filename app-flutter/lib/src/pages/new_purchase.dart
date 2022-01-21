@@ -106,6 +106,11 @@ class _BodyState extends State<_Body> {
           ),
           const SizedBox(height: 24.0),
           _Items(items: _items),
+          const SizedBox(height: 24.0),
+          ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: double.infinity),
+              child:
+                  ElevatedButton(onPressed: () {}, child: const Text('Save'))),
         ],
       ),
     );
