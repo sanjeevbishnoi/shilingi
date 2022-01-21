@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:date_field/date_field.dart';
 
 import '../models/model.dart';
 import '../components/components.dart';
@@ -62,56 +63,61 @@ class _Body extends StatefulWidget {
 class _BodyState extends State<_Body> {
   DateTime? _date;
   final List<PurchaseItem> _items = [];
+  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 30.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          TextFormField(
-            style: GoogleFonts.rubik().copyWith(
-              fontWeight: FontWeight.w900,
-              fontSize: 20.0,
-            ),
-            decoration: const InputDecoration(
-              hintText: 'Type in place of purchase',
-              border: InputBorder.none,
-            ),
-          ),
-          const SizedBox(height: 12.0),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F3F3),
-              borderRadius: BorderRadius.circular(25.0),
-            ),
-            child: GestureDetector(
-              onTap: _showDatePicker,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 4.0, horizontal: 18.0),
-                child: Row(
-                  children: [
-                    Expanded(child: Text(_dateString())),
-                    IconButton(
-                        onPressed: () {
-                          _showDatePicker();
-                        },
-                        icon: const Icon(Icons.calendar_today)),
-                  ],
-                ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            TextFormField(
+              style: GoogleFonts.rubik().copyWith(
+                fontWeight: FontWeight.w900,
+                fontSize: 20.0,
               ),
+              decoration: const InputDecoration(
+                hintText: 'Type in place of purchase',
+                border: InputBorder.none,
+              ),
+              validator: requiredValidatorWithMessage(
+                  'Provide the specific vendor you purchased from'),
             ),
-          ),
-          const SizedBox(height: 24.0),
-          _Items(items: _items),
-          const SizedBox(height: 24.0),
-          ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: double.infinity),
-              child:
-                  ElevatedButton(onPressed: () {}, child: const Text('Save'))),
-        ],
+            const SizedBox(height: 12.0),
+            DateTimeFormField(
+              mode: DateTimeFieldPickerMode.date,
+              decoration: InputDecoration(
+                suffixIcon: const Icon(Icons.event_note),
+                filled: true,
+                fillColor: const Color(0xFFF3F3F3),
+                border: UnderlineInputBorder(
+                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+                labelText: 'Date of purchase',
+              ),
+              validator: (date) {
+                if (date == null) {
+                  return 'When did you make this purchase?';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24.0),
+            _Items(items: _items),
+            const SizedBox(height: 24.0),
+            ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: double.infinity),
+                child: ElevatedButton(
+                    onPressed: () {
+                      _submit();
+                    },
+                    child: const Text('Save'))),
+          ],
+        ),
       ),
     );
   }
@@ -134,6 +140,28 @@ class _BodyState extends State<_Body> {
     setState(() {
       _items.add(item);
     });
+  }
+
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      if (_items.isEmpty) {
+        showDialog(
+            context: context,
+            builder: (_) {
+              return AlertDialog(
+                content: const Text(
+                    'You have not provided a list of items purchased'),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('OK'))
+                ],
+              );
+            });
+      }
+    }
   }
 }
 
