@@ -38,6 +38,7 @@ class Item {
   factory Item.fromJson(Map<String, dynamic> json) => _$ItemFromJson(json);
 }
 
+@JsonSerializable()
 class Purchase {
   final DateTime date;
   final Vendor vendor;

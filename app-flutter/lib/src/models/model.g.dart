@@ -32,3 +32,25 @@ Item _$ItemFromJson(Map<String, dynamic> json) => Item(
 Map<String, dynamic> _$ItemToJson(Item instance) => <String, dynamic>{
       'name': instance.name,
     };
+
+Purchase _$PurchaseFromJson(Map<String, dynamic> json) => Purchase(
+      date: DateTime.parse(json['date'] as String),
+      vendor: Vendor.fromJson(json['vendor'] as Map<String, dynamic>),
+      items: (json['items'] as List<dynamic>)
+          .map((e) => PurchaseItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$PurchaseToJson(Purchase instance) => <String, dynamic>{
+      'date': instance.date.toIso8601String(),
+      'vendor': instance.vendor,
+      'items': instance.items,
+    };
+
+Vendor _$VendorFromJson(Map<String, dynamic> json) => Vendor(
+      name: json['name'] as String,
+    );
+
+Map<String, dynamic> _$VendorToJson(Vendor instance) => <String, dynamic>{
+      'name': instance.name,
+    };
