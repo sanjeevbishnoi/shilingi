@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:date_field/date_field.dart';
+import 'package:graphql_flutter/graphql_flutter.dart';
 
 import '../models/model.dart';
 import '../components/components.dart';
+import '../gql/gql.dart';
 
 var f = NumberFormat('#,##0.00', 'en_US');
 
@@ -115,13 +117,28 @@ class _BodyState extends State<_Body> {
             const SizedBox(height: 24.0),
             _Items(items: _items),
             const SizedBox(height: 24.0),
-            ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: double.infinity),
-                child: ElevatedButton(
-                    onPressed: () {
-                      _submit();
-                    },
-                    child: const Text('Save'))),
+            Mutation(
+              options: MutationOptions(document: mutationCreatePurchase),
+              builder: (createPurchase, result) {
+                var loading = false;
+                if (result != null && result.isLoading) {
+                  loading = true;
+                }
+                print(result);
+
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: double.infinity),
+                  child: ElevatedButton(
+                    onPressed: loading
+                        ? null
+                        : () {
+                            _submit(createPurchase);
+                          },
+                    child: Text(loading ? 'Saving...' : 'Save'),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -134,7 +151,7 @@ class _BodyState extends State<_Body> {
     });
   }
 
-  void _submit() {
+  void _submit(RunMutation createPurchase) {
     if (_formKey.currentState!.validate()) {
       if (_items.isEmpty) {
         showDialog(
@@ -155,7 +172,16 @@ class _BodyState extends State<_Body> {
       } else {
         var purchase = Purchase(
             date: _date!, vendor: Vendor(name: _vendor!), items: _items);
-        print(purchase.toJson());
+        var data = purchase.toJson();
+        var items = <dynamic>[];
+        for (var item in purchase.items) {
+          var d = item.toJson();
+          d['item'] = item.item.name;
+          items.add(d);
+        }
+        data['vendor'] = purchase.vendor.toJson();
+        data['items'] = items;
+        createPurchase(<String, dynamic>{"input": data});
       }
     }
   }

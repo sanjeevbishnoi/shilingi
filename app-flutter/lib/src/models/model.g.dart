@@ -42,7 +42,7 @@ Purchase _$PurchaseFromJson(Map<String, dynamic> json) => Purchase(
     );
 
 Map<String, dynamic> _$PurchaseToJson(Purchase instance) => <String, dynamic>{
-      'date': instance.date.toIso8601String(),
+      'date': _DateTimeToJson(instance.date),
       'vendor': instance.vendor,
       'items': instance.items,
     };
