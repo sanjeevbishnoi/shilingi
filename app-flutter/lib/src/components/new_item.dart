@@ -41,25 +41,18 @@ class _NewItemFormWidget extends State<NewItemModalSheet> {
                 ),
                 const SizedBox(height: 14.0),
                 CustomTextFormField(
-                  fieldName: "units",
-                  labelText: 'How many items?',
+                  fieldName: "cost",
+                  labelText: 'Cost of the items',
                   keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return _itemName != null && !_itemName!.isEmpty
-                          ? 'How many units of $_itemName did you get?'
-                          : 'Specify the number of items you bought';
-                    }
-                  },
+                  validator: requiredValidatorWithMessage(
+                      'How much did you pay for these set of items?'),
                   data: data,
                 ),
                 const SizedBox(height: 14.0),
                 CustomTextFormField(
-                  fieldName: "pricePerUnit",
-                  labelText: 'Price per item',
+                  fieldName: "units",
+                  labelText: 'How many items?',
                   keyboardType: TextInputType.number,
-                  validator: requiredValidatorWithMessage(
-                      'What is the price for each item?'),
                   data: data,
                 ),
                 const SizedBox(height: 14.0),
@@ -74,8 +67,6 @@ class _NewItemFormWidget extends State<NewItemModalSheet> {
                   fieldName: "quantityType",
                   labelText: 'Unit of measurement? e.g grams, liters',
                   data: data,
-                  validator:
-                      requiredValidatorWithMessage('E.g liters, kgs, grams'),
                 ),
                 const SizedBox(height: 14.0),
                 CustomTextFormField(
@@ -110,21 +101,44 @@ class _NewItemFormWidget extends State<NewItemModalSheet> {
             d['item'] = {'name': v.value.text};
             break;
           case 'quantity':
-            d['quantity'] = double.parse(v.value.text);
+            if (v.value.text.isNotEmpty) {
+              d['quantity'] = double.parse(v.value.text);
+            }
             break;
           case 'quantityType':
             d['quantityType'] = v.value.text;
             break;
           case 'units':
-            d['units'] = int.parse(v.value.text);
+            if (v.value.text.isNotEmpty) {
+              var units = int.parse(v.value.text);
+              d['units'] = units;
+              if (data.containsKey('cost') &&
+                  data['cost']!.value.text.isNotEmpty) {
+                d['pricePerUnit'] =
+                    double.parse(data['cost']!.value.text) / units;
+              }
+            }
             break;
           case 'brand':
             d['brand'] = v.value.text;
             break;
-          case 'pricePerUnit':
-            d['pricePerUnit'] = double.parse(v.value.text);
+          case 'cost':
+            if (v.value.text.isNotEmpty) {
+              // check if we have set units yet
+              if (data.containsKey('units') &&
+                  data['units']!.value.text.isNotEmpty) {
+                var units = int.parse(data['units']!.value.text);
+                d['pricePerUnit'] = double.parse(v.value.text) / units;
+              } else {
+                d['pricePerUnit'] = double.parse(v.value.text);
+              }
+            }
             break;
         }
+      }
+      // If units key has not been provided, manually set it to 1
+      if (!d.containsKey('units') || d['units'] is! num) {
+        d['units'] = 1;
       }
       var item = PurchaseItem.fromJson(d);
       widget.addItem(item);

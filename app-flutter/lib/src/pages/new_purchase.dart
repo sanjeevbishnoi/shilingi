@@ -29,7 +29,12 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('New purchase')),
+      appBar: AppBar(
+        title: const Text('New purchase'),
+        actions: const [
+          IconButton(onPressed: null, icon: Icon(Icons.save)),
+        ],
+      ),
       backgroundColor: const Color(0xFFF8F8F8),
       resizeToAvoidBottomInset: true,
       body: _Body(state: _bodyState!),
@@ -69,77 +74,80 @@ class _BodyState extends State<_Body> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 30.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            TextFormField(
-              style: GoogleFonts.rubik().copyWith(
-                fontWeight: FontWeight.w900,
-                fontSize: 20.0,
-              ),
-              decoration: const InputDecoration(
-                hintText: 'Type in place of purchase',
-                border: InputBorder.none,
-              ),
-              validator: requiredValidatorWithMessage(
-                  'Provide the specific vendor you purchased from'),
-              onChanged: (vendor) {
-                _vendor = vendor;
-              },
-            ),
-            const SizedBox(height: 12.0),
-            DateTimeFormField(
-              mode: DateTimeFieldPickerMode.date,
-              decoration: InputDecoration(
-                suffixIcon: const Icon(Icons.event_note),
-                filled: true,
-                fillColor: const Color(0xFFF3F3F3),
-                border: UnderlineInputBorder(
-                  borderSide: BorderSide.none,
-                  borderRadius: BorderRadius.circular(20.0),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 30.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              TextFormField(
+                style: GoogleFonts.rubik().copyWith(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20.0,
                 ),
-                labelText: 'Date of purchase',
+                decoration: const InputDecoration(
+                  hintText: 'Type in place of purchase',
+                  border: InputBorder.none,
+                ),
+                validator: requiredValidatorWithMessage(
+                    'Provide the specific vendor you purchased from'),
+                onChanged: (vendor) {
+                  _vendor = vendor;
+                },
               ),
-              validator: (date) {
-                if (date == null) {
-                  return 'When did you make this purchase?';
-                }
-                return null;
-              },
-              onDateSelected: (d) {
-                _date = d;
-              },
-            ),
-            const SizedBox(height: 24.0),
-            _Items(items: _items),
-            const SizedBox(height: 24.0),
-            Mutation(
-              options: MutationOptions(document: mutationCreatePurchase),
-              builder: (createPurchase, result) {
-                var loading = false;
-                if (result != null && result.isLoading) {
-                  loading = true;
-                }
-                print(result);
-
-                return ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: double.infinity),
-                  child: ElevatedButton(
-                    onPressed: loading
-                        ? null
-                        : () {
-                            _submit(createPurchase);
-                          },
-                    child: Text(loading ? 'Saving...' : 'Save'),
+              const SizedBox(height: 12.0),
+              DateTimeFormField(
+                mode: DateTimeFieldPickerMode.date,
+                decoration: InputDecoration(
+                  suffixIcon: const Icon(Icons.event_note),
+                  filled: true,
+                  fillColor: const Color(0xFFF3F3F3),
+                  border: UnderlineInputBorder(
+                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.circular(20.0),
                   ),
-                );
-              },
-            ),
-          ],
+                  labelText: 'Date of purchase',
+                ),
+                validator: (date) {
+                  if (date == null) {
+                    return 'When did you make this purchase?';
+                  }
+                  return null;
+                },
+                onDateSelected: (d) {
+                  _date = d;
+                },
+              ),
+              const SizedBox(height: 24.0),
+              _Items(items: _items),
+              const SizedBox(height: 24.0),
+              Mutation(
+                options: MutationOptions(document: mutationCreatePurchase),
+                builder: (createPurchase, result) {
+                  var loading = false;
+                  if (result != null && result.isLoading) {
+                    loading = true;
+                  }
+                  print(result);
+
+                  return ConstrainedBox(
+                    constraints:
+                        const BoxConstraints(minWidth: double.infinity),
+                    child: ElevatedButton(
+                      onPressed: loading
+                          ? null
+                          : () {
+                              _submit(createPurchase);
+                            },
+                      child: Text(loading ? 'Saving...' : 'Save'),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -207,7 +215,7 @@ class _Items extends StatelessWidget {
         ),
         const SizedBox(height: 12.0),
         SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
+          scrollDirection: Axis.vertical,
           child: DataTable(
             columns: const [
               DataColumn(label: Text('Name')),

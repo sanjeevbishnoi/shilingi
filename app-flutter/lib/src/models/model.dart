@@ -4,9 +4,9 @@ part 'model.g.dart';
 
 @JsonSerializable()
 class PurchaseItem {
-  final double quantity;
-  final String quantityType;
-  final int units;
+  final double? quantity;
+  final String? quantityType;
+  final int? units;
   final String? brand;
   final double pricePerUnit;
   final Item item;
@@ -19,7 +19,7 @@ class PurchaseItem {
       required this.pricePerUnit,
       required this.item});
 
-  double get total => units * pricePerUnit;
+  double get total => units != null ? units! * pricePerUnit : pricePerUnit;
 
   Map<String, dynamic> toJson() => _$PurchaseItemToJson(this);
 

@@ -7,9 +7,9 @@ part of 'model.dart';
 // **************************************************************************
 
 PurchaseItem _$PurchaseItemFromJson(Map<String, dynamic> json) => PurchaseItem(
-      quantity: (json['quantity'] as num).toDouble(),
-      quantityType: json['quantityType'] as String,
-      units: json['units'] as int,
+      quantity: (json['quantity'] as num?)?.toDouble(),
+      quantityType: json['quantityType'] as String?,
+      units: json['units'] as int?,
       brand: json['brand'] as String?,
       pricePerUnit: (json['pricePerUnit'] as num).toDouble(),
       item: Item.fromJson(json['item'] as Map<String, dynamic>),
