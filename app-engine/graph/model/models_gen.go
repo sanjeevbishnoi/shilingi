@@ -24,7 +24,7 @@ type ShoppingItemInput struct {
 	Units        *int            `json:"units"`
 	Brand        *string         `json:"brand"`
 	PricePerUnit decimal.Decimal `json:"pricePerUnit"`
-	Item         int             `json:"item"`
+	Item         string          `json:"item"`
 }
 
 type VendorInput struct {

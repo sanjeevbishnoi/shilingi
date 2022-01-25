@@ -44,6 +44,7 @@ class Purchase {
   final DateTime date;
   final Vendor vendor;
   final List<PurchaseItem>? items;
+  @JsonKey(includeIfNull: false)
   final double? total;
 
   const Purchase(

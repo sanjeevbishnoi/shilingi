@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"entgo.io/contrib/entgql"
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/migrate"
@@ -40,6 +43,12 @@ func main() {
 
 	srv := handler.NewDefaultServer(graph.NewSchema(cli))
 	srv.Use(entgql.Transactioner{TxOpener: cli})
+	srv.SetErrorPresenter(func(ctx context.Context, err error) *gqlerror.Error {
+		graphQLErr := graphql.DefaultErrorPresenter(ctx, err)
+		fmt.Printf("Error: %s\n", err)
+
+		return graphQLErr
+	})
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)

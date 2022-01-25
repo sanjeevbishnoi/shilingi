@@ -14,6 +14,7 @@ class PurchasesPage extends StatefulWidget {
 }
 
 class _PurchasesPageState extends State<PurchasesPage> {
+  Refetch? _refetch;
   List<model.Purchase> purchases = [
     model.Purchase(
       vendor: const model.Vendor(name: "Quickmart"),
@@ -45,22 +46,31 @@ class _PurchasesPageState extends State<PurchasesPage> {
           options: QueryOptions(document: queries.purchasesQuery),
           builder: (QueryResult result,
               {Refetch? refetch, FetchMore? fetchMore}) {
+            _refetch = refetch;
             if (result.isLoading && result.data == null) {
               return const Center(
                 child: CircularProgressIndicator(),
               );
             } else if (result.data != null) {
               var p = model.Purchases.fromJson(result.data!);
-              return ListView(children: [
-                const SizedBox(height: 12.0),
-                for (var purchase in p.purchases) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                    child: WPurchase(purchase),
-                  ),
+              return RefreshIndicator(
+                onRefresh: () {
+                  if (_refetch != null) {
+                    return _refetch!();
+                  }
+                  return Future.value();
+                },
+                child: ListView(children: [
                   const SizedBox(height: 12.0),
-                ],
-              ]);
+                  for (var purchase in p.purchases) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                      child: WPurchase(purchase),
+                    ),
+                    const SizedBox(height: 12.0),
+                  ],
+                ]),
+              );
             }
             return const Center(
               child: Text('unable to load your purchases'),

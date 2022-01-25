@@ -9,13 +9,13 @@ input ItemInput {
 }
 
 input ShoppingItemInput {
-  quantity: Float!
-  quantityType: String!
-  units: Int
+  quantity: Float
+  quantityType: String
+  units: Int = 1
   brand: String 
   pricePerUnit: Decimal!
   # Add a validator for checking the provided id for an item exists
-  item: Int!
+  item: String!
 }
 
 input ShoppingInput {

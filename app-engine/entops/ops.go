@@ -44,6 +44,19 @@ func CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shoppi
 		return nil, err
 	}
 
+	itemNames := make([]string, len(input.Items))
+	for i, name := range input.Items {
+		itemNames[i] = name.Item
+	}
+	items, err := GetOrCreateItemsByName(ctx, itemNames)
+	if err != nil {
+		return nil, err
+	}
+	itemMap := map[string]*ent.Item{}
+	for _, i := range items {
+		itemMap[i.Slug] = i
+	}
+
 	// TODO: Validate item id provided
 	// update the purchase items
 	itemCreate := []*ent.ShoppingItemCreate{}
@@ -54,7 +67,7 @@ func CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shoppi
 			SetNillableUnits(item.Units).
 			SetNillableBrand(item.Brand).
 			SetPricePerUnit(item.PricePerUnit).
-			SetItemID(item.Item).
+			SetItem(itemMap[Slugify(item.Item)]).
 			SetShopping(s)
 		itemCreate = append(itemCreate, shoppingItem)
 	}
@@ -99,4 +112,45 @@ func GetItem(ctx context.Context, name string) (*ent.Item, error) {
 	default:
 		return nil, err
 	}
+}
+
+// GetOrCreateItemsByName converts the name to slugs and queries the database
+func GetOrCreateItemsByName(ctx context.Context, names []string) ([]*ent.Item, error) {
+	cli := ent.FromContext(ctx)
+	slugs := []string{}
+	slugToName := map[string]string{}
+	for _, entry := range names {
+		slug := Slugify(entry)
+		slugs = append(slugs, slug)
+		slugToName[slug] = entry
+	}
+
+	items, err := cli.Item.Query().
+		Where(
+			item.SlugIn(slugs...),
+		).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(items) == len(names) {
+		return items, nil
+	}
+
+	for _, i := range items {
+		delete(slugToName, i.Slug)
+	}
+
+	bulk := []*ent.ItemCreate{}
+	for slug, name := range slugToName {
+		bulk = append(bulk, cli.Item.Create().
+			SetName(name).
+			SetSlug(slug))
+	}
+	createItems, err := cli.Item.CreateBulk(bulk...).Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	items = append(items, createItems...)
+	return items, nil
 }
