@@ -43,10 +43,9 @@ class Purchase {
   @JsonKey(toJson: _DateTimeToJson)
   final DateTime date;
   final Vendor vendor;
-  final List<PurchaseItem> items;
+  final List<PurchaseItem>? items;
 
-  const Purchase(
-      {required this.date, required this.vendor, required this.items});
+  const Purchase({required this.date, required this.vendor, this.items});
 
   factory Purchase.fromJson(Map<String, dynamic> json) =>
       _$PurchaseFromJson(json);
