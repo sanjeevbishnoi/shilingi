@@ -149,7 +149,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
             date: _date!, vendor: Vendor(name: _vendor!), items: _items);
         var data = purchase.toJson();
         var items = <dynamic>[];
-        for (var item in purchase.items) {
+        for (var item in purchase.items ?? []) {
           var d = item.toJson();
           d['item'] = item.item.name;
           items.add(d);

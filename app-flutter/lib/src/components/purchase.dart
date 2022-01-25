@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/model.dart';
 import './text.dart';
 
+var f = NumberFormat('#,##0.00', 'en_US');
+
 class WPurchase extends StatelessWidget {
   final Purchase purchase;
 
@@ -33,7 +35,7 @@ class WPurchase extends StatelessWidget {
                             purchase.vendor.name,
                           ),
                         ),
-                        Text('Kes 2,000',
+                        Text('Kes ${f.format(purchase.total)}',
                             style: GoogleFonts.rubik().copyWith(
                                 fontSize: 16.0, fontWeight: FontWeight.w600)),
                       ],

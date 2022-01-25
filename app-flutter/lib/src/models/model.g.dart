@@ -39,12 +39,24 @@ Purchase _$PurchaseFromJson(Map<String, dynamic> json) => Purchase(
       items: (json['items'] as List<dynamic>?)
           ?.map((e) => PurchaseItem.fromJson(e as Map<String, dynamic>))
           .toList(),
+      total: (json['total'] as num?)?.toDouble(),
     );
 
 Map<String, dynamic> _$PurchaseToJson(Purchase instance) => <String, dynamic>{
       'date': _DateTimeToJson(instance.date),
       'vendor': instance.vendor,
       'items': instance.items,
+      'total': instance.total,
+    };
+
+Purchases _$PurchasesFromJson(Map<String, dynamic> json) => Purchases(
+      purchases: (json['purchases'] as List<dynamic>)
+          .map((e) => Purchase.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$PurchasesToJson(Purchases instance) => <String, dynamic>{
+      'purchases': instance.purchases,
     };
 
 Vendor _$VendorFromJson(Map<String, dynamic> json) => Vendor(

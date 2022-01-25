@@ -44,13 +44,27 @@ class Purchase {
   final DateTime date;
   final Vendor vendor;
   final List<PurchaseItem>? items;
+  final double? total;
 
-  const Purchase({required this.date, required this.vendor, this.items});
+  const Purchase(
+      {required this.date, required this.vendor, this.items, this.total});
 
   factory Purchase.fromJson(Map<String, dynamic> json) =>
       _$PurchaseFromJson(json);
 
   Map<String, dynamic> toJson() => _$PurchaseToJson(this);
+}
+
+@JsonSerializable()
+class Purchases {
+  final List<Purchase> purchases;
+
+  Purchases({required this.purchases});
+
+  factory Purchases.fromJson(Map<String, dynamic> json) =>
+      _$PurchasesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PurchasesToJson(this);
 }
 
 @JsonSerializable()
