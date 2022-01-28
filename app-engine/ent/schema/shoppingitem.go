@@ -20,9 +20,11 @@ type ShoppingItem struct {
 func (ShoppingItem) Fields() []ent.Field {
 	return []ent.Field{
 		field.Float("quantity").
-			Comment("This is the raw value. Enhances it's semantics together with quantity type"),
+			Comment("This is the raw value. Enhances it's semantics together with quantity type").
+			Optional(),
 		field.String("quantity_type").
-			Comment("E.g liters, grams, kilograms etc."),
+			Comment("E.g liters, grams, kilograms etc.").
+			Optional(),
 		field.Int("units").
 			Comment("How many individual items purchase").
 			Default(1),

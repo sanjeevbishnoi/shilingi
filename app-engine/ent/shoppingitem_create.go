@@ -57,9 +57,25 @@ func (sic *ShoppingItemCreate) SetQuantity(f float64) *ShoppingItemCreate {
 	return sic
 }
 
+// SetNillableQuantity sets the "quantity" field if the given value is not nil.
+func (sic *ShoppingItemCreate) SetNillableQuantity(f *float64) *ShoppingItemCreate {
+	if f != nil {
+		sic.SetQuantity(*f)
+	}
+	return sic
+}
+
 // SetQuantityType sets the "quantity_type" field.
 func (sic *ShoppingItemCreate) SetQuantityType(s string) *ShoppingItemCreate {
 	sic.mutation.SetQuantityType(s)
+	return sic
+}
+
+// SetNillableQuantityType sets the "quantity_type" field if the given value is not nil.
+func (sic *ShoppingItemCreate) SetNillableQuantityType(s *string) *ShoppingItemCreate {
+	if s != nil {
+		sic.SetQuantityType(*s)
+	}
 	return sic
 }
 
@@ -211,12 +227,6 @@ func (sic *ShoppingItemCreate) check() error {
 	}
 	if _, ok := sic.mutation.UpdateTime(); !ok {
 		return &ValidationError{Name: "update_time", err: errors.New(`ent: missing required field "update_time"`)}
-	}
-	if _, ok := sic.mutation.Quantity(); !ok {
-		return &ValidationError{Name: "quantity", err: errors.New(`ent: missing required field "quantity"`)}
-	}
-	if _, ok := sic.mutation.QuantityType(); !ok {
-		return &ValidationError{Name: "quantity_type", err: errors.New(`ent: missing required field "quantity_type"`)}
 	}
 	if _, ok := sic.mutation.Units(); !ok {
 		return &ValidationError{Name: "units", err: errors.New(`ent: missing required field "units"`)}

@@ -1359,10 +1359,24 @@ func (m *ShoppingItemMutation) AddedQuantity() (r float64, exists bool) {
 	return *v, true
 }
 
+// ClearQuantity clears the value of the "quantity" field.
+func (m *ShoppingItemMutation) ClearQuantity() {
+	m.quantity = nil
+	m.addquantity = nil
+	m.clearedFields[shoppingitem.FieldQuantity] = struct{}{}
+}
+
+// QuantityCleared returns if the "quantity" field was cleared in this mutation.
+func (m *ShoppingItemMutation) QuantityCleared() bool {
+	_, ok := m.clearedFields[shoppingitem.FieldQuantity]
+	return ok
+}
+
 // ResetQuantity resets all changes to the "quantity" field.
 func (m *ShoppingItemMutation) ResetQuantity() {
 	m.quantity = nil
 	m.addquantity = nil
+	delete(m.clearedFields, shoppingitem.FieldQuantity)
 }
 
 // SetQuantityType sets the "quantity_type" field.
@@ -1396,9 +1410,22 @@ func (m *ShoppingItemMutation) OldQuantityType(ctx context.Context) (v string, e
 	return oldValue.QuantityType, nil
 }
 
+// ClearQuantityType clears the value of the "quantity_type" field.
+func (m *ShoppingItemMutation) ClearQuantityType() {
+	m.quantity_type = nil
+	m.clearedFields[shoppingitem.FieldQuantityType] = struct{}{}
+}
+
+// QuantityTypeCleared returns if the "quantity_type" field was cleared in this mutation.
+func (m *ShoppingItemMutation) QuantityTypeCleared() bool {
+	_, ok := m.clearedFields[shoppingitem.FieldQuantityType]
+	return ok
+}
+
 // ResetQuantityType resets all changes to the "quantity_type" field.
 func (m *ShoppingItemMutation) ResetQuantityType() {
 	m.quantity_type = nil
+	delete(m.clearedFields, shoppingitem.FieldQuantityType)
 }
 
 // SetUnits sets the "units" field.
@@ -1853,6 +1880,12 @@ func (m *ShoppingItemMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *ShoppingItemMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(shoppingitem.FieldQuantity) {
+		fields = append(fields, shoppingitem.FieldQuantity)
+	}
+	if m.FieldCleared(shoppingitem.FieldQuantityType) {
+		fields = append(fields, shoppingitem.FieldQuantityType)
+	}
 	if m.FieldCleared(shoppingitem.FieldBrand) {
 		fields = append(fields, shoppingitem.FieldBrand)
 	}
@@ -1870,6 +1903,12 @@ func (m *ShoppingItemMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ShoppingItemMutation) ClearField(name string) error {
 	switch name {
+	case shoppingitem.FieldQuantity:
+		m.ClearQuantity()
+		return nil
+	case shoppingitem.FieldQuantityType:
+		m.ClearQuantityType()
+		return nil
 	case shoppingitem.FieldBrand:
 		m.ClearBrand()
 		return nil

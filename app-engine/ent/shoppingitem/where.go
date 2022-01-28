@@ -371,6 +371,20 @@ func QuantityLTE(v float64) predicate.ShoppingItem {
 	})
 }
 
+// QuantityIsNil applies the IsNil predicate on the "quantity" field.
+func QuantityIsNil() predicate.ShoppingItem {
+	return predicate.ShoppingItem(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldQuantity)))
+	})
+}
+
+// QuantityNotNil applies the NotNil predicate on the "quantity" field.
+func QuantityNotNil() predicate.ShoppingItem {
+	return predicate.ShoppingItem(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldQuantity)))
+	})
+}
+
 // QuantityTypeEQ applies the EQ predicate on the "quantity_type" field.
 func QuantityTypeEQ(v string) predicate.ShoppingItem {
 	return predicate.ShoppingItem(func(s *sql.Selector) {
@@ -465,6 +479,20 @@ func QuantityTypeHasPrefix(v string) predicate.ShoppingItem {
 func QuantityTypeHasSuffix(v string) predicate.ShoppingItem {
 	return predicate.ShoppingItem(func(s *sql.Selector) {
 		s.Where(sql.HasSuffix(s.C(FieldQuantityType), v))
+	})
+}
+
+// QuantityTypeIsNil applies the IsNil predicate on the "quantity_type" field.
+func QuantityTypeIsNil() predicate.ShoppingItem {
+	return predicate.ShoppingItem(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldQuantityType)))
+	})
+}
+
+// QuantityTypeNotNil applies the NotNil predicate on the "quantity_type" field.
+func QuantityTypeNotNil() predicate.ShoppingItem {
+	return predicate.ShoppingItem(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldQuantityType)))
 	})
 }
 

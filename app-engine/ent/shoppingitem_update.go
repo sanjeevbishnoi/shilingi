@@ -37,15 +37,43 @@ func (siu *ShoppingItemUpdate) SetQuantity(f float64) *ShoppingItemUpdate {
 	return siu
 }
 
+// SetNillableQuantity sets the "quantity" field if the given value is not nil.
+func (siu *ShoppingItemUpdate) SetNillableQuantity(f *float64) *ShoppingItemUpdate {
+	if f != nil {
+		siu.SetQuantity(*f)
+	}
+	return siu
+}
+
 // AddQuantity adds f to the "quantity" field.
 func (siu *ShoppingItemUpdate) AddQuantity(f float64) *ShoppingItemUpdate {
 	siu.mutation.AddQuantity(f)
 	return siu
 }
 
+// ClearQuantity clears the value of the "quantity" field.
+func (siu *ShoppingItemUpdate) ClearQuantity() *ShoppingItemUpdate {
+	siu.mutation.ClearQuantity()
+	return siu
+}
+
 // SetQuantityType sets the "quantity_type" field.
 func (siu *ShoppingItemUpdate) SetQuantityType(s string) *ShoppingItemUpdate {
 	siu.mutation.SetQuantityType(s)
+	return siu
+}
+
+// SetNillableQuantityType sets the "quantity_type" field if the given value is not nil.
+func (siu *ShoppingItemUpdate) SetNillableQuantityType(s *string) *ShoppingItemUpdate {
+	if s != nil {
+		siu.SetQuantityType(*s)
+	}
+	return siu
+}
+
+// ClearQuantityType clears the value of the "quantity_type" field.
+func (siu *ShoppingItemUpdate) ClearQuantityType() *ShoppingItemUpdate {
+	siu.mutation.ClearQuantityType()
 	return siu
 }
 
@@ -261,10 +289,22 @@ func (siu *ShoppingItemUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: shoppingitem.FieldQuantity,
 		})
 	}
+	if siu.mutation.QuantityCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Column: shoppingitem.FieldQuantity,
+		})
+	}
 	if value, ok := siu.mutation.QuantityType(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
 			Value:  value,
+			Column: shoppingitem.FieldQuantityType,
+		})
+	}
+	if siu.mutation.QuantityTypeCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
 			Column: shoppingitem.FieldQuantityType,
 		})
 	}
@@ -405,15 +445,43 @@ func (siuo *ShoppingItemUpdateOne) SetQuantity(f float64) *ShoppingItemUpdateOne
 	return siuo
 }
 
+// SetNillableQuantity sets the "quantity" field if the given value is not nil.
+func (siuo *ShoppingItemUpdateOne) SetNillableQuantity(f *float64) *ShoppingItemUpdateOne {
+	if f != nil {
+		siuo.SetQuantity(*f)
+	}
+	return siuo
+}
+
 // AddQuantity adds f to the "quantity" field.
 func (siuo *ShoppingItemUpdateOne) AddQuantity(f float64) *ShoppingItemUpdateOne {
 	siuo.mutation.AddQuantity(f)
 	return siuo
 }
 
+// ClearQuantity clears the value of the "quantity" field.
+func (siuo *ShoppingItemUpdateOne) ClearQuantity() *ShoppingItemUpdateOne {
+	siuo.mutation.ClearQuantity()
+	return siuo
+}
+
 // SetQuantityType sets the "quantity_type" field.
 func (siuo *ShoppingItemUpdateOne) SetQuantityType(s string) *ShoppingItemUpdateOne {
 	siuo.mutation.SetQuantityType(s)
+	return siuo
+}
+
+// SetNillableQuantityType sets the "quantity_type" field if the given value is not nil.
+func (siuo *ShoppingItemUpdateOne) SetNillableQuantityType(s *string) *ShoppingItemUpdateOne {
+	if s != nil {
+		siuo.SetQuantityType(*s)
+	}
+	return siuo
+}
+
+// ClearQuantityType clears the value of the "quantity_type" field.
+func (siuo *ShoppingItemUpdateOne) ClearQuantityType() *ShoppingItemUpdateOne {
+	siuo.mutation.ClearQuantityType()
 	return siuo
 }
 
@@ -653,10 +721,22 @@ func (siuo *ShoppingItemUpdateOne) sqlSave(ctx context.Context) (_node *Shopping
 			Column: shoppingitem.FieldQuantity,
 		})
 	}
+	if siuo.mutation.QuantityCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Column: shoppingitem.FieldQuantity,
+		})
+	}
 	if value, ok := siuo.mutation.QuantityType(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
 			Value:  value,
+			Column: shoppingitem.FieldQuantityType,
+		})
+	}
+	if siuo.mutation.QuantityTypeCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
 			Column: shoppingitem.FieldQuantityType,
 		})
 	}
