@@ -15,28 +15,6 @@ class PurchasesPage extends StatefulWidget {
 
 class _PurchasesPageState extends State<PurchasesPage> {
   Refetch? _refetch;
-  List<model.Purchase> purchases = [
-    model.Purchase(
-      vendor: const model.Vendor(name: "Quickmart"),
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      items: [],
-    ),
-    model.Purchase(
-      vendor: const model.Vendor(name: "Ruiru Market"),
-      date: DateTime.now().subtract(const Duration(days: 2)),
-      items: [],
-    ),
-    model.Purchase(
-      vendor: const model.Vendor(name: "Carrefour"),
-      date: DateTime.now().subtract(const Duration(days: 5)),
-      items: [],
-    ),
-    model.Purchase(
-      vendor: const model.Vendor(name: "Naivas"),
-      date: DateTime.now().subtract(const Duration(days: 10)),
-      items: [],
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {

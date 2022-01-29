@@ -23,6 +23,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
   String? _vendor;
   final List<PurchaseItem> _items = [];
   final _formKey = GlobalKey<FormState>();
+  bool loading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -30,24 +31,28 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
       appBar: AppBar(
         title: const Text('New purchase'),
         actions: [
-          Mutation(
-            options: MutationOptions(document: mutationCreatePurchase),
-            builder: (createPurchase, result) {
-              var loading = false;
-              if (result != null && result.isLoading) {
-                loading = true;
-              }
-
-              return IconButton(
-                onPressed: loading
-                    ? null
-                    : () {
-                        _submit(createPurchase);
-                      },
-                icon: const Icon(
-                  Icons.save,
-                  color: Colors.white,
+          Builder(
+            builder: (context) {
+              return Mutation(
+                options: MutationOptions(
+                  document: mutationCreatePurchase,
+                  onCompleted: (_) {
+                    loading = false;
+                  },
                 ),
+                builder: (createPurchase, result) {
+                  return IconButton(
+                    onPressed: loading
+                        ? null
+                        : () {
+                            _submit(context, createPurchase);
+                          },
+                    icon: const Icon(
+                      Icons.save,
+                      color: Colors.white,
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -110,7 +115,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
           icon: const Icon(Icons.add),
-          label: const Text('New item'),
+          label: Text('New item $loading'),
           onPressed: () {
             showModalBottomSheet(
                 context: context,
@@ -126,7 +131,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
     );
   }
 
-  void _submit(RunMutation createPurchase) {
+  void _submit(BuildContext context, RunMutation createPurchase) {
     if (_formKey.currentState!.validate()) {
       if (_items.isEmpty) {
         showDialog(
@@ -156,7 +161,43 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
         }
         data['vendor'] = purchase.vendor.toJson();
         data['items'] = items;
-        createPurchase(<String, dynamic>{"input": data});
+        showDialog(
+            context: context,
+            builder: (_) {
+              return WillPopScope(
+                child: AlertDialog(
+                  content: Row(
+                    children: const [
+                      CircularProgressIndicator(),
+                      SizedBox(width: 20),
+                      Text('Saving'),
+                    ],
+                  ),
+                ),
+                onWillPop: () async {
+                  return !loading;
+                },
+              );
+            },
+            barrierDismissible: false);
+        setState(() {
+          loading = true;
+        });
+        var result = createPurchase(<String, dynamic>{"input": data});
+        var networkResult = result.networkResult! as Future<QueryResult>;
+        networkResult.then((result) {
+          if (result.data != null) {
+            Navigator.of(context).popUntil(ModalRoute.withName('/'));
+          } else {
+            Navigator.of(context).pop();
+            var snackBar = const SnackBar(
+              content: Text('Unable to save your purchase.'),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          }
+        }).onError((error, stackTrace) {
+          // Do some debugging
+        });
       }
     }
   }
@@ -189,24 +230,40 @@ class _Items extends StatelessWidget {
         const SizedBox(height: 12.0),
         SingleChildScrollView(
           scrollDirection: Axis.vertical,
-          child: DataTable(
-            columns: const [
-              DataColumn(label: Text('Name')),
-              DataColumn(label: Text('Units'), numeric: true),
-              DataColumn(label: Text('Price (Ksh)'), numeric: true),
-            ],
-            rows: [
-              for (var item in items)
-                DataRow(cells: [
-                  DataCell(
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 80),
-                      child: Text(item.item.name),
-                    ),
+          child: Column(
+            children: [
+              DataTable(
+                columns: const [
+                  DataColumn(label: Text('Name')),
+                  DataColumn(label: Text('Units'), numeric: true),
+                  DataColumn(label: Text('Price (Ksh)'), numeric: true),
+                ],
+                rows: [
+                  for (var item in items)
+                    DataRow(cells: [
+                      DataCell(
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 80),
+                          child: Text(item.item.name),
+                        ),
+                      ),
+                      DataCell(Text(item.units.toString())),
+                      DataCell(Text(f.format(item.total))),
+                    ]),
+                ],
+              ),
+              if (items.isEmpty)
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xffffe08a),
                   ),
-                  DataCell(Text(item.units.toString())),
-                  DataCell(Text(f.format(item.total))),
-                ]),
+                  width: double.infinity,
+                  child: const Padding(
+                    child: Text('No items added yet'),
+                    padding:
+                        EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
+                  ),
+                ),
             ],
           ),
         ),
