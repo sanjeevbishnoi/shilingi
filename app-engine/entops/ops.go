@@ -62,8 +62,8 @@ func CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shoppi
 	itemCreate := []*ent.ShoppingItemCreate{}
 	for _, item := range input.Items {
 		shoppingItem := cli.ShoppingItem.Create().
-			SetQuantity(item.Quantity).
-			SetQuantityType(item.QuantityType).
+			SetNillableQuantity(item.Quantity).
+			SetNillableQuantityType(item.QuantityType).
 			SetNillableUnits(item.Units).
 			SetNillableBrand(item.Brand).
 			SetPricePerUnit(item.PricePerUnit).

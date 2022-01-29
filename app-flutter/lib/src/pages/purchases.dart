@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../models/model.dart' as model;
 import '../components/components.dart';
@@ -20,7 +21,14 @@ class _PurchasesPageState extends State<PurchasesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Shilingi')),
-      body: Query(
+      body: VisibilityDetector(
+        key: const Key('on-index-page'),
+        onVisibilityChanged: (visibilityInfo) {
+          if (visibilityInfo.visibleFraction == 1.0 && _refetch != null) {
+            _refetch!();
+          }
+        },
+        child: Query(
           options: QueryOptions(document: queries.purchasesQuery),
           builder: (QueryResult result,
               {Refetch? refetch, FetchMore? fetchMore}) {
@@ -53,7 +61,9 @@ class _PurchasesPageState extends State<PurchasesPage> {
             return const Center(
               child: Text('unable to load your purchases'),
             );
-          }),
+          },
+        ),
+      ),
       backgroundColor: const Color(0xFFF8F8F8),
       floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.add),

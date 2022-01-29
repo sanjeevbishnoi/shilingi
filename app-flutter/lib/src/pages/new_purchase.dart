@@ -115,7 +115,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
           icon: const Icon(Icons.add),
-          label: Text('New item $loading'),
+          label: const Text('New item'),
           onPressed: () {
             showModalBottomSheet(
                 context: context,
@@ -187,11 +187,15 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
         var networkResult = result.networkResult! as Future<QueryResult>;
         networkResult.then((result) {
           if (result.data != null) {
+            var snackBar = const SnackBar(
+              content: Text('Your purchase has been saved'),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
             Navigator.of(context).popUntil(ModalRoute.withName('/'));
           } else {
             Navigator.of(context).pop();
             var snackBar = const SnackBar(
-              content: Text('Unable to save your purchase.'),
+              content: Text('Unable to save your purchase'),
             );
             ScaffoldMessenger.of(context).showSnackBar(snackBar);
           }
