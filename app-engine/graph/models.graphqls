@@ -26,9 +26,9 @@ input ShoppingInput {
 
 type ShoppingItem implements Node {
   id: ID!
-  quantity: Float!
-  quantityType: String!
-  units: Int
+  quantity: Float
+  quantityType: String
+  units: Int!
   brand: String 
   pricePerUnit: Decimal!
   item: Item!

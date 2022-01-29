@@ -364,9 +364,9 @@ input ItemInput {
 }
 
 input ShoppingItemInput {
-  quantity: Float!
-  quantityType: String!
-  units: Int
+  quantity: Float
+  quantityType: String
+  units: Int = 1
   brand: String 
   pricePerUnit: Decimal!
   # Add a validator for checking the provided id for an item exists
@@ -381,9 +381,9 @@ input ShoppingInput {
 
 type ShoppingItem implements Node {
   id: ID!
-  quantity: Float!
-  quantityType: String!
-  units: Int
+  quantity: Float
+  quantityType: String
+  units: Int!
   brand: String 
   pricePerUnit: Decimal!
   item: Item!
@@ -1074,14 +1074,11 @@ func (ec *executionContext) _ShoppingItem_quantity(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+	return ec.marshalOFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ShoppingItem_quantityType(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItem) (ret graphql.Marshaler) {
@@ -1109,14 +1106,11 @@ func (ec *executionContext) _ShoppingItem_quantityType(ctx context.Context, fiel
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ShoppingItem_units(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItem) (ret graphql.Marshaler) {
@@ -1144,11 +1138,14 @@ func (ec *executionContext) _ShoppingItem_units(ctx context.Context, field graph
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalOInt2int(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ShoppingItem_brand(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItem) (ret graphql.Marshaler) {
@@ -2584,13 +2581,17 @@ func (ec *executionContext) unmarshalInputShoppingItemInput(ctx context.Context,
 		asMap[k] = v
 	}
 
+	if _, present := asMap["units"]; !present {
+		asMap["units"] = 1
+	}
+
 	for k, v := range asMap {
 		switch k {
 		case "quantity":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("quantity"))
-			it.Quantity, err = ec.unmarshalNFloat2float64(ctx, v)
+			it.Quantity, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2598,7 +2599,7 @@ func (ec *executionContext) unmarshalInputShoppingItemInput(ctx context.Context,
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("quantityType"))
-			it.QuantityType, err = ec.unmarshalNString2string(ctx, v)
+			it.QuantityType, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2917,16 +2918,13 @@ func (ec *executionContext) _ShoppingItem(ctx context.Context, sel ast.Selection
 			}
 		case "quantity":
 			out.Values[i] = ec._ShoppingItem_quantity(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "quantityType":
 			out.Values[i] = ec._ShoppingItem_quantityType(ctx, field, obj)
+		case "units":
+			out.Values[i] = ec._ShoppingItem_units(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "units":
-			out.Values[i] = ec._ShoppingItem_units(ctx, field, obj)
 		case "brand":
 			out.Values[i] = ec._ShoppingItem_brand(ctx, field, obj)
 		case "pricePerUnit":
@@ -3311,13 +3309,13 @@ func (ec *executionContext) marshalNDecimal2ᚖgithubᚗcomᚋshopspringᚋdecim
 	return res
 }
 
-func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
-	res, err := graphql.UnmarshalFloat(v)
+func (ec *executionContext) unmarshalNID2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
-	res := graphql.MarshalFloat(v)
+func (ec *executionContext) marshalNID2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3326,12 +3324,12 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNID2int(ctx context.Context, v interface{}) (int, error) {
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNID2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
 	res := graphql.MarshalInt(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -3865,13 +3863,28 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
-func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
-	res, err := graphql.UnmarshalInt(v)
+func (ec *executionContext) unmarshalOFloat2float64(ctx context.Context, v interface{}) (float64, error) {
+	res, err := graphql.UnmarshalFloat(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
-	return graphql.MarshalInt(v)
+func (ec *executionContext) marshalOFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	return graphql.MarshalFloat(v)
+}
+
+func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalFloat(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalFloat(*v)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {

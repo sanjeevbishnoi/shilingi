@@ -6,6 +6,8 @@ services:
     image: localhost:5000/app-engine:${APP_ENGINE_VERSION:-v0.0.1}
     build:
       context: .
+    volumes:
+      - ./shilingi.db:/usr/bin/shilingi.db:rw
     ports:
       - '8080:8080'
     networks:

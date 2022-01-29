@@ -19,8 +19,8 @@ type ShoppingInput struct {
 }
 
 type ShoppingItemInput struct {
-	Quantity     float64         `json:"quantity"`
-	QuantityType string          `json:"quantityType"`
+	Quantity     *float64        `json:"quantity"`
+	QuantityType *string         `json:"quantityType"`
 	Units        *int            `json:"units"`
 	Brand        *string         `json:"brand"`
 	PricePerUnit decimal.Decimal `json:"pricePerUnit"`
