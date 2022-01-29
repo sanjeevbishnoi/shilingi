@@ -1,38 +1,28 @@
-package main
+package api
 
 import (
 	"context"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"entgo.io/contrib/entgql"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/kingzbauer/shilingi/app-engine/config"
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/migrate"
-	_ "github.com/kingzbauer/shilingi/app-engine/ent/runtime"
 	"github.com/kingzbauer/shilingi/app-engine/graph"
 )
 
-const defaultPort = "8080"
-
-func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
-	}
+// Shilingi serves as a Serveless Entrypoint for vercel
+func Shilingi(w http.ResponseWriter, r *http.Request) {
 	cfg := config.SetupConfig()
-	fmt.Printf("%+v\n", cfg)
 
-	// Open a DB connection
-	cli, err := ent.Open("sqlite3", "file:shilingi.db?mode=rwc&_fk=1&cache=shared")
+	cli, err := ent.Open("mysql", cfg.PlanetScaleURI())
 	if err != nil {
 		log.Fatal("opening ent client", err)
 	}
@@ -53,9 +43,5 @@ func main() {
 		return graphQLErr
 	})
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
-
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	srv.ServeHTTP(w, r)
 }
