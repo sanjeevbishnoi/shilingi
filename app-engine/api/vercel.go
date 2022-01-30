@@ -21,6 +21,7 @@ import (
 // Shilingi serves as a Serveless Entrypoint for vercel
 func Shilingi(w http.ResponseWriter, r *http.Request) {
 	cfg := config.SetupConfig()
+	log.Printf("Confis: %+v", cfg)
 
 	cli, err := ent.Open("mysql", cfg.PlanetScaleURI())
 	if err != nil {
