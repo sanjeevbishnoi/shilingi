@@ -27,7 +27,7 @@ func Shilingi(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("URI", fmt.Sprintf("mysql://%s:%s@tcp(%s)/%s?sslaccept=strict&tls=skip-verify",
 		dbUsername, dbPass, dbHost, db))
 	cli, err := ent.Open("mysql",
-		fmt.Sprintf("mysql://%s:%s@tcp(%s)/%s",
+		fmt.Sprintf("mysql://%s:%s@tcp(%s)/%s?sslaccept=strict&tls=skip-verify",
 			dbUsername, dbPass, dbHost, db))
 	if err != nil {
 		log.Fatal("opening ent client", err)
