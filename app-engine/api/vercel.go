@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"entgo.io/contrib/entgql"
 	"github.com/99designs/gqlgen/graphql"
@@ -21,7 +22,8 @@ import (
 // Shilingi serves as a Serveless Entrypoint for vercel
 func Shilingi(w http.ResponseWriter, r *http.Request) {
 	cfg := config.SetupConfig()
-	log.Printf("Confis: %+v", cfg)
+	log.Printf("Config: %+v", cfg)
+	log.Printf("Envs: %+v", os.Environ())
 
 	cli, err := ent.Open("mysql", cfg.PlanetScaleURI())
 	if err != nil {
