@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/spf13/viper"
 )
@@ -31,9 +32,9 @@ func setConfigDefaults() {
 
 // SetupConfig retrieves configs from the environment
 func SetupConfig() Config {
+	viper.AutomaticEnv()
 	setConfigDefaults()
 	cfg := Config{}
-	viper.AutomaticEnv()
-	viper.Unmarshal(&cfg)
+	log.Print(viper.Unmarshal(&cfg))
 	return cfg
 }
