@@ -33,6 +33,7 @@ func setConfigDefaults() {
 func SetupConfig() Config {
 	setConfigDefaults()
 	cfg := Config{}
+	viper.AutomaticEnv()
 	viper.Unmarshal(&cfg)
 	return cfg
 }
