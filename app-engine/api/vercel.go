@@ -24,6 +24,8 @@ func Shilingi(w http.ResponseWriter, r *http.Request) {
 	dbPass := os.Getenv("PLANETSCALE_DB_PASSWORD")
 	dbHost := os.Getenv("PLANETSCALE_DB_HOST")
 	db := os.Getenv("PLANETSCALE_DB")
+	fmt.Println("URI", fmt.Sprintf("mysql://%s:%s@tcp(%s)/%s",
+		dbUsername, dbPass, dbHost, db))
 	cli, err := ent.Open("mysql",
 		fmt.Sprintf("mysql://%s:%s@tcp(%s)/%s",
 			dbUsername, dbPass, dbHost, db))
