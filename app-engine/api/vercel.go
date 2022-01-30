@@ -20,6 +20,7 @@ import (
 
 // Shilingi serves as a Serveless Entrypoint for vercel
 func Shilingi(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Envs: %s", os.Environ())
 	cli, err := ent.Open("mysql", os.Getenv("PLANETSCALE_PRISMA_DATABASE_URL"))
 	if err != nil {
 		log.Fatal("opening ent client", err)
