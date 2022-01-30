@@ -13,7 +13,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
-	"github.com/kingzbauer/shilingi/app-engine/config"
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/migrate"
 	"github.com/kingzbauer/shilingi/app-engine/graph"
@@ -21,10 +20,7 @@ import (
 
 // Shilingi serves as a Serveless Entrypoint for vercel
 func Shilingi(w http.ResponseWriter, r *http.Request) {
-	cfg := config.SetupConfig()
-	log.Printf("%s", os.Environ())
-
-	cli, err := ent.Open("mysql", cfg.PlanetScaleURI())
+	cli, err := ent.Open("mysql", os.Getenv("PLANETSCALE_PRISMA_DATABASE_URL"))
 	if err != nil {
 		log.Fatal("opening ent client", err)
 	}
