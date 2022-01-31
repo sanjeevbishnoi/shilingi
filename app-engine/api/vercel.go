@@ -18,15 +18,16 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/graph"
 )
 
-// Shilingi serves as a Serveless Entrypoint for vercel
-func Shilingi(w http.ResponseWriter, r *http.Request) {
+var api http.Handler
+
+func init() {
 	dbUsername := os.Getenv("PLANETSCALE_DB_USERNAME")
 	dbPass := os.Getenv("PLANETSCALE_DB_PASSWORD")
 	dbHost := os.Getenv("PLANETSCALE_DB_HOST")
 	db := os.Getenv("PLANETSCALE_DB")
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?tls=skip-verify",
 		dbUsername, dbPass, dbHost, db)
-	fmt.Println("DSN:", dsn)
+	fmt.Println("init DSN:", dsn)
 	cli, err := ent.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal("opening ent client", err)
@@ -47,6 +48,10 @@ func Shilingi(w http.ResponseWriter, r *http.Request) {
 
 		return graphQLErr
 	})
+	api = http.Handler(srv)
+}
 
-	srv.ServeHTTP(w, r)
+// Shilingi serves as a Serveless Entrypoint for vercel
+func Shilingi(w http.ResponseWriter, r *http.Request) {
+	api.ServeHTTP(w, r)
 }
