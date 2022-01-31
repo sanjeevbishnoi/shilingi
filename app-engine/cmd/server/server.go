@@ -11,6 +11,7 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
@@ -32,7 +33,7 @@ func main() {
 	fmt.Printf("%+v\n", cfg)
 
 	// Open a DB connection
-	cli, err := ent.Open("sqlite3", "file:shilingi.db?mode=rwc&_fk=1&cache=shared")
+	cli, err := ent.Open(cfg.DBType, cfg.DBURI)
 	if err != nil {
 		log.Fatal("opening ent client", err)
 	}

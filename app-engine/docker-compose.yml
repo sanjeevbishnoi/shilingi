@@ -8,6 +8,9 @@ services:
       context: .
     volumes:
       - ./shilingi.db:/usr/bin/shilingi.db:rw
+    environment:
+      DB_URI: mysql://zva5rzr6ftk3:pscale_pw_PrvLfFOiDyq4OLwPHSqy5j3hoInhtVSideodBb5W_bA@tcp(kvw7zun0y7sm.us-east-4.psdb.cloud)/shilingi?sslaccept=strict&tls=skip-verify
+      DB_TYPE: mysql
     ports:
       - '8080:8080'
     networks:
