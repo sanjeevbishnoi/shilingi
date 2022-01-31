@@ -24,9 +24,10 @@ func Shilingi(w http.ResponseWriter, r *http.Request) {
 	dbPass := os.Getenv("PLANETSCALE_DB_PASSWORD")
 	dbHost := os.Getenv("PLANETSCALE_DB_HOST")
 	db := os.Getenv("PLANETSCALE_DB")
-	cli, err := ent.Open("mysql",
-		fmt.Sprintf("%s:%s@tcp(%s)/%s?tls=skip-verify",
-			dbUsername, dbPass, dbHost, db))
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?tls=skip-verify",
+		dbUsername, dbPass, dbHost, db)
+	fmt.Println("DSN:", dsn)
+	cli, err := ent.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal("opening ent client", err)
 	}
