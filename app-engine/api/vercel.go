@@ -33,7 +33,7 @@ func init() {
 	if err != nil {
 		log.Fatal("opening ent client", err)
 	}
-	defer cli.Close()
+	// defer cli.Close()
 
 	ctx := context.Background()
 	cli.Schema.Create(
