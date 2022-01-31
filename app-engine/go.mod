@@ -9,6 +9,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/mattn/go-sqlite3 v1.14.8
+	github.com/rs/cors v1.6.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/viper v1.7.0
 	github.com/vektah/gqlparser/v2 v2.2.0

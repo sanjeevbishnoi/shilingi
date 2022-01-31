@@ -11,6 +11,7 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/rs/cors"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -53,5 +54,6 @@ func init() {
 
 // Shilingi serves as a Serveless Entrypoint for vercel
 func Shilingi(w http.ResponseWriter, r *http.Request) {
+	api := cors.Default().Handler(api)
 	api.ServeHTTP(w, r)
 }
