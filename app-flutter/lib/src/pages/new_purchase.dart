@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -24,6 +25,20 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
   final List<PurchaseItem> _items = [];
   final _formKey = GlobalKey<FormState>();
   bool loading = false;
+
+  void _removeItem(int index) {
+    setState(() {
+      _items.removeAt(index);
+    });
+  }
+
+  double _total() {
+    double total = 0;
+    for (var item in _items) {
+      total += item.units! * item.pricePerUnit;
+    }
+    return total;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +122,20 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
                   },
                 ),
                 const SizedBox(height: 24.0),
-                _Items(items: _items),
+                Row(
+                  children: [
+                    const Expanded(
+                        child: Text('Total:',
+                            style: TextStyle(fontWeight: FontWeight.w700))),
+                    Text('Kes ' + f.format(_total()),
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ],
+                ),
+                const SizedBox(height: 14.0),
+                _Items(
+                  items: _items,
+                  removeItem: _removeItem,
+                ),
               ],
             ),
           ),
@@ -123,7 +151,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
                 builder: (context) {
                   return NewItemModalSheet(
                     addItem: (item) {
-                      addItem(item);
+                      addItem(context, item);
                     },
                   );
                 });
@@ -206,72 +234,133 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
     }
   }
 
-  void addItem(PurchaseItem item) {
-    setState(() {
-      _items.add(item);
-    });
+  bool _checkDuplicate(PurchaseItem item) {
+    return _items.indexWhere((element) =>
+            element.item.name.toLowerCase() == item.item.name.toLowerCase()) !=
+        -1;
+  }
+
+  void addItem(BuildContext context, PurchaseItem item) {
+    if (_checkDuplicate(item)) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          content: const Text('An existing item already exists'),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  var index = _items.indexWhere((element) =>
+                      element.item.name.toLowerCase() ==
+                      item.item.name.toLowerCase());
+                  setState(() {
+                    _items[index] = item;
+                  });
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Replace')),
+            TextButton(
+                onPressed: () {
+                  setState(() {
+                    _items.add(item);
+                  });
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Add anyway')),
+          ],
+        ),
+      );
+    } else {
+      setState(() {
+        _items.add(item);
+      });
+    }
   }
 }
 
 class _Items extends StatelessWidget {
   final List<PurchaseItem> items;
+  final Function(int) removeItem;
 
-  const _Items({required this.items, Key? key}) : super(key: key);
+  const _Items({required this.items, required this.removeItem, Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Items',
-          style: TextStyle(
-            color: Color(0xFFA3A3A3),
-            fontSize: 18.0,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 12.0),
-        SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: Column(
-            children: [
-              DataTable(
-                columns: const [
-                  DataColumn(label: Text('Name')),
-                  DataColumn(label: Text('Units'), numeric: true),
-                  DataColumn(label: Text('Price (Ksh)'), numeric: true),
-                ],
-                rows: [
-                  for (var item in items)
-                    DataRow(cells: [
-                      DataCell(
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 80),
-                          child: Text(item.item.name),
-                        ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width - 20,
+            minWidth: MediaQuery.of(context).size.width - 30),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Items',
+              style: TextStyle(
+                color: Color(0xFFA3A3A3),
+                fontSize: 18.0,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 12.0),
+            SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DataTable(
+                    columns: const [
+                      DataColumn(label: Text('Name')),
+                      DataColumn(label: Text('Units'), numeric: true),
+                      DataColumn(label: Text('Price (Ksh)'), numeric: true),
+                      DataColumn(label: Text('')),
+                    ],
+                    rows: [
+                      ...items
+                          .asMap()
+                          .keys
+                          .toList()
+                          .map<DataRow>((i) => DataRow(cells: [
+                                DataCell(
+                                  ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 80),
+                                    child: Text(items[i].item.name),
+                                  ),
+                                ),
+                                DataCell(Text(items[i].units.toString())),
+                                DataCell(Text(f.format(items[i].total))),
+                                DataCell(
+                                    ConstrainedBox(
+                                      constraints:
+                                          const BoxConstraints(maxWidth: 1.0),
+                                      child: const Icon(Icons.delete),
+                                    ), onTap: () {
+                                  removeItem(i);
+                                }),
+                              ]))
+                          .toList()
+                    ],
+                  ),
+                  if (items.isEmpty)
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: Color(0xffffe08a),
                       ),
-                      DataCell(Text(item.units.toString())),
-                      DataCell(Text(f.format(item.total))),
-                    ]),
+                      width: double.infinity,
+                      child: const Padding(
+                        child: Text('No items added yet'),
+                        padding: EdgeInsets.symmetric(
+                            vertical: 10.0, horizontal: 12.0),
+                      ),
+                    ),
                 ],
               ),
-              if (items.isEmpty)
-                Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xffffe08a),
-                  ),
-                  width: double.infinity,
-                  child: const Padding(
-                    child: Text('No items added yet'),
-                    padding:
-                        EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
-                  ),
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

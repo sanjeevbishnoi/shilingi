@@ -141,8 +141,8 @@ class _NewItemFormWidget extends State<NewItemModalSheet> {
         d['units'] = 1;
       }
       var item = PurchaseItem.fromJson(d);
-      widget.addItem(item);
       Navigator.of(context).pop();
+      widget.addItem(item);
     }
   }
 

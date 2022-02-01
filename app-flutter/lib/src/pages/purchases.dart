@@ -58,8 +58,23 @@ class _PurchasesPageState extends State<PurchasesPage> {
                 ]),
               );
             }
-            return const Center(
-              child: Text('unable to load your purchases'),
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                      'unable to load your purchases ${result.exception?.graphqlErrors.toString()} ${result.exception?.toString()}'),
+                  const SizedBox(height: 20),
+                  if (_refetch != null)
+                    TextButton(
+                        onPressed: () {
+                          if (_refetch != null) {
+                            _refetch!();
+                          }
+                        },
+                        child: const Text('Refresh'))
+                ],
+              ),
             );
           },
         ),

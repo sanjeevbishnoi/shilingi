@@ -34,7 +34,7 @@ func (ShoppingItem) Fields() []ent.Field {
 		field.Float("price_per_unit").
 			GoType(decimal.Decimal{}).
 			SchemaType(map[string]string{
-				dialect.MySQL:    "decimal(6,2)",
+				dialect.MySQL:    "decimal(10,2)",
 				dialect.Postgres: "numeric",
 			}),
 	}
