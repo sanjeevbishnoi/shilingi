@@ -26,7 +26,7 @@ func init() {
 	dbPass := os.Getenv("PLANETSCALE_DB_PASSWORD")
 	dbHost := os.Getenv("PLANETSCALE_DB_HOST")
 	db := os.Getenv("PLANETSCALE_DB")
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?tls=skip-verify",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?tls=skip-verify&parseTime=true",
 		dbUsername, dbPass, dbHost, db)
 	fmt.Println("init DSN:", dsn)
 	cli, err := ent.Open("mysql", dsn)

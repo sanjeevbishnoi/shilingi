@@ -10,8 +10,8 @@ services:
       - ./shilingi.db:/usr/bin/shilingi.db:rw
     environment:
       # DB_URI: mysql://zva5rzr6ftk3:pscale_pw_PrvLfFOiDyq4OLwPHSqy5j3hoInhtVSideodBb5W_bA@tcp(kvw7zun0y7sm.us-east-4.psdb.cloud)/shilingi?sslaccept=strict&tls=skip-verify
-      DB_URI: jcoystqbrwmz:pscale_pw_mzeFG_77EFLGF2wjDO_hzAYQusmrEpYvDvVGzXU0rJE@tcp(kvw7zun0y7sm.us-east-4.psdb.cloud)/shilingi?tls=skip-verify
-      DB_TYPE: mysql
+      DB_URI: file:shilingi.db?mode=rwc&_fk=1&cache=shared
+      DB_TYPE: sqlite3
     ports:
       - '8080:8080'
     networks:
