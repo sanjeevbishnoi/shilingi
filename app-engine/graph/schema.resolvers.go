@@ -27,7 +27,7 @@ func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
 
 func (r *queryResolver) Purchases(ctx context.Context) ([]*ent.Shopping, error) {
 	return r.cli.Shopping.Query().
-		Order(ent.Desc(shopping.FieldDate)).
+		Order(ent.Desc(shopping.FieldDate, shopping.FieldCreateTime)).
 		All(ctx)
 }
 
