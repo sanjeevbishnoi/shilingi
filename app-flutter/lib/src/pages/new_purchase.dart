@@ -9,6 +9,7 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import '../models/model.dart';
 import '../components/components.dart';
 import '../gql/gql.dart';
+import '../constants/constants.dart';
 
 var f = NumberFormat('#,##0.00', 'en_US');
 
@@ -73,7 +74,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
           ),
         ],
       ),
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: mainScaffoldBg,
       resizeToAvoidBottomInset: true,
       body: SingleChildScrollView(
         child: Padding(

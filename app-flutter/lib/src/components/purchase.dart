@@ -17,8 +17,8 @@ class WPurchase extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
         decoration: BoxDecoration(
-          color: const Color(0XFFF3F3F3),
-          borderRadius: BorderRadius.circular(25.0),
+          color: const Color(0XFFFfffff),
+          borderRadius: BorderRadius.circular(4.0),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 20.0),
@@ -41,7 +41,9 @@ class WPurchase extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10.0),
-                    Text(DateFormat("EEE, MMM d, ''yy'").format(purchase.date),
+                    Text(
+                        DateFormat("EEE, MMM d, ''yy'")
+                            .format(purchase.date.toLocal()),
                         style: const TextStyle(color: Color(0XFF6a6a6a))),
                   ],
                 ),

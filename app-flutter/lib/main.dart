@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Shilingi',
         theme: ThemeData(
-          primarySwatch: Colors.blue,
+          primarySwatch: Colors.teal,
           textTheme: GoogleFonts.rubikTextTheme(),
         ),
         initialRoute: '/',

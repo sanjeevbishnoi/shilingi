@@ -6,6 +6,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../models/model.dart' as model;
 import '../components/components.dart';
 import '../gql/gql.dart' as queries;
+import '../constants/constants.dart';
 
 class PurchasesPage extends StatefulWidget {
   const PurchasesPage([Key? key]) : super(key: key);
@@ -20,6 +21,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: mainScaffoldBg,
       appBar: AppBar(title: const Text('Shilingi')),
       body: VisibilityDetector(
         key: const Key('on-index-page'),
@@ -47,39 +49,40 @@ class _PurchasesPageState extends State<PurchasesPage> {
                   return Future.value();
                 },
                 child: ListView(children: [
-                  const SizedBox(height: 12.0),
+                  const SizedBox(height: 32.0),
                   for (var purchase in p.purchases) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30.0),
                       child: WPurchase(purchase),
                     ),
-                    const SizedBox(height: 12.0),
+                    const SizedBox(height: 20.0),
                   ],
                 ]),
               );
             }
             return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                      'unable to load your purchases ${result.exception?.graphqlErrors.toString()} ${result.exception?.toString()}'),
-                  const SizedBox(height: 20),
-                  if (_refetch != null)
-                    TextButton(
-                        onPressed: () {
-                          if (_refetch != null) {
-                            _refetch!();
-                          }
-                        },
-                        child: const Text('Refresh'))
-                ],
+              child: Padding(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('unable to load your purchases'),
+                    const SizedBox(height: 20),
+                    if (_refetch != null)
+                      TextButton(
+                          onPressed: () {
+                            if (_refetch != null) {
+                              _refetch!();
+                            }
+                          },
+                          child: const Text('Refresh'))
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 30.0),
               ),
             );
           },
         ),
       ),
-      backgroundColor: const Color(0xFFF8F8F8),
       floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.add),
           onPressed: () {
