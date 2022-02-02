@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/entops"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
@@ -25,7 +26,9 @@ func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
 }
 
 func (r *queryResolver) Purchases(ctx context.Context) ([]*ent.Shopping, error) {
-	return r.cli.Shopping.Query().All(ctx)
+	return r.cli.Shopping.Query().
+		Order(ent.Desc(shopping.FieldDate)).
+		All(ctx)
 }
 
 // Mutation returns generated.MutationResolver implementation.
