@@ -8,6 +8,7 @@ interface Node {
 type Query {
   items: [Item!]!
   purchases: [Shopping!]!
+  node(id: Int!): Node!
 }
 
 type Mutation {

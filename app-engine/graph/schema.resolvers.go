@@ -31,6 +31,10 @@ func (r *queryResolver) Purchases(ctx context.Context) ([]*ent.Shopping, error) 
 		All(ctx)
 }
 
+func (r *queryResolver) Node(ctx context.Context, id int) (ent.Noder, error) {
+	return r.cli.Noder(ctx, id)
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
