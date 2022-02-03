@@ -34,6 +34,7 @@ Map<String, dynamic> _$ItemToJson(Item instance) => <String, dynamic>{
     };
 
 Purchase _$PurchaseFromJson(Map<String, dynamic> json) => Purchase(
+      id: json['id'] as int?,
       date: DateTime.parse(json['date'] as String),
       vendor: Vendor.fromJson(json['vendor'] as Map<String, dynamic>),
       items: (json['items'] as List<dynamic>?)
@@ -43,11 +44,7 @@ Purchase _$PurchaseFromJson(Map<String, dynamic> json) => Purchase(
     );
 
 Map<String, dynamic> _$PurchaseToJson(Purchase instance) {
-  final val = <String, dynamic>{
-    'date': _DateTimeToJson(instance.date),
-    'vendor': instance.vendor,
-    'items': instance.items,
-  };
+  final val = <String, dynamic>{};
 
   void writeNotNull(String key, dynamic value) {
     if (value != null) {
@@ -55,6 +52,10 @@ Map<String, dynamic> _$PurchaseToJson(Purchase instance) {
     }
   }
 
+  writeNotNull('id', instance.id);
+  val['date'] = _DateTimeToJson(instance.date);
+  val['vendor'] = instance.vendor;
+  val['items'] = instance.items;
   writeNotNull('total', instance.total);
   return val;
 }

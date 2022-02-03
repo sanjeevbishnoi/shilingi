@@ -40,6 +40,8 @@ class Item {
 
 @JsonSerializable()
 class Purchase {
+  @JsonKey(includeIfNull: false)
+  final int? id;
   @JsonKey(toJson: _DateTimeToJson)
   final DateTime date;
   final Vendor vendor;
@@ -48,7 +50,11 @@ class Purchase {
   final double? total;
 
   const Purchase(
-      {required this.date, required this.vendor, this.items, this.total});
+      {this.id,
+      required this.date,
+      required this.vendor,
+      this.items,
+      this.total});
 
   factory Purchase.fromJson(Map<String, dynamic> json) =>
       _$PurchaseFromJson(json);

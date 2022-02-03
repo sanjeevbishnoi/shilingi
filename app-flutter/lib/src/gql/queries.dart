@@ -12,3 +12,27 @@ var purchasesQuery = gql(r'''
       }
     }
 ''');
+
+var purchaseQuery = gql(r'''
+    query purchase($id: Int!) {
+      node(id: $id) {
+        ... on Shopping {
+          id
+          date
+          vendor {
+            name
+          }
+          total
+          items {
+            id
+            item {
+                id
+                name
+            }
+            pricePerUnit
+            units
+          }
+        }
+      }
+    }
+ ''');
