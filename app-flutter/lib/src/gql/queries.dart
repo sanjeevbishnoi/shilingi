@@ -38,5 +38,15 @@ var purchaseQuery = gql(r'''
  ''');
 
 var vendorAndItemsNames = gql(r'''
+    query vendorItemsList {
+      vendors {
+        id
+        name
+      }
 
+      items {
+        id
+        name
+      }
+    }
 ''');

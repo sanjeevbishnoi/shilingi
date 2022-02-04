@@ -8,6 +8,7 @@ class CustomTextFormField extends StatefulWidget {
   final Validator? validator;
   final String fieldName;
   final Map<String, dynamic>? data;
+  final List<String>? autocompleteList;
 
   const CustomTextFormField(
       {Key? key,
@@ -15,7 +16,8 @@ class CustomTextFormField extends StatefulWidget {
       this.keyboardType,
       this.validator,
       required this.fieldName,
-      this.data})
+      this.data,
+      this.autocompleteList})
       : super(key: key);
   @override
   State createState() => _CustomTextFormField();
@@ -36,6 +38,41 @@ class _CustomTextFormField extends State<CustomTextFormField> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.autocompleteList != null) {
+      return Autocomplete<String>(
+        optionsBuilder: (value) {
+          return widget.autocompleteList!.where((element) =>
+              element.toLowerCase().contains(value.text.toLowerCase()));
+        },
+        fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+          // _controller!.dispose();
+          if (widget.data != null) {
+            widget.data![widget.fieldName] = controller;
+          }
+          _controller = controller;
+          return Material(
+            elevation: 2,
+            borderRadius: BorderRadius.circular(8.0),
+            color: Colors.white,
+            child: TextFormField(
+              keyboardType: widget.keyboardType,
+              validator: widget.validator,
+              controller: controller,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                border: UnderlineInputBorder(
+                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                labelText: widget.labelText,
+              ),
+            ),
+          );
+        },
+      );
+    }
     return Material(
       elevation: 2,
       borderRadius: BorderRadius.circular(8.0),
@@ -60,7 +97,9 @@ class _CustomTextFormField extends State<CustomTextFormField> {
   @override
   void dispose() {
     super.dispose();
-    _controller?.dispose();
+    if (widget.autocompleteList == null) {
+      _controller?.dispose();
+    }
   }
 }
 

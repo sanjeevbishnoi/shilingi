@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -26,6 +25,8 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
   final List<PurchaseItem> _items = [];
   final _formKey = GlobalKey<FormState>();
   bool loading = false;
+  final List<String> _vendors = [];
+  final List<String> _itemNames = [];
 
   void _removeItem(int index) {
     setState(() {
@@ -76,71 +77,111 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
       ),
       backgroundColor: mainScaffoldBg,
       resizeToAvoidBottomInset: true,
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 30.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                TextFormField(
-                  style: GoogleFonts.rubik().copyWith(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 20.0,
-                  ),
-                  decoration: const InputDecoration(
-                    hintText: 'Type in place of purchase',
-                    border: InputBorder.none,
-                  ),
-                  validator: requiredValidatorWithMessage(
-                      'Provide the specific vendor you purchased from'),
-                  onChanged: (vendor) {
-                    _vendor = vendor;
-                  },
-                ),
-                const SizedBox(height: 12.0),
-                DateTimeFormField(
-                  mode: DateTimeFieldPickerMode.date,
-                  decoration: InputDecoration(
-                    suffixIcon: const Icon(Icons.event_note),
-                    filled: true,
-                    fillColor: const Color(0xFFF3F3F3),
-                    border: UnderlineInputBorder(
-                      borderSide: BorderSide.none,
-                      borderRadius: BorderRadius.circular(20.0),
+      body: Query(
+        options: QueryOptions(document: vendorAndItemsNames),
+        builder: (QueryResult result,
+            {FetchMore? fetchMore, Refetch? refetch}) {
+          if (result.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+          if (result.data != null) {
+            var vendorNames = result.data!['vendors'] as List<Object?>;
+            _vendors.clear();
+            vendorNames.forEach((element) {
+              _vendors
+                  .add((element! as Map<String, dynamic>)['name'] as String);
+            });
+            var itemNames = result.data!['items'] as List<Object?>;
+            _itemNames.clear();
+            itemNames.forEach((element) {
+              _itemNames
+                  .add((element! as Map<String, dynamic>)['name'] as String);
+            });
+          }
+
+          return SingleChildScrollView(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 18.0, horizontal: 30.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Autocomplete<String>(
+                      optionsBuilder: (value) {
+                        return _vendors.where((element) => element
+                            .toLowerCase()
+                            .contains(value.text.toLowerCase()));
+                      },
+                      fieldViewBuilder:
+                          (context, controller, focusNode, onFieldSubmitted) {
+                        return TextFormField(
+                          style: GoogleFonts.rubik().copyWith(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 20.0,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: 'Type in place of purchase',
+                            border: InputBorder.none,
+                          ),
+                          validator: requiredValidatorWithMessage(
+                              'Provide the specific vendor you purchased from'),
+                          onChanged: (vendor) {
+                            _vendor = vendor;
+                          },
+                          focusNode: focusNode,
+                          controller: controller,
+                        );
+                      },
                     ),
-                    labelText: 'Date of purchase',
-                  ),
-                  validator: (date) {
-                    if (date == null) {
-                      return 'When did you make this purchase?';
-                    }
-                    return null;
-                  },
-                  onDateSelected: (d) {
-                    _date = d;
-                  },
-                ),
-                const SizedBox(height: 24.0),
-                Row(
-                  children: [
-                    const Expanded(
-                        child: Text('Total:',
-                            style: TextStyle(fontWeight: FontWeight.w700))),
-                    Text('Kes ' + f.format(_total()),
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 12.0),
+                    DateTimeFormField(
+                      mode: DateTimeFieldPickerMode.date,
+                      decoration: InputDecoration(
+                        suffixIcon: const Icon(Icons.event_note),
+                        filled: true,
+                        fillColor: const Color(0xFFF3F3F3),
+                        border: UnderlineInputBorder(
+                          borderSide: BorderSide.none,
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
+                        labelText: 'Date of purchase',
+                      ),
+                      validator: (date) {
+                        if (date == null) {
+                          return 'When did you make this purchase?';
+                        }
+                        return null;
+                      },
+                      onDateSelected: (d) {
+                        _date = d;
+                      },
+                    ),
+                    const SizedBox(height: 24.0),
+                    Row(
+                      children: [
+                        const Expanded(
+                            child: Text('Total:',
+                                style: TextStyle(fontWeight: FontWeight.w700))),
+                        Text('Kes ' + f.format(_total()),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                    const SizedBox(height: 14.0),
+                    _Items(
+                      items: _items,
+                      removeItem: _removeItem,
+                    ),
                   ],
                 ),
-                const SizedBox(height: 14.0),
-                _Items(
-                  items: _items,
-                  removeItem: _removeItem,
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
           icon: const Icon(Icons.add),
@@ -154,6 +195,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
                     addItem: (item) {
                       addItem(context, item);
                     },
+                    itemNames: _itemNames,
                   );
                 });
           }),
@@ -291,7 +333,7 @@ class _Items extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width - 20,
+            maxWidth: MediaQuery.of(context).size.width,
             minWidth: MediaQuery.of(context).size.width - 30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

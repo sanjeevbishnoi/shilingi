@@ -5,8 +5,11 @@ import '../models/model.dart';
 
 class NewItemModalSheet extends StatefulWidget {
   final void Function(PurchaseItem) addItem;
+  final List<String> itemNames;
 
-  const NewItemModalSheet({Key? key, required this.addItem}) : super(key: key);
+  const NewItemModalSheet(
+      {Key? key, required this.addItem, required this.itemNames})
+      : super(key: key);
 
   @override
   State createState() => _NewItemFormWidget();
@@ -38,6 +41,7 @@ class _NewItemFormWidget extends State<NewItemModalSheet> {
                   validator: requiredValidatorWithMessage(
                       'The name of the item is required'),
                   data: data,
+                  autocompleteList: widget.itemNames,
                 ),
                 const SizedBox(height: 14.0),
                 CustomTextFormField(
