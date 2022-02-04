@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
@@ -29,8 +30,14 @@ func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
 		All(ctx)
 }
 
-func (r *queryResolver) Purchases(ctx context.Context) ([]*ent.Shopping, error) {
+func (r *queryResolver) Purchases(ctx context.Context, before time.Time, after time.Time) ([]*ent.Shopping, error) {
 	return r.cli.Shopping.Query().
+		Where(
+			shopping.And(
+				shopping.DateGTE(after),
+				shopping.DateLTE(before),
+			),
+		).
 		Order(ent.Desc(shopping.FieldDate, shopping.FieldCreateTime)).
 		All(ctx)
 }

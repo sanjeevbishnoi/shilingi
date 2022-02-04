@@ -7,7 +7,7 @@ interface Node {
 
 type Query {
   items: [Item!]!
-  purchases: [Shopping!]!
+  purchases(before: Time!, after: Time!): [Shopping!]!
   vendors: [Vendor!]!
   node(id: Int!): Node!
 }

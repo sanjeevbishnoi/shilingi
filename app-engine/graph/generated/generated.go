@@ -63,7 +63,7 @@ type ComplexityRoot struct {
 	Query struct {
 		Items     func(childComplexity int) int
 		Node      func(childComplexity int, id int) int
-		Purchases func(childComplexity int) int
+		Purchases func(childComplexity int, before time.Time, after time.Time) int
 		Vendors   func(childComplexity int) int
 	}
 
@@ -99,7 +99,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Items(ctx context.Context) ([]*ent.Item, error)
-	Purchases(ctx context.Context) ([]*ent.Shopping, error)
+	Purchases(ctx context.Context, before time.Time, after time.Time) ([]*ent.Shopping, error)
 	Vendors(ctx context.Context) ([]*ent.Vendor, error)
 	Node(ctx context.Context, id int) (ent.Noder, error)
 }
@@ -191,7 +191,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Purchases(childComplexity), true
+		args, err := ec.field_Query_purchases_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Purchases(childComplexity, args["before"].(time.Time), args["after"].(time.Time)), true
 
 	case "Query.vendors":
 		if e.complexity.Query.Vendors == nil {
@@ -440,7 +445,7 @@ interface Node {
 
 type Query {
   items: [Item!]!
-  purchases: [Shopping!]!
+  purchases(before: Time!, after: Time!): [Shopping!]!
   vendors: [Vendor!]!
   node(id: Int!): Node!
 }
@@ -514,6 +519,30 @@ func (ec *executionContext) field_Query_node_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_purchases_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 time.Time
+	if tmp, ok := rawArgs["before"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+		arg0, err = ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg0
+	var arg1 time.Time
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
 	return args, nil
 }
 
@@ -789,9 +818,16 @@ func (ec *executionContext) _Query_purchases(ctx context.Context, field graphql.
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_purchases_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Purchases(rctx)
+		return ec.resolvers.Query().Purchases(rctx, args["before"].(time.Time), args["after"].(time.Time))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
