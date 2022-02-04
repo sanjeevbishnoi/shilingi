@@ -5,10 +5,10 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
+	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/entops"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
@@ -33,7 +33,9 @@ func (r *queryResolver) Purchases(ctx context.Context) ([]*ent.Shopping, error) 
 }
 
 func (r *queryResolver) Vendors(ctx context.Context) ([]*ent.Vendor, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.cli.Vendor.Query().
+		Order(ent.Asc(vendor.FieldName)).
+		All(ctx)
 }
 
 func (r *queryResolver) Node(ctx context.Context, id int) (ent.Noder, error) {
