@@ -36,3 +36,7 @@ var purchaseQuery = gql(r'''
       }
     }
  ''');
+
+var vendorAndItemsNames = gql(r'''
+
+''');
