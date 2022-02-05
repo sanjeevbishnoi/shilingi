@@ -53,7 +53,7 @@ Map<String, dynamic> _$PurchaseToJson(Purchase instance) {
   }
 
   writeNotNull('id', instance.id);
-  val['date'] = _DateTimeToJson(instance.date);
+  val['date'] = DateTimeToJson(instance.date);
   val['vendor'] = instance.vendor;
   val['items'] = instance.items;
   writeNotNull('total', instance.total);

@@ -42,7 +42,7 @@ class Item {
 class Purchase {
   @JsonKey(includeIfNull: false)
   final int? id;
-  @JsonKey(toJson: _DateTimeToJson)
+  @JsonKey(toJson: DateTimeToJson)
   final DateTime date;
   final Vendor vendor;
   final List<PurchaseItem>? items;
@@ -84,13 +84,13 @@ class Vendor {
   Map<String, dynamic> toJson() => _$VendorToJson(this);
 }
 
-String _DateTimeToJson(DateTime date) {
+String DateTimeToJson(DateTime date) {
   var duration = date.timeZoneOffset;
   if (duration.isNegative) {
-    return (date.toIso8601String() +
+    return (date.toLocal().toIso8601String().replaceAll(RegExp(r'Z'), '') +
         "-${duration.inHours.toString().padLeft(2, '0')}:${(duration.inMinutes - (duration.inHours * 60)).toString().padLeft(2, '0')}");
   } else {
-    return (date.toIso8601String() +
+    return (date.toLocal().toIso8601String().replaceAll(RegExp(r'Z'), '') +
         "+${duration.inHours.toString().padLeft(2, '0')}:${(duration.inMinutes - (duration.inHours * 60)).toString().padLeft(2, '0')}");
   }
 }

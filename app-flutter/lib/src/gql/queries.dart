@@ -1,8 +1,8 @@
 import 'package:graphql_flutter/graphql_flutter.dart';
 
 var purchasesQuery = gql(r'''
-    query purchases {
-      purchases {
+    query purchases($after: Time!, $before: Time!) {
+      purchases(after: $after, before: $before) {
         id
         date
         vendor {
