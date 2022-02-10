@@ -27,10 +27,36 @@ Map<String, dynamic> _$PurchaseItemToJson(PurchaseItem instance) =>
 
 Item _$ItemFromJson(Map<String, dynamic> json) => Item(
       name: json['name'] as String,
+      id: json['id'] as int?,
     );
 
-Map<String, dynamic> _$ItemToJson(Item instance) => <String, dynamic>{
-      'name': instance.name,
+Map<String, dynamic> _$ItemToJson(Item instance) {
+  final val = <String, dynamic>{
+    'name': instance.name,
+  };
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('id', instance.id);
+  return val;
+}
+
+Catalogue _$CatalogueFromJson(Map<String, dynamic> json) => Catalogue(
+      items: (json['items'] as List<dynamic>)
+          .map((e) => Item.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      vendors: (json['vendors'] as List<dynamic>)
+          .map((e) => Vendor.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$CatalogueToJson(Catalogue instance) => <String, dynamic>{
+      'items': instance.items,
+      'vendors': instance.vendors,
     };
 
 Purchase _$PurchaseFromJson(Map<String, dynamic> json) => Purchase(
@@ -72,8 +98,19 @@ Map<String, dynamic> _$PurchasesToJson(Purchases instance) => <String, dynamic>{
 
 Vendor _$VendorFromJson(Map<String, dynamic> json) => Vendor(
       name: json['name'] as String,
+      id: json['id'] as int?,
     );
 
-Map<String, dynamic> _$VendorToJson(Vendor instance) => <String, dynamic>{
-      'name': instance.name,
-    };
+Map<String, dynamic> _$VendorToJson(Vendor instance) {
+  final val = <String, dynamic>{};
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('id', instance.id);
+  val['name'] = instance.name;
+  return val;
+}
