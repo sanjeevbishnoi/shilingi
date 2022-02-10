@@ -30,12 +30,27 @@ class PurchaseItem {
 @JsonSerializable()
 class Item {
   final String name;
+  @JsonKey(includeIfNull: false)
+  final int? id;
 
-  const Item({required this.name});
+  const Item({required this.name, this.id});
 
   Map<String, dynamic> toJson() => _$ItemToJson(this);
 
   factory Item.fromJson(Map<String, dynamic> json) => _$ItemFromJson(json);
+}
+
+@JsonSerializable()
+class Catalogue {
+  final List<Item> items;
+  final List<Vendor> vendors;
+
+  const Catalogue({required this.items, required this.vendors});
+
+  factory Catalogue.fromJson(Map<String, dynamic> json) =>
+      _$CatalogueFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CatalogueToJson(this);
 }
 
 @JsonSerializable()
@@ -76,9 +91,11 @@ class Purchases {
 
 @JsonSerializable()
 class Vendor {
+  @JsonKey(includeIfNull: false)
+  final int? id;
   final String name;
 
-  const Vendor({required this.name});
+  const Vendor({required this.name, this.id});
 
   factory Vendor.fromJson(Map<String, dynamic> json) => _$VendorFromJson(json);
   Map<String, dynamic> toJson() => _$VendorToJson(this);

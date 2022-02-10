@@ -158,10 +158,13 @@ class _PurchasesPageState extends State<PurchasesPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-          child: const Icon(Icons.add),
-          onPressed: () {
-            Navigator.pushNamed(context, '/new-purchase');
-          }),
+        child: const Icon(Icons.add_shopping_cart_outlined),
+        onPressed: () {
+          Navigator.pushNamed(context, '/new-purchase');
+        },
+      ),
+      bottomNavigationBar: const MainBottomNavigation(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 

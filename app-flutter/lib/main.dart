@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 
 import './src/pages/pages.dart';
+import './src/constants/constants.dart';
 
 const apiUrl = String.fromEnvironment('API_URL',
     defaultValue: 'http://localhost:8080/query');
@@ -38,10 +39,11 @@ class MyApp extends StatelessWidget {
         ),
         initialRoute: '/',
         routes: {
-          '/': (context) => const PurchasesPage(),
-          '/new-purchase': (context) => const NewPurchasePage(),
+          purchasesPage: (context) => const PurchasesPage(),
+          newPurchasePage: (context) => const NewPurchasePage(),
           PurchaseDetailsPage.routeName: (context) =>
               const PurchaseDetailsPage(),
+          cataloguePage: (context) => const CataloguePage(),
         },
       ),
     );

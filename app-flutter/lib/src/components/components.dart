@@ -3,3 +3,4 @@ export './purchase.dart';
 export './text.dart';
 export './new_item.dart';
 export './text_field.dart';
+export './bottom_navigation.dart';
