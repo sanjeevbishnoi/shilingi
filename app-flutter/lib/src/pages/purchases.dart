@@ -30,9 +30,72 @@ class _PurchasesPageState extends State<PurchasesPage> {
   DateTime? _rangeStart;
   DateTime? _rangeEnd;
   DateTime? _selectedDay = DateTime.now();
+  bool _loading = true;
 
   @override
   Widget build(BuildContext context) {
+    List<Widget> _widgets = [];
+    if (_loading) {
+      _widgets = [
+        const Center(
+          child: Padding(
+            padding: EdgeInsets.all(30.0),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ];
+    } else {
+      _widgets = [
+        const SizedBox(height: 15.0),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 20.0),
+          child: Text(
+            'Total expenditure in ${DateFormat("MMM").format(focusedDay)}',
+            style: const TextStyle(
+              color: Colors.black38,
+              fontWeight: FontWeight.w600,
+              fontSize: 20,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+          child: Text(
+            'Kes ${formatAmt.format(_monthExpenditure())}',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16.0),
+          ),
+        ),
+        const SizedBox(height: 15.0),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 20.0),
+          child: Text(
+            _getExpenditureText(),
+            style: const TextStyle(
+              color: Colors.black38,
+              fontWeight: FontWeight.w600,
+              fontSize: 20,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+          child: Text(
+            'Kes ${formatAmt.format(_getExpenditure())}',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16.0),
+          ),
+        ),
+        const SizedBox(height: 15.0),
+        for (var purchase in _getActivePurchases()) ...[
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+            child: WPurchase(purchase),
+          ),
+        ],
+        const SizedBox(height: 20.0),
+      ];
+    }
+
     return Scaffold(
       backgroundColor: mainScaffoldBg,
       appBar: AppBar(title: const Text('Shilingi')),
@@ -100,59 +163,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
                   return _getPurchasesOnDay(day);
                 },
               ),
-              const SizedBox(height: 15.0),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 5.0, horizontal: 20.0),
-                child: Text(
-                  'Total expenditure in ${DateFormat("MMM").format(focusedDay)}',
-                  style: const TextStyle(
-                    color: Colors.black38,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 10.0, horizontal: 20.0),
-                child: Text(
-                  'Kes ${formatAmt.format(_monthExpenditure())}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 16.0),
-                ),
-              ),
-              const SizedBox(height: 15.0),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 5.0, horizontal: 20.0),
-                child: Text(
-                  _getExpenditureText(),
-                  style: const TextStyle(
-                    color: Colors.black38,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 10.0, horizontal: 20.0),
-                child: Text(
-                  'Kes ${formatAmt.format(_getExpenditure())}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 16.0),
-                ),
-              ),
-              const SizedBox(height: 15.0),
-              for (var purchase in _getActivePurchases()) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 10.0, horizontal: 20.0),
-                  child: WPurchase(purchase),
-                ),
-              ],
-              const SizedBox(height: 20.0),
+              ..._widgets,
             ],
           ),
         ),
@@ -179,6 +190,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
   Future _fetchPurchases(BuildContext context, DateTime start) {
     var dateRange = _getMonthDateRange(start);
     var client = GraphQLProvider.of(context).value;
+    _loading = true;
     return client
         .query(
       QueryOptions(
@@ -196,11 +208,18 @@ class _PurchasesPageState extends State<PurchasesPage> {
           purchases = model.Purchases.fromJson(result.data!).purchases;
         });
       }
+    }).whenComplete(() {
+      setState(() {
+        _loading = false;
+      });
     });
   }
 
   Future _fetchRangePurchases(BuildContext, DateTime start, DateTime end) {
     var client = GraphQLProvider.of(context).value;
+    setState(() {
+      _loading = true;
+    });
     return client
         .query(
       QueryOptions(
@@ -219,6 +238,10 @@ class _PurchasesPageState extends State<PurchasesPage> {
           _rangePurchases = model.Purchases.fromJson(result.data!).purchases;
         });
       }
+    }).whenComplete(() {
+      setState(() {
+        _loading = false;
+      });
     });
   }
 
