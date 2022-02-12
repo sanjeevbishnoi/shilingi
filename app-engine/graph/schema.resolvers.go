@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -28,6 +29,10 @@ func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
 	return r.cli.Item.Query().
 		Order(ent.Asc(item.FieldName)).
 		All(ctx)
+}
+
+func (r *queryResolver) ShoppingItems(ctx context.Context, after time.Time, before time.Time, item string) ([]*ent.ShoppingItem, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) Purchases(ctx context.Context, before time.Time, after time.Time) ([]*ent.Shopping, error) {

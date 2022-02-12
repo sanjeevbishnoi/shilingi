@@ -61,10 +61,11 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Items     func(childComplexity int) int
-		Node      func(childComplexity int, id int) int
-		Purchases func(childComplexity int, before time.Time, after time.Time) int
-		Vendors   func(childComplexity int) int
+		Items         func(childComplexity int) int
+		Node          func(childComplexity int, id int) int
+		Purchases     func(childComplexity int, before time.Time, after time.Time) int
+		ShoppingItems func(childComplexity int, after time.Time, before time.Time, item string) int
+		Vendors       func(childComplexity int) int
 	}
 
 	Shopping struct {
@@ -99,6 +100,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Items(ctx context.Context) ([]*ent.Item, error)
+	ShoppingItems(ctx context.Context, after time.Time, before time.Time, item string) ([]*ent.ShoppingItem, error)
 	Purchases(ctx context.Context, before time.Time, after time.Time) ([]*ent.Shopping, error)
 	Vendors(ctx context.Context) ([]*ent.Vendor, error)
 	Node(ctx context.Context, id int) (ent.Noder, error)
@@ -197,6 +199,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Purchases(childComplexity, args["before"].(time.Time), args["after"].(time.Time)), true
+
+	case "Query.shoppingItems":
+		if e.complexity.Query.ShoppingItems == nil {
+			break
+		}
+
+		args, err := ec.field_Query_shoppingItems_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ShoppingItems(childComplexity, args["after"].(time.Time), args["before"].(time.Time), args["item"].(string)), true
 
 	case "Query.vendors":
 		if e.complexity.Query.Vendors == nil {
@@ -445,6 +459,7 @@ interface Node {
 
 type Query {
   items: [Item!]!
+  shoppingItems(after: Time!, before: Time!, item: ID!): [ShoppingItem!]!
   purchases(before: Time!, after: Time!): [Shopping!]!
   vendors: [Vendor!]!
   node(id: Int!): Node!
@@ -543,6 +558,39 @@ func (ec *executionContext) field_Query_purchases_args(ctx context.Context, rawA
 		}
 	}
 	args["after"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_shoppingItems_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 time.Time
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg0, err = ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg0
+	var arg1 time.Time
+	if tmp, ok := rawArgs["before"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+		arg1, err = ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["item"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("item"))
+		arg2, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["item"] = arg2
 	return args, nil
 }
 
@@ -800,6 +848,48 @@ func (ec *executionContext) _Query_items(ctx context.Context, field graphql.Coll
 	res := resTmp.([]*ent.Item)
 	fc.Result = res
 	return ec.marshalNItem2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItemᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_shoppingItems(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_shoppingItems_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ShoppingItems(rctx, args["after"].(time.Time), args["before"].(time.Time), args["item"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.ShoppingItem)
+	fc.Result = res
+	return ec.marshalNShoppingItem2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItemᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_purchases(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2950,6 +3040,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "shoppingItems":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_shoppingItems(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "purchases":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -3497,6 +3601,21 @@ func (ec *executionContext) unmarshalNID2int(ctx context.Context, v interface{})
 
 func (ec *executionContext) marshalNID2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
 	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalID(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
