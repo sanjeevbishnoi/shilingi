@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
@@ -30,7 +29,11 @@ func (r *shoppingResolver) Total(ctx context.Context, obj *ent.Shopping) (*decim
 }
 
 func (r *shoppingItemResolver) Total(ctx context.Context, obj *ent.ShoppingItem) (*decimal.Decimal, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.Units < 1 {
+		return &obj.PricePerUnit, nil
+	}
+	val := obj.PricePerUnit.Mul(decimal.NewFromInt(int64(obj.Units)))
+	return &val, nil
 }
 
 // Shopping returns generated.ShoppingResolver implementation.
