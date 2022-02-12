@@ -57,6 +57,10 @@ var shoppingItemsQuery = gql(r'''
         id
         pricePerUnit
         units
+        item {
+          id
+          name
+        }
         shopping {
           id
           date

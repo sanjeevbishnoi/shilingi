@@ -12,18 +12,33 @@ PurchaseItem _$PurchaseItemFromJson(Map<String, dynamic> json) => PurchaseItem(
       units: json['units'] as int?,
       brand: json['brand'] as String?,
       pricePerUnit: (json['pricePerUnit'] as num).toDouble(),
-      item: Item.fromJson(json['item'] as Map<String, dynamic>),
+      item: json['item'] == null
+          ? null
+          : Item.fromJson(json['item'] as Map<String, dynamic>),
+      shopping: json['shopping'] == null
+          ? null
+          : Purchase.fromJson(json['shopping'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$PurchaseItemToJson(PurchaseItem instance) =>
-    <String, dynamic>{
-      'quantity': instance.quantity,
-      'quantityType': instance.quantityType,
-      'units': instance.units,
-      'brand': instance.brand,
-      'pricePerUnit': instance.pricePerUnit,
-      'item': instance.item,
-    };
+Map<String, dynamic> _$PurchaseItemToJson(PurchaseItem instance) {
+  final val = <String, dynamic>{
+    'quantity': instance.quantity,
+    'quantityType': instance.quantityType,
+    'units': instance.units,
+    'brand': instance.brand,
+    'pricePerUnit': instance.pricePerUnit,
+    'item': instance.item,
+  };
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('shopping', instance.shopping);
+  return val;
+}
 
 Item _$ItemFromJson(Map<String, dynamic> json) => Item(
       name: json['name'] as String,
