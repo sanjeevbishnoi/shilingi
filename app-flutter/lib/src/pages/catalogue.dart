@@ -90,37 +90,6 @@ class _ItemsCatalogue extends StatelessWidget {
         ),
       ],
     );
-    // return Padding(
-    // padding: const EdgeInsets.only(top: 30, bottom: 30),
-    // child: AzListView(
-    // data: _data.toList(),
-    // itemCount: items.length,
-    // itemBuilder: (context, index) {
-    // return Padding(
-    // padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-    // child: _ItemWidget(item: items[index]));
-    // },
-    // ),
-    // );
-    // return ListView(
-    // children: [
-    // const Padding(
-    // padding: EdgeInsets.symmetric(vertical: 30.0, horizontal: 13.0),
-    // child: Text(
-    // 'Item list',
-    // style: TextStyle(
-    // color: Colors.black38,
-    // fontWeight: FontWeight.w600,
-    // fontSize: 18.0,
-    // ),
-    // ),
-    // ),
-    // const SizedBox(height: 10.0),
-    // ...ListTile.divideTiles(tiles: [
-    // for (var item in items) _ItemWidget(item: item),
-    // ], context: context),
-    // ],
-    // );
   }
 
   Iterable<_ItemAZItem> get _data =>

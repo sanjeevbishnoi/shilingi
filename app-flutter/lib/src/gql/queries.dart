@@ -50,3 +50,22 @@ var vendorAndItemsNames = gql(r'''
       }
     }
 ''');
+
+var shoppingItemsQuery = gql(r'''
+    query shoppingItems($after: Time!, $before: Time!, $itemID: Int!) {
+      shoppingItems(after: $after, before: $before, itemID: $itemID) {
+        id
+        pricePerUnit
+        units
+        shopping {
+          id
+          date
+          total
+          vendor {
+            id
+            name
+          }
+        }
+      }
+    }
+''');

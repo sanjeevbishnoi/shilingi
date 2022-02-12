@@ -9,7 +9,9 @@ class PurchaseItem {
   final int? units;
   final String? brand;
   final double pricePerUnit;
-  final Item item;
+  final Item? item;
+  @JsonKey(includeIfNull: false)
+  final Purchase? shopping;
 
   const PurchaseItem(
       {required this.quantity,
@@ -17,7 +19,8 @@ class PurchaseItem {
       required this.units,
       this.brand,
       required this.pricePerUnit,
-      required this.item});
+      required this.item,
+      this.shopping});
 
   double get total => units != null ? units! * pricePerUnit : pricePerUnit;
 
