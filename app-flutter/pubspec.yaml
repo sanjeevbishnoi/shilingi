@@ -41,6 +41,7 @@ dependencies:
   graphql_flutter: ^5.0.0
   visibility_detector: ^0.2.2
   table_calendar: ^3.0.3
+  azlistview: 2.0.0-nullsafety.0 
 
 dev_dependencies:
   flutter_test:

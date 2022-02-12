@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
 
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:azlistview/azlistview.dart';
 
 import '../constants/constants.dart';
 import '../components/components.dart';
 import '../gql/gql.dart';
 import '../models/model.dart';
+
+class _ItemAZItem extends ISuspensionBean {
+  final Item item;
+
+  _ItemAZItem({required this.item});
+
+  @override
+  String getSuspensionTag() {
+    return item.name[0];
+  }
+}
 
 class CataloguePage extends StatelessWidget {
   static const routeName = '/catalogue';
@@ -35,12 +47,7 @@ class CataloguePage extends StatelessWidget {
           }
           var catalogue = Catalogue.fromJson(result.data!);
 
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(30.0),
-              child: _ItemsCatalogue(items: catalogue.items),
-            ),
-          );
+          return _ItemsCatalogue(items: catalogue.items);
         },
       ),
       bottomNavigationBar: const MainBottomNavigation(),
@@ -51,27 +58,73 @@ class CataloguePage extends StatelessWidget {
 class _ItemsCatalogue extends StatelessWidget {
   final List<Item> items;
 
-  _ItemsCatalogue({required this.items, Key? key}) : super(key: key);
+  const _ItemsCatalogue({required this.items, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Item list',
-          style: TextStyle(
-            color: Colors.black38,
-            fontWeight: FontWeight.w600,
-            fontSize: 18.0,
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+          child: Text(
+            'Item list',
+            style: TextStyle(
+              color: Colors.black38,
+              fontWeight: FontWeight.w600,
+              fontSize: 18.0,
+            ),
           ),
         ),
-        const SizedBox(height: 10.0),
-        ...ListTile.divideTiles(tiles: [
-          for (var item in items) _ItemWidget(item: item),
-        ], context: context),
+        Expanded(
+          child: AzListView(
+            data: _data.toList(),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                  child: _ItemWidget(item: items[index]));
+            },
+          ),
+        ),
       ],
     );
+    // return Padding(
+    // padding: const EdgeInsets.only(top: 30, bottom: 30),
+    // child: AzListView(
+    // data: _data.toList(),
+    // itemCount: items.length,
+    // itemBuilder: (context, index) {
+    // return Padding(
+    // padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+    // child: _ItemWidget(item: items[index]));
+    // },
+    // ),
+    // );
+    // return ListView(
+    // children: [
+    // const Padding(
+    // padding: EdgeInsets.symmetric(vertical: 30.0, horizontal: 13.0),
+    // child: Text(
+    // 'Item list',
+    // style: TextStyle(
+    // color: Colors.black38,
+    // fontWeight: FontWeight.w600,
+    // fontSize: 18.0,
+    // ),
+    // ),
+    // ),
+    // const SizedBox(height: 10.0),
+    // ...ListTile.divideTiles(tiles: [
+    // for (var item in items) _ItemWidget(item: item),
+    // ], context: context),
+    // ],
+    // );
   }
+
+  Iterable<_ItemAZItem> get _data =>
+      items.map<_ItemAZItem>((i) => _ItemAZItem(item: i));
 }
 
 class _ItemWidget extends StatelessWidget {
