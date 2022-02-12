@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
@@ -28,7 +29,15 @@ func (r *shoppingResolver) Total(ctx context.Context, obj *ent.Shopping) (*decim
 	return &totalVal, nil
 }
 
+func (r *shoppingItemResolver) Total(ctx context.Context, obj *ent.ShoppingItem) (*decimal.Decimal, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Shopping returns generated.ShoppingResolver implementation.
 func (r *Resolver) Shopping() generated.ShoppingResolver { return &shoppingResolver{r} }
 
+// ShoppingItem returns generated.ShoppingItemResolver implementation.
+func (r *Resolver) ShoppingItem() generated.ShoppingItemResolver { return &shoppingItemResolver{r} }
+
 type shoppingResolver struct{ *Resolver }
+type shoppingItemResolver struct{ *Resolver }

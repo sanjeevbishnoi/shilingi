@@ -43,6 +43,7 @@ type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Shopping() ShoppingResolver
+	ShoppingItem() ShoppingItemResolver
 }
 
 type DirectiveRoot struct {
@@ -84,6 +85,7 @@ type ComplexityRoot struct {
 		Quantity     func(childComplexity int) int
 		QuantityType func(childComplexity int) int
 		Shopping     func(childComplexity int) int
+		Total        func(childComplexity int) int
 		Units        func(childComplexity int) int
 	}
 
@@ -108,6 +110,9 @@ type QueryResolver interface {
 }
 type ShoppingResolver interface {
 	Total(ctx context.Context, obj *ent.Shopping) (*decimal.Decimal, error)
+}
+type ShoppingItemResolver interface {
+	Total(ctx context.Context, obj *ent.ShoppingItem) (*decimal.Decimal, error)
 }
 
 type executableSchema struct {
@@ -304,6 +309,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ShoppingItem.Shopping(childComplexity), true
 
+	case "ShoppingItem.total":
+		if e.complexity.ShoppingItem.Total == nil {
+			break
+		}
+
+		return e.complexity.ShoppingItem.Total(childComplexity), true
+
 	case "ShoppingItem.units":
 		if e.complexity.ShoppingItem.Units == nil {
 			break
@@ -438,6 +450,7 @@ type ShoppingItem implements Node {
   pricePerUnit: Decimal!
   item: Item!
   shopping: Shopping!
+  total: Decimal!
 }
 
 type Shopping implements Node {
@@ -1535,6 +1548,41 @@ func (ec *executionContext) _ShoppingItem_shopping(ctx context.Context, field gr
 	res := resTmp.(*ent.Shopping)
 	fc.Result = res
 	return ec.marshalNShopping2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShopping(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingItem_total(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItem) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingItem",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ShoppingItem().Total(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*decimal.Decimal)
+	fc.Result = res
+	return ec.marshalNDecimal2ᚖgithubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Vendor_id(ctx context.Context, field graphql.CollectedField, obj *ent.Vendor) (ret graphql.Marshaler) {
@@ -3284,6 +3332,20 @@ func (ec *executionContext) _ShoppingItem(ctx context.Context, sel ast.Selection
 					}
 				}()
 				res = ec._ShoppingItem_shopping(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "total":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ShoppingItem_total(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
