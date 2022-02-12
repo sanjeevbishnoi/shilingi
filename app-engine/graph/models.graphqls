@@ -33,6 +33,7 @@ type ShoppingItem implements Node {
   pricePerUnit: Decimal!
   item: Item!
   shopping: Shopping!
+  total: Decimal!
 }
 
 type Shopping implements Node {
