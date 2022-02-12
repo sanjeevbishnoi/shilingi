@@ -2,6 +2,8 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
@@ -35,5 +37,15 @@ func (Item) Edges() []ent.Edge {
 func (Item) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		mixin.Time{},
+	}
+}
+
+// Annotations of the Item
+func (Item) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{
+			Charset:   "utf8mb4",
+			Collation: "utf8mb4_0900_ai_ci",
+		},
 	}
 }
