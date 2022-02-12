@@ -5,12 +5,12 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/entops"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
@@ -31,8 +31,17 @@ func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
 		All(ctx)
 }
 
-func (r *queryResolver) ShoppingItems(ctx context.Context, after time.Time, before time.Time, item string) ([]*ent.ShoppingItem, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *queryResolver) ShoppingItems(ctx context.Context, after time.Time, before time.Time, itemID int) ([]*ent.ShoppingItem, error) {
+	return r.cli.ShoppingItem.Query().
+		Where(
+			shoppingitem.HasItemWith(
+				item.ID(itemID),
+			),
+			shoppingitem.HasShoppingWith(
+				shopping.DateGTE(after),
+				shopping.DateLTE(before),
+			),
+		).All(ctx)
 }
 
 func (r *queryResolver) Purchases(ctx context.Context, before time.Time, after time.Time) ([]*ent.Shopping, error) {
