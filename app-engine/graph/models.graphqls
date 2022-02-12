@@ -32,6 +32,7 @@ type ShoppingItem implements Node {
   brand: String 
   pricePerUnit: Decimal!
   item: Item!
+  shopping: Shopping!
 }
 
 type Shopping implements Node {
