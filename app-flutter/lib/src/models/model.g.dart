@@ -40,6 +40,18 @@ Map<String, dynamic> _$PurchaseItemToJson(PurchaseItem instance) {
   return val;
 }
 
+PurchaseItems _$PurchaseItemsFromJson(Map<String, dynamic> json) =>
+    PurchaseItems(
+      shoppingItems: (json['shoppingItems'] as List<dynamic>)
+          .map((e) => PurchaseItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$PurchaseItemsToJson(PurchaseItems instance) =>
+    <String, dynamic>{
+      'shoppingItems': instance.shoppingItems,
+    };
+
 Item _$ItemFromJson(Map<String, dynamic> json) => Item(
       name: json['name'] as String,
       id: json['id'] as int?,

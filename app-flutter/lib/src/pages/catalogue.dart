@@ -7,6 +7,8 @@ import '../constants/constants.dart';
 import '../components/components.dart';
 import '../gql/gql.dart';
 import '../models/model.dart';
+import './shopping_item.dart';
+import './settings/settings.dart';
 
 class _ItemAZItem extends ISuspensionBean {
   final Item item;
@@ -111,7 +113,11 @@ class _ItemWidget extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           splashColor: Colors.black38,
-          onTap: () {},
+          onTap: () {
+            Navigator.of(context).pushNamed(shoppingItemPage,
+                arguments: ShoppingItemRouteSettings(
+                    itemId: item.id!, name: item.name));
+          },
           child: ListTile(
             title: Text(item.name),
             trailing: const Icon(Icons.chevron_right_sharp),

@@ -3,3 +3,4 @@ export './new_purchase.dart';
 export './purchase_details.dart';
 export './purchase_details.dart';
 export './catalogue.dart';
+export './shopping_item.dart';

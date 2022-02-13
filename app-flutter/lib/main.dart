@@ -44,6 +44,7 @@ class MyApp extends StatelessWidget {
           PurchaseDetailsPage.routeName: (context) =>
               const PurchaseDetailsPage(),
           cataloguePage: (context) => const CataloguePage(),
+          shoppingItemPage: (context) => const ShoppingItemDetailPage(),
         },
       ),
     );

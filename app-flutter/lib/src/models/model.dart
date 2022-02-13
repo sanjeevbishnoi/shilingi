@@ -31,6 +31,18 @@ class PurchaseItem {
 }
 
 @JsonSerializable()
+class PurchaseItems {
+  final List<PurchaseItem> shoppingItems;
+
+  const PurchaseItems({required this.shoppingItems});
+
+  factory PurchaseItems.fromJson(Map<String, dynamic> json) =>
+      _$PurchaseItemsFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PurchaseItemsToJson(this);
+}
+
+@JsonSerializable()
 class Item {
   final String name;
   @JsonKey(includeIfNull: false)

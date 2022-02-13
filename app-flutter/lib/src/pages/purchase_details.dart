@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 
 import '../gql/gql.dart' as queries;
 import '../models/model.dart';
+import './settings/settings.dart';
+import '../constants/constants.dart';
 
 var numberFormat = NumberFormat('#,##0.00', 'en_US');
 
@@ -111,13 +113,31 @@ class _PurchaseDetailWidget extends StatelessWidget {
           ),
           const SizedBox(height: 10.0),
           for (var item in purchase.items!)
-            ListTile(
-              minLeadingWidth: 20,
-              leading: const Icon(Icons.circle_rounded),
-              title: Text(item.item.name),
-              dense: true,
-              trailing:
-                  Text(numberFormat.format(item.pricePerUnit * item.units!)),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                splashColor: Colors.black38,
+                onTap: () {
+                  Navigator.of(context).pushNamed(shoppingItemPage,
+                      arguments: ShoppingItemRouteSettings(
+                          itemId: item.item!.id!, name: item.item!.name));
+                },
+                child: ListTile(
+                  minLeadingWidth: 20,
+                  leading: const Icon(Icons.circle_rounded),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(item.item!.name),
+                      ),
+                      Text(
+                          numberFormat.format(item.pricePerUnit * item.units!)),
+                    ],
+                  ),
+                  dense: true,
+                  trailing: const Icon(Icons.chevron_right),
+                ),
+              ),
             ),
         ],
       ),

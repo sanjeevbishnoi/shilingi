@@ -15,7 +15,7 @@ class WPurchaseItem extends StatelessWidget {
       child: Row(
         children: [
           ListTitleText(
-            item.item.name,
+            item.item!.name,
           ),
         ],
       ),

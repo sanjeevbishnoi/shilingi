@@ -279,7 +279,8 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
 
   bool _checkDuplicate(PurchaseItem item) {
     return _items.indexWhere((element) =>
-            element.item.name.toLowerCase() == item.item.name.toLowerCase()) !=
+            element.item!.name.toLowerCase() ==
+            item.item!.name.toLowerCase()) !=
         -1;
   }
 
@@ -293,8 +294,8 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
             TextButton(
                 onPressed: () {
                   var index = _items.indexWhere((element) =>
-                      element.item.name.toLowerCase() ==
-                      item.item.name.toLowerCase());
+                      element.item!.name.toLowerCase() ==
+                      item.item!.name.toLowerCase());
                   setState(() {
                     _items[index] = item;
                   });
@@ -369,7 +370,7 @@ class _Items extends StatelessWidget {
                                   ConstrainedBox(
                                     constraints:
                                         const BoxConstraints(maxWidth: 80),
-                                    child: Text(items[i].item.name),
+                                    child: Text(items[i].item!.name),
                                   ),
                                 ),
                                 DataCell(Text(items[i].units.toString())),
