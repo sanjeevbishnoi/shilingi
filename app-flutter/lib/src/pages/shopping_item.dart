@@ -12,7 +12,7 @@ import '../components/text.dart';
 import './purchase_details.dart';
 import './settings/settings.dart';
 
-var shoppingNumberFormat = NumberFormat('#,##0.00', 'en_US');
+var shoppingNumberFormat = NumberFormat('#,##0', 'en_US');
 
 class ShoppingItemDetailPage extends StatefulWidget {
   const ShoppingItemDetailPage({Key? key}) : super(key: key);
@@ -66,6 +66,34 @@ class _ShoppingItemDetailPage extends State {
                       isSameDay(element.shopping!.date.toLocal(), day))
                   .toList();
             },
+            calendarBuilders:
+                CalendarBuilders(markerBuilder: (context, day, events) {
+              if (events.isEmpty) {
+                return null;
+              }
+              var total = 0.0;
+              events.forEach((element) => total += element.total);
+              return Align(
+                alignment: Alignment.bottomCenter,
+                child: Text('${shoppingNumberFormat.format(total)}/=',
+                    style: const TextStyle(fontSize: 10.0)),
+              );
+            }),
+          ),
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(vertical: 18.0, horizontal: 18.0),
+            child: Row(
+              children: [
+                Expanded(
+                    child: _StatCard(
+                        title:
+                            'Total in ${DateFormat("MMM").format(_focusedDay)}',
+                        value: shoppingNumberFormat
+                            .format(_calculateTotal(_items)))),
+                Expanded(child: SizedBox(width: 10)),
+              ],
+            ),
           ),
           _SelectedPurchaseItemsWidget(
             items: _items,
@@ -107,6 +135,49 @@ class _ShoppingItemDetailPage extends State {
             _loading = false;
           });
         });
+  }
+
+  double _calculateTotal(List<PurchaseItem> items) {
+    double total = 0;
+    items.forEach((element) {
+      total += element.total;
+    });
+    return total;
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+
+  const _StatCard({Key? key, required this.title, required this.value})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8.0),
+        color: Colors.white,
+      ),
+      padding: const EdgeInsets.all(18.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(
+            height: 5.0,
+          ),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 12.0),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -162,6 +162,21 @@ class _PurchasesPageState extends State<PurchasesPage> {
                 eventLoader: (day) {
                   return _getPurchasesOnDay(day);
                 },
+                calendarBuilders: CalendarBuilders(
+                  markerBuilder: (context, day, purchases) {
+                    if (purchases.isEmpty) {
+                      return null;
+                    }
+                    var total = 0.0;
+                    purchases.forEach((element) => total += element.total!);
+                    return Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Text('${formatAmt.format(total)}/=',
+                          style: const TextStyle(
+                              fontSize: 10.0, fontWeight: FontWeight.w700)),
+                    );
+                  },
+                ),
               ),
               ..._widgets,
             ],
