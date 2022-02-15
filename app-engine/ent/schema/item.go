@@ -30,6 +30,7 @@ func (Item) Fields() []ent.Field {
 func (Item) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("purchases", ShoppingItem.Type),
+		edge.To("tags", Tag.Type),
 	}
 }
 
