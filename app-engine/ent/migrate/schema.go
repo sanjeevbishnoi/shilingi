@@ -3,6 +3,7 @@
 package migrate
 
 import (
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
@@ -53,7 +54,7 @@ var (
 		{Name: "quantity_type", Type: field.TypeString, Nullable: true},
 		{Name: "units", Type: field.TypeInt, Default: 1},
 		{Name: "brand", Type: field.TypeString, Nullable: true},
-		{Name: "price_per_unit", Type: field.TypeFloat64, SchemaType: map[string]string{"mysql": "decimal(6,2)", "postgres": "numeric"}},
+		{Name: "price_per_unit", Type: field.TypeFloat64, SchemaType: map[string]string{"mysql": "decimal(12,2)", "postgres": "numeric"}},
 		{Name: "item_purchases", Type: field.TypeInt, Nullable: true},
 		{Name: "shopping_items", Type: field.TypeInt, Nullable: true},
 	}
@@ -77,6 +78,26 @@ var (
 			},
 		},
 	}
+	// TagsColumns holds the columns for the "tags" table.
+	TagsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString},
+	}
+	// TagsTable holds the schema information for the "tags" table.
+	TagsTable = &schema.Table{
+		Name:       "tags",
+		Columns:    TagsColumns,
+		PrimaryKey: []*schema.Column{TagsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "tag_name",
+				Unique:  false,
+				Columns: []*schema.Column{TagsColumns[3]},
+			},
+		},
+	}
 	// VendorsColumns holds the columns for the "vendors" table.
 	VendorsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -96,11 +117,16 @@ var (
 		ItemsTable,
 		ShoppingsTable,
 		ShoppingItemsTable,
+		TagsTable,
 		VendorsTable,
 	}
 )
 
 func init() {
+	ItemsTable.Annotation = &entsql.Annotation{
+		Charset:   "utf8mb4",
+		Collation: "utf8mb4_0900_ai_ci",
+	}
 	ShoppingsTable.ForeignKeys[0].RefTable = VendorsTable
 	ShoppingItemsTable.ForeignKeys[0].RefTable = ItemsTable
 	ShoppingItemsTable.ForeignKeys[1].RefTable = ShoppingsTable

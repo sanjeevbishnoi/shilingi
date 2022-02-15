@@ -12,6 +12,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 
 	"entgo.io/ent/dialect"
@@ -30,6 +31,8 @@ type Client struct {
 	Shopping *ShoppingClient
 	// ShoppingItem is the client for interacting with the ShoppingItem builders.
 	ShoppingItem *ShoppingItemClient
+	// Tag is the client for interacting with the Tag builders.
+	Tag *TagClient
 	// Vendor is the client for interacting with the Vendor builders.
 	Vendor *VendorClient
 	// additional fields for node api
@@ -50,6 +53,7 @@ func (c *Client) init() {
 	c.Item = NewItemClient(c.config)
 	c.Shopping = NewShoppingClient(c.config)
 	c.ShoppingItem = NewShoppingItemClient(c.config)
+	c.Tag = NewTagClient(c.config)
 	c.Vendor = NewVendorClient(c.config)
 }
 
@@ -87,6 +91,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Item:         NewItemClient(cfg),
 		Shopping:     NewShoppingClient(cfg),
 		ShoppingItem: NewShoppingItemClient(cfg),
+		Tag:          NewTagClient(cfg),
 		Vendor:       NewVendorClient(cfg),
 	}, nil
 }
@@ -109,6 +114,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Item:         NewItemClient(cfg),
 		Shopping:     NewShoppingClient(cfg),
 		ShoppingItem: NewShoppingItemClient(cfg),
+		Tag:          NewTagClient(cfg),
 		Vendor:       NewVendorClient(cfg),
 	}, nil
 }
@@ -142,6 +148,7 @@ func (c *Client) Use(hooks ...Hook) {
 	c.Item.Use(hooks...)
 	c.Shopping.Use(hooks...)
 	c.ShoppingItem.Use(hooks...)
+	c.Tag.Use(hooks...)
 	c.Vendor.Use(hooks...)
 }
 
@@ -493,6 +500,97 @@ func (c *ShoppingItemClient) QueryShopping(si *ShoppingItem) *ShoppingQuery {
 // Hooks returns the client hooks.
 func (c *ShoppingItemClient) Hooks() []Hook {
 	return c.hooks.ShoppingItem
+}
+
+// TagClient is a client for the Tag schema.
+type TagClient struct {
+	config
+}
+
+// NewTagClient returns a client for the Tag from the given config.
+func NewTagClient(c config) *TagClient {
+	return &TagClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `tag.Hooks(f(g(h())))`.
+func (c *TagClient) Use(hooks ...Hook) {
+	c.hooks.Tag = append(c.hooks.Tag, hooks...)
+}
+
+// Create returns a create builder for Tag.
+func (c *TagClient) Create() *TagCreate {
+	mutation := newTagMutation(c.config, OpCreate)
+	return &TagCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Tag entities.
+func (c *TagClient) CreateBulk(builders ...*TagCreate) *TagCreateBulk {
+	return &TagCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Tag.
+func (c *TagClient) Update() *TagUpdate {
+	mutation := newTagMutation(c.config, OpUpdate)
+	return &TagUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TagClient) UpdateOne(t *Tag) *TagUpdateOne {
+	mutation := newTagMutation(c.config, OpUpdateOne, withTag(t))
+	return &TagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TagClient) UpdateOneID(id int) *TagUpdateOne {
+	mutation := newTagMutation(c.config, OpUpdateOne, withTagID(id))
+	return &TagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Tag.
+func (c *TagClient) Delete() *TagDelete {
+	mutation := newTagMutation(c.config, OpDelete)
+	return &TagDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *TagClient) DeleteOne(t *Tag) *TagDeleteOne {
+	return c.DeleteOneID(t.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *TagClient) DeleteOneID(id int) *TagDeleteOne {
+	builder := c.Delete().Where(tag.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TagDeleteOne{builder}
+}
+
+// Query returns a query builder for Tag.
+func (c *TagClient) Query() *TagQuery {
+	return &TagQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Tag entity by its id.
+func (c *TagClient) Get(ctx context.Context, id int) (*Tag, error) {
+	return c.Query().Where(tag.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TagClient) GetX(ctx context.Context, id int) *Tag {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TagClient) Hooks() []Hook {
+	hooks := c.hooks.Tag
+	return append(hooks[:len(hooks):len(hooks)], tag.Hooks[:]...)
 }
 
 // VendorClient is a client for the Vendor schema.

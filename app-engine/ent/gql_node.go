@@ -18,6 +18,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"golang.org/x/sync/semaphore"
 )
@@ -244,6 +245,41 @@ func (si *ShoppingItem) Node(ctx context.Context) (node *Node, err error) {
 	return node, nil
 }
 
+func (t *Tag) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     t.ID,
+		Type:   "Tag",
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 0),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(t.CreateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "create_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(t.UpdateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "update_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(t.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	return node, nil
+}
+
 func (v *Vendor) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     v.ID,
@@ -391,6 +427,15 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 			return nil, err
 		}
 		return n, nil
+	case tag.Table:
+		n, err := c.Tag.Query().
+			Where(tag.ID(id)).
+			CollectFields(ctx, "Tag").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case vendor.Table:
 		n, err := c.Vendor.Query().
 			Where(vendor.ID(id)).
@@ -503,6 +548,19 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		nodes, err := c.ShoppingItem.Query().
 			Where(shoppingitem.IDIn(ids...)).
 			CollectFields(ctx, "ShoppingItem").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case tag.Table:
+		nodes, err := c.Tag.Query().
+			Where(tag.IDIn(ids...)).
+			CollectFields(ctx, "Tag").
 			All(ctx)
 		if err != nil {
 			return nil, err

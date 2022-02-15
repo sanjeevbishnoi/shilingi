@@ -48,6 +48,19 @@ func (f ShoppingItemFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return f(ctx, mv)
 }
 
+// The TagFunc type is an adapter to allow the use of ordinary
+// function as Tag mutator.
+type TagFunc func(context.Context, *ent.TagMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TagFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.TagMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TagMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The VendorFunc type is an adapter to allow the use of ordinary
 // function as Vendor mutator.
 type VendorFunc func(context.Context, *ent.VendorMutation) (ent.Value, error)

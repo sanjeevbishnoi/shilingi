@@ -11,6 +11,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 )
 
@@ -35,6 +36,7 @@ func columnChecker(table string) func(string) error {
 		item.Table:         item.ValidColumn,
 		shopping.Table:     shopping.ValidColumn,
 		shoppingitem.Table: shoppingitem.ValidColumn,
+		tag.Table:          tag.ValidColumn,
 		vendor.Table:       vendor.ValidColumn,
 	}
 	check, ok := checks[table]
