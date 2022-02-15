@@ -21,6 +21,8 @@ const (
 	FieldSlug = "slug"
 	// EdgePurchases holds the string denoting the purchases edge name in mutations.
 	EdgePurchases = "purchases"
+	// EdgeTags holds the string denoting the tags edge name in mutations.
+	EdgeTags = "tags"
 	// Table holds the table name of the item in the database.
 	Table = "items"
 	// PurchasesTable is the table that holds the purchases relation/edge.
@@ -30,6 +32,11 @@ const (
 	PurchasesInverseTable = "shopping_items"
 	// PurchasesColumn is the table column denoting the purchases relation/edge.
 	PurchasesColumn = "item_purchases"
+	// TagsTable is the table that holds the tags relation/edge. The primary key declared below.
+	TagsTable = "item_tags"
+	// TagsInverseTable is the table name for the Tag entity.
+	// It exists in this package in order to avoid circular dependency with the "tag" package.
+	TagsInverseTable = "tags"
 )
 
 // Columns holds all SQL columns for item fields.
@@ -40,6 +47,12 @@ var Columns = []string{
 	FieldName,
 	FieldSlug,
 }
+
+var (
+	// TagsPrimaryKey and TagsColumn2 are the table columns denoting the
+	// primary key for the tags relation (M2M).
+	TagsPrimaryKey = []string{"item_id", "tag_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {

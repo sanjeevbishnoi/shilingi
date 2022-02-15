@@ -19,8 +19,15 @@ const (
 	FieldUpdateTime = "update_time"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// EdgeItems holds the string denoting the items edge name in mutations.
+	EdgeItems = "items"
 	// Table holds the table name of the tag in the database.
 	Table = "tags"
+	// ItemsTable is the table that holds the items relation/edge. The primary key declared below.
+	ItemsTable = "item_tags"
+	// ItemsInverseTable is the table name for the Item entity.
+	// It exists in this package in order to avoid circular dependency with the "item" package.
+	ItemsInverseTable = "items"
 )
 
 // Columns holds all SQL columns for tag fields.
@@ -30,6 +37,12 @@ var Columns = []string{
 	FieldUpdateTime,
 	FieldName,
 }
+
+var (
+	// ItemsPrimaryKey and ItemsColumn2 are the table columns denoting the
+	// primary key for the items relation (M2M).
+	ItemsPrimaryKey = []string{"item_id", "tag_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {

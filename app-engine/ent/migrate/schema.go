@@ -112,6 +112,31 @@ var (
 		Columns:    VendorsColumns,
 		PrimaryKey: []*schema.Column{VendorsColumns[0]},
 	}
+	// ItemTagsColumns holds the columns for the "item_tags" table.
+	ItemTagsColumns = []*schema.Column{
+		{Name: "item_id", Type: field.TypeInt},
+		{Name: "tag_id", Type: field.TypeInt},
+	}
+	// ItemTagsTable holds the schema information for the "item_tags" table.
+	ItemTagsTable = &schema.Table{
+		Name:       "item_tags",
+		Columns:    ItemTagsColumns,
+		PrimaryKey: []*schema.Column{ItemTagsColumns[0], ItemTagsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "item_tags_item_id",
+				Columns:    []*schema.Column{ItemTagsColumns[0]},
+				RefColumns: []*schema.Column{ItemsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "item_tags_tag_id",
+				Columns:    []*schema.Column{ItemTagsColumns[1]},
+				RefColumns: []*schema.Column{TagsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		ItemsTable,
@@ -119,6 +144,7 @@ var (
 		ShoppingItemsTable,
 		TagsTable,
 		VendorsTable,
+		ItemTagsTable,
 	}
 )
 
@@ -130,4 +156,6 @@ func init() {
 	ShoppingsTable.ForeignKeys[0].RefTable = VendorsTable
 	ShoppingItemsTable.ForeignKeys[0].RefTable = ItemsTable
 	ShoppingItemsTable.ForeignKeys[1].RefTable = ShoppingsTable
+	ItemTagsTable.ForeignKeys[0].RefTable = ItemsTable
+	ItemTagsTable.ForeignKeys[1].RefTable = TagsTable
 }

@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 )
@@ -32,9 +33,45 @@ func (tu *TagUpdate) SetName(s string) *TagUpdate {
 	return tu
 }
 
+// AddItemIDs adds the "items" edge to the Item entity by IDs.
+func (tu *TagUpdate) AddItemIDs(ids ...int) *TagUpdate {
+	tu.mutation.AddItemIDs(ids...)
+	return tu
+}
+
+// AddItems adds the "items" edges to the Item entity.
+func (tu *TagUpdate) AddItems(i ...*Item) *TagUpdate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return tu.AddItemIDs(ids...)
+}
+
 // Mutation returns the TagMutation object of the builder.
 func (tu *TagUpdate) Mutation() *TagMutation {
 	return tu.mutation
+}
+
+// ClearItems clears all "items" edges to the Item entity.
+func (tu *TagUpdate) ClearItems() *TagUpdate {
+	tu.mutation.ClearItems()
+	return tu
+}
+
+// RemoveItemIDs removes the "items" edge to Item entities by IDs.
+func (tu *TagUpdate) RemoveItemIDs(ids ...int) *TagUpdate {
+	tu.mutation.RemoveItemIDs(ids...)
+	return tu
+}
+
+// RemoveItems removes "items" edges to Item entities.
+func (tu *TagUpdate) RemoveItems(i ...*Item) *TagUpdate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return tu.RemoveItemIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -138,6 +175,60 @@ func (tu *TagUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: tag.FieldName,
 		})
 	}
+	if tu.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ItemsTable,
+			Columns: tag.ItemsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.RemovedItemsIDs(); len(nodes) > 0 && !tu.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ItemsTable,
+			Columns: tag.ItemsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.ItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ItemsTable,
+			Columns: tag.ItemsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, tu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{tag.Label}
@@ -163,9 +254,45 @@ func (tuo *TagUpdateOne) SetName(s string) *TagUpdateOne {
 	return tuo
 }
 
+// AddItemIDs adds the "items" edge to the Item entity by IDs.
+func (tuo *TagUpdateOne) AddItemIDs(ids ...int) *TagUpdateOne {
+	tuo.mutation.AddItemIDs(ids...)
+	return tuo
+}
+
+// AddItems adds the "items" edges to the Item entity.
+func (tuo *TagUpdateOne) AddItems(i ...*Item) *TagUpdateOne {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return tuo.AddItemIDs(ids...)
+}
+
 // Mutation returns the TagMutation object of the builder.
 func (tuo *TagUpdateOne) Mutation() *TagMutation {
 	return tuo.mutation
+}
+
+// ClearItems clears all "items" edges to the Item entity.
+func (tuo *TagUpdateOne) ClearItems() *TagUpdateOne {
+	tuo.mutation.ClearItems()
+	return tuo
+}
+
+// RemoveItemIDs removes the "items" edge to Item entities by IDs.
+func (tuo *TagUpdateOne) RemoveItemIDs(ids ...int) *TagUpdateOne {
+	tuo.mutation.RemoveItemIDs(ids...)
+	return tuo
+}
+
+// RemoveItems removes "items" edges to Item entities.
+func (tuo *TagUpdateOne) RemoveItems(i ...*Item) *TagUpdateOne {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return tuo.RemoveItemIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -292,6 +419,60 @@ func (tuo *TagUpdateOne) sqlSave(ctx context.Context) (_node *Tag, err error) {
 			Value:  value,
 			Column: tag.FieldName,
 		})
+	}
+	if tuo.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ItemsTable,
+			Columns: tag.ItemsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.RemovedItemsIDs(); len(nodes) > 0 && !tuo.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ItemsTable,
+			Columns: tag.ItemsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.ItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ItemsTable,
+			Columns: tag.ItemsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Tag{config: tuo.config}
 	_spec.Assign = _node.assignValues

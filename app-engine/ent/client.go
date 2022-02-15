@@ -253,6 +253,22 @@ func (c *ItemClient) QueryPurchases(i *Item) *ShoppingItemQuery {
 	return query
 }
 
+// QueryTags queries the tags edge of a Item.
+func (c *ItemClient) QueryTags(i *Item) *TagQuery {
+	query := &TagQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := i.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(tag.Table, tag.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, item.TagsTable, item.TagsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ItemClient) Hooks() []Hook {
 	return c.hooks.Item
@@ -585,6 +601,22 @@ func (c *TagClient) GetX(ctx context.Context, id int) *Tag {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryItems queries the items edge of a Tag.
+func (c *TagClient) QueryItems(t *Tag) *ItemQuery {
+	query := &ItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tag.Table, tag.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, tag.ItemsTable, tag.ItemsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

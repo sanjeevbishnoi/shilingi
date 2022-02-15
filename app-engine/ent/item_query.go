@@ -15,6 +15,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 )
 
 // ItemQuery is the builder for querying Item entities.
@@ -28,6 +29,7 @@ type ItemQuery struct {
 	predicates []predicate.Item
 	// eager-loading edges.
 	withPurchases *ShoppingItemQuery
+	withTags      *TagQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -79,6 +81,28 @@ func (iq *ItemQuery) QueryPurchases() *ShoppingItemQuery {
 			sqlgraph.From(item.Table, item.FieldID, selector),
 			sqlgraph.To(shoppingitem.Table, shoppingitem.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, item.PurchasesTable, item.PurchasesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTags chains the current query on the "tags" edge.
+func (iq *ItemQuery) QueryTags() *TagQuery {
+	query := &TagQuery{config: iq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := iq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := iq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, selector),
+			sqlgraph.To(tag.Table, tag.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, item.TagsTable, item.TagsPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
 		return fromU, nil
@@ -268,6 +292,7 @@ func (iq *ItemQuery) Clone() *ItemQuery {
 		order:         append([]OrderFunc{}, iq.order...),
 		predicates:    append([]predicate.Item{}, iq.predicates...),
 		withPurchases: iq.withPurchases.Clone(),
+		withTags:      iq.withTags.Clone(),
 		// clone intermediate query.
 		sql:  iq.sql.Clone(),
 		path: iq.path,
@@ -282,6 +307,17 @@ func (iq *ItemQuery) WithPurchases(opts ...func(*ShoppingItemQuery)) *ItemQuery 
 		opt(query)
 	}
 	iq.withPurchases = query
+	return iq
+}
+
+// WithTags tells the query-builder to eager-load the nodes that are connected to
+// the "tags" edge. The optional arguments are used to configure the query builder of the edge.
+func (iq *ItemQuery) WithTags(opts ...func(*TagQuery)) *ItemQuery {
+	query := &TagQuery{config: iq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	iq.withTags = query
 	return iq
 }
 
@@ -350,8 +386,9 @@ func (iq *ItemQuery) sqlAll(ctx context.Context) ([]*Item, error) {
 	var (
 		nodes       = []*Item{}
 		_spec       = iq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			iq.withPurchases != nil,
+			iq.withTags != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
@@ -400,6 +437,71 @@ func (iq *ItemQuery) sqlAll(ctx context.Context) ([]*Item, error) {
 				return nil, fmt.Errorf(`unexpected foreign-key "item_purchases" returned %v for node %v`, *fk, n.ID)
 			}
 			node.Edges.Purchases = append(node.Edges.Purchases, n)
+		}
+	}
+
+	if query := iq.withTags; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		ids := make(map[int]*Item, len(nodes))
+		for _, node := range nodes {
+			ids[node.ID] = node
+			fks = append(fks, node.ID)
+			node.Edges.Tags = []*Tag{}
+		}
+		var (
+			edgeids []int
+			edges   = make(map[int][]*Item)
+		)
+		_spec := &sqlgraph.EdgeQuerySpec{
+			Edge: &sqlgraph.EdgeSpec{
+				Inverse: false,
+				Table:   item.TagsTable,
+				Columns: item.TagsPrimaryKey,
+			},
+			Predicate: func(s *sql.Selector) {
+				s.Where(sql.InValues(item.TagsPrimaryKey[0], fks...))
+			},
+			ScanValues: func() [2]interface{} {
+				return [2]interface{}{new(sql.NullInt64), new(sql.NullInt64)}
+			},
+			Assign: func(out, in interface{}) error {
+				eout, ok := out.(*sql.NullInt64)
+				if !ok || eout == nil {
+					return fmt.Errorf("unexpected id value for edge-out")
+				}
+				ein, ok := in.(*sql.NullInt64)
+				if !ok || ein == nil {
+					return fmt.Errorf("unexpected id value for edge-in")
+				}
+				outValue := int(eout.Int64)
+				inValue := int(ein.Int64)
+				node, ok := ids[outValue]
+				if !ok {
+					return fmt.Errorf("unexpected node id in edges: %v", outValue)
+				}
+				if _, ok := edges[inValue]; !ok {
+					edgeids = append(edgeids, inValue)
+				}
+				edges[inValue] = append(edges[inValue], node)
+				return nil
+			},
+		}
+		if err := sqlgraph.QueryEdges(ctx, iq.driver, _spec); err != nil {
+			return nil, fmt.Errorf(`query edges "tags": %w`, err)
+		}
+		query.Where(tag.IDIn(edgeids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := edges[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected "tags" node returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Tags = append(nodes[i].Edges.Tags, n)
+			}
 		}
 	}
 

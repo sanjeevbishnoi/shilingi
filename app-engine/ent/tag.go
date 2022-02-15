@@ -23,6 +23,27 @@ type Tag struct {
 	// Name holds the value of the "name" field.
 	// Tag name
 	Name string `json:"name,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the TagQuery when eager-loading is set.
+	Edges TagEdges `json:"edges"`
+}
+
+// TagEdges holds the relations/edges for other nodes in the graph.
+type TagEdges struct {
+	// Items holds the value of the items edge.
+	Items []*Item `json:"items,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// ItemsOrErr returns the Items value or an error if the edge
+// was not loaded in eager-loading.
+func (e TagEdges) ItemsOrErr() ([]*Item, error) {
+	if e.loadedTypes[0] {
+		return e.Items, nil
+	}
+	return nil, &NotLoadedError{edge: "items"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -78,6 +99,11 @@ func (t *Tag) assignValues(columns []string, values []interface{}) error {
 		}
 	}
 	return nil
+}
+
+// QueryItems queries the "items" edge of the Tag entity.
+func (t *Tag) QueryItems() *ItemQuery {
+	return (&TagClient{config: t.config}).QueryItems(t)
 }
 
 // Update returns a builder for updating this Tag.

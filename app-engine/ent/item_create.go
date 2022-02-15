@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 )
 
 // ItemCreate is the builder for creating a Item entity.
@@ -74,6 +75,21 @@ func (ic *ItemCreate) AddPurchases(s ...*ShoppingItem) *ItemCreate {
 		ids[i] = s[i].ID
 	}
 	return ic.AddPurchaseIDs(ids...)
+}
+
+// AddTagIDs adds the "tags" edge to the Tag entity by IDs.
+func (ic *ItemCreate) AddTagIDs(ids ...int) *ItemCreate {
+	ic.mutation.AddTagIDs(ids...)
+	return ic
+}
+
+// AddTags adds the "tags" edges to the Tag entity.
+func (ic *ItemCreate) AddTags(t ...*Tag) *ItemCreate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return ic.AddTagIDs(ids...)
 }
 
 // Mutation returns the ItemMutation object of the builder.
@@ -246,6 +262,25 @@ func (ic *ItemCreate) createSpec() (*Item, *sqlgraph.CreateSpec) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: shoppingitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ic.mutation.TagsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   item.TagsTable,
+			Columns: item.TagsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: tag.FieldID,
 				},
 			},
 		}

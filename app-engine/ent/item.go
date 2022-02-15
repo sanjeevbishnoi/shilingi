@@ -35,9 +35,11 @@ type Item struct {
 type ItemEdges struct {
 	// Purchases holds the value of the purchases edge.
 	Purchases []*ShoppingItem `json:"purchases,omitempty"`
+	// Tags holds the value of the tags edge.
+	Tags []*Tag `json:"tags,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // PurchasesOrErr returns the Purchases value or an error if the edge
@@ -47,6 +49,15 @@ func (e ItemEdges) PurchasesOrErr() ([]*ShoppingItem, error) {
 		return e.Purchases, nil
 	}
 	return nil, &NotLoadedError{edge: "purchases"}
+}
+
+// TagsOrErr returns the Tags value or an error if the edge
+// was not loaded in eager-loading.
+func (e ItemEdges) TagsOrErr() ([]*Tag, error) {
+	if e.loadedTypes[1] {
+		return e.Tags, nil
+	}
+	return nil, &NotLoadedError{edge: "tags"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -113,6 +124,11 @@ func (i *Item) assignValues(columns []string, values []interface{}) error {
 // QueryPurchases queries the "purchases" edge of the Item entity.
 func (i *Item) QueryPurchases() *ShoppingItemQuery {
 	return (&ItemClient{config: i.config}).QueryPurchases(i)
+}
+
+// QueryTags queries the "tags" edge of the Item entity.
+func (i *Item) QueryTags() *TagQuery {
+	return (&ItemClient{config: i.config}).QueryTags(i)
 }
 
 // Update returns a builder for updating this Item.

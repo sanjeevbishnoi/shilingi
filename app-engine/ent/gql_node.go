@@ -55,7 +55,7 @@ func (i *Item) Node(ctx context.Context) (node *Node, err error) {
 		ID:     i.ID,
 		Type:   "Item",
 		Fields: make([]*Field, 4),
-		Edges:  make([]*Edge, 1),
+		Edges:  make([]*Edge, 2),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(i.CreateTime); err != nil {
@@ -97,6 +97,16 @@ func (i *Item) Node(ctx context.Context) (node *Node, err error) {
 	err = i.QueryPurchases().
 		Select(shoppingitem.FieldID).
 		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "Tag",
+		Name: "tags",
+	}
+	err = i.QueryTags().
+		Select(tag.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +260,7 @@ func (t *Tag) Node(ctx context.Context) (node *Node, err error) {
 		ID:     t.ID,
 		Type:   "Tag",
 		Fields: make([]*Field, 3),
-		Edges:  make([]*Edge, 0),
+		Edges:  make([]*Edge, 1),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(t.CreateTime); err != nil {
@@ -276,6 +286,16 @@ func (t *Tag) Node(ctx context.Context) (node *Node, err error) {
 		Type:  "string",
 		Name:  "name",
 		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Item",
+		Name: "items",
+	}
+	err = t.QueryItems().
+		Select(item.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
 	}
 	return node, nil
 }

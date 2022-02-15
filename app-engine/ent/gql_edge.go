@@ -12,6 +12,14 @@ func (i *Item) Purchases(ctx context.Context) ([]*ShoppingItem, error) {
 	return result, err
 }
 
+func (i *Item) Tags(ctx context.Context) ([]*Tag, error) {
+	result, err := i.Edges.TagsOrErr()
+	if IsNotLoaded(err) {
+		result, err = i.QueryTags().All(ctx)
+	}
+	return result, err
+}
+
 func (s *Shopping) Items(ctx context.Context) ([]*ShoppingItem, error) {
 	result, err := s.Edges.ItemsOrErr()
 	if IsNotLoaded(err) {
@@ -40,6 +48,14 @@ func (si *ShoppingItem) Shopping(ctx context.Context) (*Shopping, error) {
 	result, err := si.Edges.ShoppingOrErr()
 	if IsNotLoaded(err) {
 		result, err = si.QueryShopping().Only(ctx)
+	}
+	return result, err
+}
+
+func (t *Tag) Items(ctx context.Context) ([]*Item, error) {
+	result, err := t.Edges.ItemsOrErr()
+	if IsNotLoaded(err) {
+		result, err = t.QueryItems().All(ctx)
 	}
 	return result, err
 }
