@@ -11,6 +11,8 @@ import '../gql/gql.dart' as queries;
 import '../constants/constants.dart';
 
 var formatAmt = NumberFormat('#,##0.00', 'en_US');
+var formatAmtWithoutDecimal =
+    NumberFormat.compactCurrency(decimalDigits: 2, symbol: '');
 
 class PurchasesPage extends StatefulWidget {
   const PurchasesPage([Key? key]) : super(key: key);
@@ -171,7 +173,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
                     purchases.forEach((element) => total += element.total!);
                     return Align(
                       alignment: Alignment.bottomCenter,
-                      child: Text('${formatAmt.format(total)}/=',
+                      child: Text('${formatAmtWithoutDecimal.format(total)}/=',
                           style: const TextStyle(
                               fontSize: 10.0, fontWeight: FontWeight.w700)),
                     );

@@ -12,7 +12,8 @@ import '../components/text.dart';
 import './purchase_details.dart';
 import './settings/settings.dart';
 
-var shoppingNumberFormat = NumberFormat('#,##0', 'en_US');
+var shoppingNumberFormat =
+    NumberFormat.compactCurrency(decimalDigits: 2, symbol: '');
 
 class ShoppingItemDetailPage extends StatefulWidget {
   const ShoppingItemDetailPage({Key? key}) : super(key: key);
@@ -76,7 +77,8 @@ class _ShoppingItemDetailPage extends State {
               return Align(
                 alignment: Alignment.bottomCenter,
                 child: Text('${shoppingNumberFormat.format(total)}/=',
-                    style: const TextStyle(fontSize: 10.0)),
+                    style: const TextStyle(
+                        fontSize: 10.0, fontWeight: FontWeight.w700)),
               );
             }),
           ),
