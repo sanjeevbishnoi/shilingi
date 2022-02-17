@@ -3,7 +3,6 @@ package schema
 import (
 	"context"
 	"regexp"
-	"strings"
 
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
@@ -13,6 +12,7 @@ import (
 
 	gen "github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/hook"
+	"github.com/kingzbauer/shilingi/app-engine/ent/schema/utils"
 )
 
 // Tag holds the schema definition for the Tag entity.
@@ -61,10 +61,7 @@ func (Tag) Hooks() []ent.Hook {
 				return hook.TagFunc(func(ctx context.Context, m *gen.TagMutation) (ent.Value, error) {
 					// We will do a bit of cleaning for the tag name
 					if name, exists := m.Name(); exists {
-						// remove special
-						name = rmSpecialChars.ReplaceAllLiteralString(name, "")
-						name = extraSpaces.ReplaceAllLiteralString(name, " ")
-						name = strings.ToLower(name)
+						name := utils.CleanTagName(name)
 						m.SetName(name)
 					}
 

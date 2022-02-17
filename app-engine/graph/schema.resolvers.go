@@ -9,8 +9,10 @@ import (
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
+	"github.com/kingzbauer/shilingi/app-engine/ent/schema/utils"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/entops"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
@@ -23,6 +25,33 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput
 
 func (r *mutationResolver) CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error) {
 	return entops.CreatePurchase(ctx, input)
+}
+
+func (r *mutationResolver) TagItems(ctx context.Context, itemIDs []int, tagName string) ([]int, error) {
+	name := utils.CleanTagName(tagName)
+	cli := ent.FromContext(ctx)
+
+	// check whether the tag already exists
+	t, err := cli.Tag.Query().Where(tag.Name(name)).Only(ctx)
+	if ent.IsNotFound(err) {
+		// Create the tag
+		if t, err = cli.Tag.Create().
+			SetName(name).
+			Save(ctx); err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	cli.Item.Update().
+		Where(
+			item.IDIn(itemIDs...),
+		).
+		AddTags(t).
+		Save(ctx)
+
+	return itemIDs, nil
 }
 
 func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
