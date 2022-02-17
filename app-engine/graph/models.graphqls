@@ -54,3 +54,8 @@ type Vendor implements Node {
 input VendorInput  {
   name: String!
 }
+
+type Tag implements Node {
+  id: ID!
+  name: String!
+}

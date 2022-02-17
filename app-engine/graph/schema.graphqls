@@ -11,6 +11,7 @@ type Query {
   purchases(before: Time!, after: Time!): [Shopping!]!
   vendors: [Vendor!]!
   node(id: Int!): Node!
+  tags: [Tag!]!
 }
 
 type Mutation {
