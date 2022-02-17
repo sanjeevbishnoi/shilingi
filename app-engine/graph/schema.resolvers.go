@@ -66,6 +66,10 @@ func (r *queryResolver) Node(ctx context.Context, id int) (ent.Noder, error) {
 	return r.cli.Noder(ctx, id)
 }
 
+func (r *queryResolver) Tags(ctx context.Context) ([]*ent.Tag, error) {
+	return r.cli.Tag.Query().All(ctx)
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
