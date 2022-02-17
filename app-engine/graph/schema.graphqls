@@ -17,4 +17,5 @@ type Query {
 type Mutation {
   createItem(input: ItemInput!): Item
   createPurchase(input: ShoppingInput!): Shopping
+  tagItems(itemIDs: [Int!]!, tags: [String!]!): [Int!]!
 }
