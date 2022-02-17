@@ -59,6 +59,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateItem     func(childComplexity int, input model.ItemInput) int
 		CreatePurchase func(childComplexity int, input model.ShoppingInput) int
+		TagItems       func(childComplexity int, itemIDs []int, tagName string) int
 	}
 
 	Query struct {
@@ -106,6 +107,7 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error)
 	CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error)
+	TagItems(ctx context.Context, itemIDs []int, tagName string) ([]int, error)
 }
 type QueryResolver interface {
 	Items(ctx context.Context) ([]*ent.Item, error)
@@ -181,6 +183,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreatePurchase(childComplexity, args["input"].(model.ShoppingInput)), true
+
+	case "Mutation.tagItems":
+		if e.complexity.Mutation.TagItems == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_tagItems_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.TagItems(childComplexity, args["itemIDs"].([]int), args["tagName"].(string)), true
 
 	case "Query.items":
 		if e.complexity.Query.Items == nil {
@@ -524,6 +538,7 @@ type Query {
 type Mutation {
   createItem(input: ItemInput!): Item
   createPurchase(input: ShoppingInput!): Shopping
+  tagItems(itemIDs: [Int!]!, tagName: String!): [Int!]!
 }
 `, BuiltIn: false},
 }
@@ -560,6 +575,30 @@ func (ec *executionContext) field_Mutation_createPurchase_args(ctx context.Conte
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_tagItems_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []int
+	if tmp, ok := rawArgs["itemIDs"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("itemIDs"))
+		arg0, err = ec.unmarshalNInt2ᚕintᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["itemIDs"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["tagName"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tagName"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["tagName"] = arg1
 	return args, nil
 }
 
@@ -869,6 +908,48 @@ func (ec *executionContext) _Mutation_createPurchase(ctx context.Context, field 
 	res := resTmp.(*ent.Shopping)
 	fc.Result = res
 	return ec.marshalOShopping2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShopping(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_tagItems(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_tagItems_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().TagItems(rctx, args["itemIDs"].([]int), args["tagName"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]int)
+	fc.Result = res
+	return ec.marshalNInt2ᚕintᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_items(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3236,6 +3317,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_createItem(ctx, field)
 		case "createPurchase":
 			out.Values[i] = ec._Mutation_createPurchase(ctx, field)
+		case "tagItems":
+			out.Values[i] = ec._Mutation_tagItems(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3932,6 +4018,42 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNInt2ᚕintᚄ(ctx context.Context, v interface{}) ([]int, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]int, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNInt2int(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNInt2ᚕintᚄ(ctx context.Context, sel ast.SelectionSet, v []int) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNInt2int(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNItem2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItemᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.Item) graphql.Marshaler {
