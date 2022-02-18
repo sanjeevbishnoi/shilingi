@@ -17,6 +17,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/entops"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error) {
@@ -27,16 +28,38 @@ func (r *mutationResolver) CreatePurchase(ctx context.Context, input model.Shopp
 	return entops.CreatePurchase(ctx, input)
 }
 
-func (r *mutationResolver) TagItems(ctx context.Context, itemIDs []int, tagName string) ([]int, error) {
-	name := utils.CleanTagName(tagName)
+func (r *mutationResolver) TagItems(ctx context.Context, itemIDs []int, tagID int) ([]int, error) {
 	cli := ent.FromContext(ctx)
 
-	// check whether the tag already exists
-	t, err := cli.Tag.Query().Where(tag.Name(name)).Only(ctx)
+	// Check whether the tag exists
+	if exists, err := cli.Tag.Query().
+		Where(
+			tag.ID(tagID),
+		).Exist(ctx); !exists || err != nil {
+		if err != nil {
+			return nil, gqlerror.Errorf("%s", err)
+		}
+		return nil, gqlerror.Errorf("tag with id %d does not exist", tagID)
+	}
+
+	cli.Item.Update().
+		Where(
+			item.IDIn(itemIDs...),
+		).
+		AddTagIDs(tagID).
+		Save(ctx)
+
+	return itemIDs, nil
+}
+
+func (r *mutationResolver) CreateTag(ctx context.Context, input model.TagInput) (*ent.Tag, error) {
+	cli := ent.FromContext(ctx)
+	cleanedTagName := utils.CleanTagName(input.Name)
+	t, err := cli.Tag.Query().Where(tag.Name(cleanedTagName)).Only(ctx)
 	if ent.IsNotFound(err) {
 		// Create the tag
 		if t, err = cli.Tag.Create().
-			SetName(name).
+			SetName(cleanedTagName).
 			Save(ctx); err != nil {
 			return nil, err
 		}
@@ -44,14 +67,7 @@ func (r *mutationResolver) TagItems(ctx context.Context, itemIDs []int, tagName 
 		return nil, err
 	}
 
-	cli.Item.Update().
-		Where(
-			item.IDIn(itemIDs...),
-		).
-		AddTags(t).
-		Save(ctx)
-
-	return itemIDs, nil
+	return t, err
 }
 
 func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {

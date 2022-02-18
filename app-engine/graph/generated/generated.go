@@ -60,7 +60,8 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateItem     func(childComplexity int, input model.ItemInput) int
 		CreatePurchase func(childComplexity int, input model.ShoppingInput) int
-		TagItems       func(childComplexity int, itemIDs []int, tagName string) int
+		CreateTag      func(childComplexity int, input model.TagInput) int
+		TagItems       func(childComplexity int, itemIDs []int, tagID int) int
 	}
 
 	Query struct {
@@ -108,7 +109,8 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error)
 	CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error)
-	TagItems(ctx context.Context, itemIDs []int, tagName string) ([]int, error)
+	TagItems(ctx context.Context, itemIDs []int, tagID int) ([]int, error)
+	CreateTag(ctx context.Context, input model.TagInput) (*ent.Tag, error)
 }
 type QueryResolver interface {
 	Items(ctx context.Context) ([]*ent.Item, error)
@@ -192,6 +194,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreatePurchase(childComplexity, args["input"].(model.ShoppingInput)), true
 
+	case "Mutation.createTag":
+		if e.complexity.Mutation.CreateTag == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createTag_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateTag(childComplexity, args["input"].(model.TagInput)), true
+
 	case "Mutation.tagItems":
 		if e.complexity.Mutation.TagItems == nil {
 			break
@@ -202,7 +216,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.TagItems(childComplexity, args["itemIDs"].([]int), args["tagName"].(string)), true
+		return e.complexity.Mutation.TagItems(childComplexity, args["itemIDs"].([]int), args["tagID"].(int)), true
 
 	case "Query.items":
 		if e.complexity.Query.Items == nil {
@@ -527,6 +541,10 @@ type Tag implements Node {
   id: ID!
   name: String!
 }
+
+input TagInput {
+  name: String!
+}
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `scalar Time
 scalar Decimal
@@ -547,7 +565,8 @@ type Query {
 type Mutation {
   createItem(input: ItemInput!): Item
   createPurchase(input: ShoppingInput!): Shopping
-  tagItems(itemIDs: [Int!]!, tagName: String!): [Int!]!
+  tagItems(itemIDs: [Int!]!, tagID: Int!): [Int!]!
+  createTag(input: TagInput!): Tag!
 }
 `, BuiltIn: false},
 }
@@ -587,6 +606,21 @@ func (ec *executionContext) field_Mutation_createPurchase_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createTag_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.TagInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNTagInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐTagInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_tagItems_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -599,15 +633,15 @@ func (ec *executionContext) field_Mutation_tagItems_args(ctx context.Context, ra
 		}
 	}
 	args["itemIDs"] = arg0
-	var arg1 string
-	if tmp, ok := rawArgs["tagName"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tagName"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+	var arg1 int
+	if tmp, ok := rawArgs["tagID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tagID"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["tagName"] = arg1
+	args["tagID"] = arg1
 	return args, nil
 }
 
@@ -979,7 +1013,7 @@ func (ec *executionContext) _Mutation_tagItems(ctx context.Context, field graphq
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().TagItems(rctx, args["itemIDs"].([]int), args["tagName"].(string))
+		return ec.resolvers.Mutation().TagItems(rctx, args["itemIDs"].([]int), args["tagID"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -994,6 +1028,48 @@ func (ec *executionContext) _Mutation_tagItems(ctx context.Context, field graphq
 	res := resTmp.([]int)
 	fc.Result = res
 	return ec.marshalNInt2ᚕintᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createTag(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createTag_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateTag(rctx, args["input"].(model.TagInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Tag)
+	fc.Result = res
+	return ec.marshalNTag2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐTag(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_items(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3240,6 +3316,29 @@ func (ec *executionContext) unmarshalInputShoppingItemInput(ctx context.Context,
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputTagInput(ctx context.Context, obj interface{}) (model.TagInput, error) {
+	var it model.TagInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputVendorInput(ctx context.Context, obj interface{}) (model.VendorInput, error) {
 	var it model.VendorInput
 	asMap := map[string]interface{}{}
@@ -3377,6 +3476,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_createPurchase(ctx, field)
 		case "tagItems":
 			out.Values[i] = ec._Mutation_tagItems(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createTag":
+			out.Values[i] = ec._Mutation_createTag(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4337,6 +4441,10 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
+func (ec *executionContext) marshalNTag2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐTag(ctx context.Context, sel ast.SelectionSet, v ent.Tag) graphql.Marshaler {
+	return ec._Tag(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNTag2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐTagᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.Tag) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -4389,6 +4497,11 @@ func (ec *executionContext) marshalNTag2ᚖgithubᚗcomᚋkingzbauerᚋshilingi�
 		return graphql.Null
 	}
 	return ec._Tag(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNTagInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐTagInput(ctx context.Context, v interface{}) (model.TagInput, error) {
+	res, err := ec.unmarshalInputTagInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {

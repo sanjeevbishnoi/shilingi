@@ -27,6 +27,10 @@ type ShoppingItemInput struct {
 	Item         string          `json:"item"`
 }
 
+type TagInput struct {
+	Name string `json:"name"`
+}
+
 type VendorInput struct {
 	Name string `json:"name"`
 }
