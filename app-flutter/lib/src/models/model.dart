@@ -126,3 +126,25 @@ String DateTimeToJson(DateTime date) {
         "+${duration.inHours.toString().padLeft(2, '0')}:${(duration.inMinutes - (duration.inHours * 60)).toString().padLeft(2, '0')}");
   }
 }
+
+@JsonSerializable()
+class Tag {
+  @JsonKey(includeIfNull: false)
+  final int? id;
+  final String name;
+
+  const Tag({required this.name, this.id});
+
+  factory Tag.fromJson(Map<String, dynamic> json) => _$TagFromJson(json);
+  Map<String, dynamic> toJson() => _$TagToJson(this);
+}
+
+@JsonSerializable()
+class Tags {
+  final List<Tag> tags;
+
+  const Tags({required this.tags});
+
+  factory Tags.fromJson(Map<String, dynamic> json) => _$TagsFromJson(json);
+  Map<String, dynamic> toJson() => _$TagsToJson(this);
+}

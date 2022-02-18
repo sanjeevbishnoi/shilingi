@@ -73,3 +73,12 @@ var shoppingItemsQuery = gql(r'''
       }
     }
 ''');
+
+var labelsQuery = gql(r'''
+    query labels {
+      tags {
+        id
+        name
+      }
+    }
+''');

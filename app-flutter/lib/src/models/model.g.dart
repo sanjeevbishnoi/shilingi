@@ -141,3 +141,32 @@ Map<String, dynamic> _$VendorToJson(Vendor instance) {
   val['name'] = instance.name;
   return val;
 }
+
+Tag _$TagFromJson(Map<String, dynamic> json) => Tag(
+      name: json['name'] as String,
+      id: json['id'] as int?,
+    );
+
+Map<String, dynamic> _$TagToJson(Tag instance) {
+  final val = <String, dynamic>{};
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('id', instance.id);
+  val['name'] = instance.name;
+  return val;
+}
+
+Tags _$TagsFromJson(Map<String, dynamic> json) => Tags(
+      tags: (json['tags'] as List<dynamic>)
+          .map((e) => Tag.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$TagsToJson(Tags instance) => <String, dynamic>{
+      'tags': instance.tags,
+    };

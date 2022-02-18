@@ -7,8 +7,12 @@ import '../constants/constants.dart';
 import '../components/components.dart';
 import '../gql/gql.dart';
 import '../models/model.dart';
-import './shopping_item.dart';
 import './settings/settings.dart';
+import './items_to_label_page.dart';
+
+enum Popup {
+  label,
+}
 
 class _ItemAZItem extends ISuspensionBean {
   final Item item;
@@ -31,7 +35,7 @@ class CataloguePage extends StatefulWidget {
 }
 
 class _CataloguePageState extends State<CataloguePage> {
-  List<Item> _selectedItems = [];
+  final List<Item> _selectedItems = [];
 
   void _addSelectedItem(Item item) {
     setState(() {
@@ -69,8 +73,21 @@ class _CataloguePageState extends State<CataloguePage> {
         title: Text('${_selectedItems.length} selected'),
         actions: [
           PopupMenuButton(
+            onSelected: (selected) {
+              switch (selected) {
+                case Popup.label:
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SelectLabelPage(),
+                    ),
+                  );
+              }
+            },
             itemBuilder: (context) => [
-              const PopupMenuItem(child: Text('Add to label')),
+              const PopupMenuItem<Popup>(
+                child: Text('Add to label'),
+                value: Popup.label,
+              ),
             ],
           ),
         ],
