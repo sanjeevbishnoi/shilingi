@@ -60,3 +60,7 @@ type Tag implements Node {
   id: ID!
   name: String!
 }
+
+input TagInput {
+  name: String!
+}
