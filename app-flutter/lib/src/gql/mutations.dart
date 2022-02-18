@@ -23,3 +23,12 @@ var mutationCreatePurchase = gql(r'''
       }
     }
 ''');
+
+var mutationCreateLabel = gql(r'''
+    mutation createLabel($input: TagInput!) {
+      createTag(input: $input) {
+        id
+        name
+      }
+    }
+''');

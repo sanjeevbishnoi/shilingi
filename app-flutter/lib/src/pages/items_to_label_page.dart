@@ -33,16 +33,52 @@ class SelectLabelPage extends StatelessWidget {
                 ),
               );
             }
-
             var labels = Tags.fromJson(result.data!);
             return RefreshIndicator(
                 child: ListView(
                   children: [
+                    const SizedBox(height: 30),
                     for (var label in labels.tags)
-                      ListTile(
-                        leading: const Icon(Icons.tag),
-                        title: Text(label.name),
+                      Container(
+                        color: Colors.transparent,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {},
+                            splashColor: Colors.black38,
+                            child: ListTile(
+                              leading: const Icon(Icons.label_outline),
+                              title: Text(label.name,
+                                  style: const TextStyle(fontSize: 16.0)),
+                              dense: true,
+                            ),
+                          ),
+                        ),
                       ),
+                    Container(
+                      color: Colors.transparent,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            showDialog(
+                                context: context,
+                                builder: (context) => _NewLabelDialog(
+                                      refetchLabels: () {
+                                        if (_refetch != null) {
+                                          _refetch!();
+                                        }
+                                      },
+                                    ));
+                          },
+                          splashColor: Colors.black38,
+                          child: const ListTile(
+                            leading: Icon(Icons.add),
+                            title: Text('Create new...'),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 onRefresh: () {
@@ -52,6 +88,109 @@ class SelectLabelPage extends StatelessWidget {
                   return Future.value(null);
                 });
           }),
+    );
+  }
+}
+
+class _NewLabelDialog extends StatefulWidget {
+  final VoidCallback refetchLabels;
+
+  const _NewLabelDialog({Key? key, required this.refetchLabels})
+      : super(key: key);
+
+  @override
+  State createState() => _NewLabelDialogState();
+}
+
+class _NewLabelDialogState extends State<_NewLabelDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _controller;
+  String _label = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _controller.addListener(() {
+      setState(() {
+        _label = _controller.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _controller.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Create label'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _controller,
+          decoration: InputDecoration(
+            labelText: 'Label name',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('Cancel')),
+        TextButton(
+            onPressed: _label.isNotEmpty
+                ? () {
+                    var cli = GraphQLProvider.of(context).value;
+                    var future = cli.mutate(MutationOptions(
+                        document: mutationCreateLabel,
+                        variables: {
+                          "input": Tag(name: _label).toJson(),
+                        }));
+                    Navigator.of(context).pop();
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return FutureBuilder(
+                            future: future,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.done) {
+                                return AlertDialog(
+                                  content: Row(
+                                      children: const [Text('Done')],
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center),
+                                );
+                              }
+                              return AlertDialog(
+                                content: Row(
+                                  children: const [
+                                    CircularProgressIndicator(),
+                                    SizedBox(width: 20),
+                                    Text('Saving...'),
+                                  ],
+                                ),
+                              );
+                            });
+                      },
+                    ).then(
+                      (value) {
+                        widget.refetchLabels();
+                      },
+                    );
+                  }
+                : null,
+            child: const Text('Ok')),
+      ],
     );
   }
 }
