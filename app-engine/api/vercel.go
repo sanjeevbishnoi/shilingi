@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 
 	"entgo.io/contrib/entgql"
 	"github.com/99designs/gqlgen/graphql"
@@ -51,7 +52,7 @@ func init() {
 	})
 	srv.SetRecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
 		fmt.Printf("Recover from error: %s\n", err)
-		return gqlerror.Errorf("Recoverer: %s", err)
+		return gqlerror.Errorf("Recoverer: %s: %s", err, debug.Stack())
 	})
 	api = http.Handler(srv)
 }
