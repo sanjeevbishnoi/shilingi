@@ -17,6 +17,7 @@ import (
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/migrate"
+	_ "github.com/kingzbauer/shilingi/app-engine/ent/runtime"
 	"github.com/kingzbauer/shilingi/app-engine/graph"
 )
 
