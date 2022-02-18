@@ -116,6 +116,9 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
                             .toLowerCase()
                             .contains(value.text.toLowerCase()));
                       },
+                      onSelected: (vendor) {
+                        _vendor = vendor;
+                      },
                       fieldViewBuilder:
                           (context, controller, focusNode, onFieldSubmitted) {
                         return TextFormField(
