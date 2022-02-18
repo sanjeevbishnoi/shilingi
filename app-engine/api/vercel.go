@@ -46,8 +46,6 @@ func init() {
 	srv.Use(entgql.Transactioner{TxOpener: cli})
 	srv.SetErrorPresenter(func(ctx context.Context, err error) *gqlerror.Error {
 		graphQLErr := graphql.DefaultErrorPresenter(ctx, err)
-		fmt.Printf("Errors: %s\n", err)
-
 		return graphQLErr
 	})
 	srv.SetRecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {

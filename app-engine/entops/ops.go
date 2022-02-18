@@ -2,6 +2,7 @@ package entops
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 
 // CreatePurchase verifies and creates a new purchase
 func CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error) {
+	fmt.Printf("%+v\n", input)
 	vendorSlug := Slugify(input.Vendor.Name)
 	// check if a vendor with the slug exists, if not create a new one
 	cli := ent.FromContext(ctx)
