@@ -191,8 +191,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
           Navigator.pushNamed(context, '/new-purchase');
         },
       ),
-      bottomNavigationBar: const MainBottomNavigation(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: const ClassicBottomNavigation(),
     );
   }
 

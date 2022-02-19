@@ -12,7 +12,8 @@ class SelectLabelPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Refetch? _refetch;
-
+    var args =
+        ModalRoute.of(context)!.settings.arguments as SelectLabelSettings;
     return Scaffold(
       backgroundColor: mainScaffoldBg,
       appBar: AppBar(title: const Text('Select label')),
@@ -37,14 +38,64 @@ class SelectLabelPage extends StatelessWidget {
             return RefreshIndicator(
                 child: ListView(
                   children: [
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
                     for (var label in labels.tags)
                       Container(
                         color: Colors.transparent,
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () {},
+                            onTap: () {
+                              var cli = GraphQLProvider.of(context).value;
+                              var future = cli.mutate(MutationOptions(
+                                  document: mutationTagItems,
+                                  variables: {
+                                    "itemIDs": args.itemIds,
+                                    'tagID': label.id!,
+                                  }));
+                              showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return WillPopScope(
+                                      child: AlertDialog(
+                                        content: Row(children: [
+                                          const CircularProgressIndicator(),
+                                          const SizedBox(width: 15),
+                                          Expanded(
+                                              child: Text(
+                                                  'Adding items to label \'${label.name}\''))
+                                        ]),
+                                      ),
+                                      onWillPop: () {
+                                        return future.then<bool>((value) {
+                                          if (value.isLoading) return false;
+                                          return true;
+                                        });
+                                      },
+                                    );
+                                  });
+                              future.then((result) {
+                                if (result.data != null) {
+                                  Navigator.popUntil(context,
+                                      ModalRoute.withName(cataloguePage));
+                                  var snackBar = SnackBar(
+                                    content: Text(
+                                        'Items have been added to label \'${label.name}\''),
+                                  );
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(snackBar);
+                                } else {
+                                  Navigator.popUntil(context,
+                                      ModalRoute.withName(cataloguePage));
+                                  var snackBar = SnackBar(
+                                    content: Text(
+                                        'Unable to add items to label \'${label.name}\''),
+                                  );
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(snackBar);
+                                }
+                              });
+                            },
                             splashColor: Colors.black38,
                             child: ListTile(
                               leading: const Icon(Icons.label_outline),
@@ -193,4 +244,10 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
       ],
     );
   }
+}
+
+class SelectLabelSettings {
+  final List<int> itemIds;
+
+  SelectLabelSettings({required this.itemIds});
 }

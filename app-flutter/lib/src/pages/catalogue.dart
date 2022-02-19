@@ -76,9 +76,12 @@ class _CataloguePageState extends State<CataloguePage> {
             onSelected: (selected) {
               switch (selected) {
                 case Popup.label:
+                  var args = SelectLabelSettings(
+                      itemIds: _selectedItems.map<int>((e) => e.id!).toList());
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const SelectLabelPage(),
+                      settings: RouteSettings(arguments: args),
                     ),
                   );
               }
@@ -122,7 +125,7 @@ class _CataloguePageState extends State<CataloguePage> {
           );
         },
       ),
-      bottomNavigationBar: const MainBottomNavigation(),
+      bottomNavigationBar: const ClassicBottomNavigation(),
     );
   }
 }

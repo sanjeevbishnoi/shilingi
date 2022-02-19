@@ -32,3 +32,9 @@ var mutationCreateLabel = gql(r'''
       }
     }
 ''');
+
+var mutationTagItems = gql(r'''
+    mutation tagItems($itemIDs: [Int!]!, $tagID: Int!) {
+      tagItems(itemIDs: $itemIDs, tagID: $tagID)
+    }
+''');
