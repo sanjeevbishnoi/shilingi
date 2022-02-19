@@ -65,7 +65,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Items         func(childComplexity int) int
+		Items         func(childComplexity int, tagID *int) int
 		Node          func(childComplexity int, id int) int
 		Purchases     func(childComplexity int, before time.Time, after time.Time) int
 		ShoppingItems func(childComplexity int, after time.Time, before time.Time, itemID int) int
@@ -113,7 +113,7 @@ type MutationResolver interface {
 	CreateTag(ctx context.Context, input model.TagInput) (*ent.Tag, error)
 }
 type QueryResolver interface {
-	Items(ctx context.Context) ([]*ent.Item, error)
+	Items(ctx context.Context, tagID *int) ([]*ent.Item, error)
 	ShoppingItems(ctx context.Context, after time.Time, before time.Time, itemID int) ([]*ent.ShoppingItem, error)
 	Purchases(ctx context.Context, before time.Time, after time.Time) ([]*ent.Shopping, error)
 	Vendors(ctx context.Context) ([]*ent.Vendor, error)
@@ -223,7 +223,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Items(childComplexity), true
+		args, err := ec.field_Query_items_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Items(childComplexity, args["tagID"].(*int)), true
 
 	case "Query.node":
 		if e.complexity.Query.Node == nil {
@@ -554,7 +559,7 @@ interface Node {
 }
 
 type Query {
-  items: [Item!]!
+  items(tagID: Int): [Item!]!
   shoppingItems(after: Time!, before: Time!, itemID: Int!): [ShoppingItem!]!
   purchases(before: Time!, after: Time!): [Shopping!]!
   vendors: [Vendor!]!
@@ -657,6 +662,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_items_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["tagID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tagID"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["tagID"] = arg0
 	return args, nil
 }
 
@@ -1088,9 +1108,16 @@ func (ec *executionContext) _Query_items(ctx context.Context, field graphql.Coll
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_items_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Items(rctx)
+		return ec.resolvers.Query().Items(rctx, args["tagID"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

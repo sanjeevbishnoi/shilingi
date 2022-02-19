@@ -70,8 +70,16 @@ func (r *mutationResolver) CreateTag(ctx context.Context, input model.TagInput) 
 	return t, err
 }
 
-func (r *queryResolver) Items(ctx context.Context) ([]*ent.Item, error) {
-	return r.cli.Item.Query().
+func (r *queryResolver) Items(ctx context.Context, tagID *int) ([]*ent.Item, error) {
+	query := r.cli.Item.Query()
+	if tagID != nil {
+		query.Where(
+			item.HasTagsWith(
+				tag.ID(*tagID),
+			),
+		)
+	}
+	return query.
 		Order(ent.Asc(item.FieldName)).
 		All(ctx)
 }
