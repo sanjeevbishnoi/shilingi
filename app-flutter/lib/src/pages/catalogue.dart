@@ -36,6 +36,7 @@ class CataloguePage extends StatefulWidget {
 
 class _CataloguePageState extends State<CataloguePage> {
   final List<Item> _selectedItems = [];
+  Refetch? _refetch;
 
   void _addSelectedItem(Item item) {
     setState(() {
@@ -97,35 +98,127 @@ class _CataloguePageState extends State<CataloguePage> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: mainScaffoldBg,
-      appBar: appBar,
-      body: Query(
-        options: QueryOptions(document: vendorAndItemsNames),
-        builder: (QueryResult result,
-            {FetchMore? fetchMore, Refetch? refetch}) {
-          if (result.isLoading && result.data == null) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          } else if (result.hasException) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(30.0),
-                child: Text('${result.exception}'),
-              ),
-            );
-          }
-          var catalogue = Catalogue.fromJson(result.data!);
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: mainScaffoldBg,
+        appBar: appBar,
+        drawer: Drawer(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20.0),
+                const ListTile(
+                  leading: Icon(Icons.monetization_on),
+                  title: Text('Shilingi', style: TextStyle(fontSize: 20.0)),
+                  dense: true,
+                  contentPadding: EdgeInsets.only(left: 0),
+                ),
+                const SizedBox(height: 15.0),
+                const Text('Labels', style: TextStyle(fontSize: 16.0)),
+                const SizedBox(height: 10.0),
+                Expanded(
+                  child: Query(
+                    options: QueryOptions(document: labelsQuery),
+                    builder: (QueryResult result,
+                        {Refetch? refetch, FetchMore? fetchMore}) {
+                      _refetch = refetch;
+                      if (result.isLoading && result.data == null) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (result.hasException) {
+                        return const Text('Unable to load labels');
+                      }
 
-          return _ItemsCatalogue(
-            items: catalogue.items,
-            toggleItem: _toggleItem,
-            selectedItems: _selectedItems,
-          );
-        },
+                      var labels = Tags.fromJson(result.data!);
+                      return RefreshIndicator(
+                          child: ListView(
+                            children: [
+                              for (var label in labels.tags)
+                                Container(
+                                  color: Colors.transparent,
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () {},
+                                      splashColor: Colors.black38,
+                                      child: ListTile(
+                                        leading:
+                                            const Icon(Icons.label_outline),
+                                        title: Text(label.name,
+                                            style: const TextStyle(
+                                                fontSize: 16.0)),
+                                        dense: true,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Container(
+                                color: Colors.transparent,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () {
+                                      showDialog(
+                                          context: context,
+                                          builder: (context) => _NewLabelDialog(
+                                                refetchLabels: () {
+                                                  if (_refetch != null) {
+                                                    _refetch!();
+                                                  }
+                                                },
+                                              ));
+                                    },
+                                    splashColor: Colors.black38,
+                                    child: const ListTile(
+                                      leading: Icon(Icons.add),
+                                      title: Text('Create new...'),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          onRefresh: () {
+                            if (_refetch != null) {
+                              return _refetch!();
+                            }
+                            return Future.value(null);
+                          });
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        body: Query(
+          options: QueryOptions(document: vendorAndItemsNames),
+          builder: (QueryResult result,
+              {FetchMore? fetchMore, Refetch? refetch}) {
+            if (result.isLoading && result.data == null) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            } else if (result.hasException) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(30.0),
+                  child: Text('${result.exception}'),
+                ),
+              );
+            }
+            var catalogue = Catalogue.fromJson(result.data!);
+
+            return _ItemsCatalogue(
+              items: catalogue.items,
+              toggleItem: _toggleItem,
+              selectedItems: _selectedItems,
+            );
+          },
+        ),
+        bottomNavigationBar: const ClassicBottomNavigation(),
       ),
-      bottomNavigationBar: const ClassicBottomNavigation(),
     );
   }
 }
@@ -238,6 +331,110 @@ class _ItemWidget extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// TODO: This is a duplicated container. Refactor
+class _NewLabelDialog extends StatefulWidget {
+  final VoidCallback refetchLabels;
+
+  const _NewLabelDialog({Key? key, required this.refetchLabels})
+      : super(key: key);
+
+  @override
+  State createState() => _NewLabelDialogState();
+}
+
+class _NewLabelDialogState extends State<_NewLabelDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _controller;
+  String _label = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _controller.addListener(() {
+      setState(() {
+        _label = _controller.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _controller.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Create label'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _controller,
+          decoration: InputDecoration(
+            labelText: 'Label name',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('Cancel')),
+        TextButton(
+            onPressed: _label.isNotEmpty
+                ? () {
+                    var cli = GraphQLProvider.of(context).value;
+                    var future = cli.mutate(MutationOptions(
+                        document: mutationCreateLabel,
+                        variables: {
+                          "input": Tag(name: _label).toJson(),
+                        }));
+                    Navigator.of(context).pop();
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return FutureBuilder(
+                            future: future,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.done) {
+                                return AlertDialog(
+                                  content: Row(
+                                      children: const [Text('Done')],
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center),
+                                );
+                              }
+                              return AlertDialog(
+                                content: Row(
+                                  children: const [
+                                    CircularProgressIndicator(),
+                                    SizedBox(width: 20),
+                                    Text('Saving...'),
+                                  ],
+                                ),
+                              );
+                            });
+                      },
+                    ).then(
+                      (value) {
+                        widget.refetchLabels();
+                      },
+                    );
+                  }
+                : null,
+            child: const Text('Ok')),
+      ],
     );
   }
 }

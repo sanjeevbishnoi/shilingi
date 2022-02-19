@@ -20,7 +20,7 @@ class NewPurchasePage extends StatefulWidget {
 }
 
 class _NewPurchasePageState extends State<NewPurchasePage> {
-  DateTime? _date;
+  DateTime? _date = DateTime.now();
   String? _vendor;
   final List<PurchaseItem> _items = [];
   final _formKey = GlobalKey<FormState>();
@@ -162,6 +162,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
                       onDateSelected: (d) {
                         _date = d;
                       },
+                      initialValue: DateTime.now(),
                     ),
                     const SizedBox(height: 24.0),
                     Row(
