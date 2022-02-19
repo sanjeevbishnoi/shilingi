@@ -6,7 +6,7 @@ interface Node {
 }
 
 type Query {
-  items: [Item!]!
+  items(tagID: Int): [Item!]!
   shoppingItems(after: Time!, before: Time!, itemID: Int!): [ShoppingItem!]!
   purchases(before: Time!, after: Time!): [Shopping!]!
   vendors: [Vendor!]!
