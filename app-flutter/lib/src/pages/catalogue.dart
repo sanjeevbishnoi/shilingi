@@ -9,6 +9,7 @@ import '../gql/gql.dart';
 import '../models/model.dart';
 import './settings/settings.dart';
 import './items_to_label_page.dart';
+import './label_items.dart';
 
 enum Popup {
   label,
@@ -140,7 +141,20 @@ class _CataloguePageState extends State<CataloguePage> {
                                   child: Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      onTap: () {},
+                                      onTap: () {
+                                        var settings =
+                                            LabelItemPageRouteSettings(
+                                                tag: label);
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) {
+                                              return const LabelItemsPage();
+                                            },
+                                            settings: RouteSettings(
+                                                arguments: settings),
+                                          ),
+                                        );
+                                      },
                                       splashColor: Colors.black38,
                                       child: ListTile(
                                         leading:
