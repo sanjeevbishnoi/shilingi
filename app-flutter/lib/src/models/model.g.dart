@@ -72,6 +72,16 @@ Map<String, dynamic> _$ItemToJson(Item instance) {
   return val;
 }
 
+Items _$ItemsFromJson(Map<String, dynamic> json) => Items(
+      items: (json['items'] as List<dynamic>)
+          .map((e) => Item.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$ItemsToJson(Items instance) => <String, dynamic>{
+      'items': instance.items,
+    };
+
 Catalogue _$CatalogueFromJson(Map<String, dynamic> json) => Catalogue(
       items: (json['items'] as List<dynamic>)
           .map((e) => Item.fromJson(e as Map<String, dynamic>))

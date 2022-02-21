@@ -56,6 +56,16 @@ class Item {
 }
 
 @JsonSerializable()
+class Items {
+  final List<Item> items;
+
+  const Items({required this.items});
+
+  factory Items.fromJson(Map<String, dynamic> json) => _$ItemsFromJson(json);
+  Map<String, dynamic> toJson() => _$ItemsToJson(this);
+}
+
+@JsonSerializable()
 class Catalogue {
   final List<Item> items;
   final List<Vendor> vendors;

@@ -51,6 +51,15 @@ var vendorAndItemsNames = gql(r'''
     }
 ''');
 
+var itemsQuery = gql(r'''
+    query items($tagID: Int) {
+      items(tagID: $tagID) {
+        id
+        name
+      }
+    }
+''');
+
 var shoppingItemsQuery = gql(r'''
     query shoppingItems($after: Time!, $before: Time!, $itemID: Int!) {
       shoppingItems(after: $after, before: $before, itemID: $itemID) {
