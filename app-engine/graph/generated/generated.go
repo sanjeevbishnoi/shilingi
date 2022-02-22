@@ -111,7 +111,7 @@ type MutationResolver interface {
 	CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error)
 	CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error)
 	TagItems(ctx context.Context, itemIDs []int, tagID int) ([]int, error)
-	UntagItems(ctx context.Context, itemIDs []int, tagID int) ([]int, error)
+	UntagItems(ctx context.Context, itemIDs []int, tagID int) (*ent.Tag, error)
 	CreateTag(ctx context.Context, input model.TagInput) (*ent.Tag, error)
 }
 type QueryResolver interface {
@@ -585,7 +585,7 @@ type Mutation {
   createItem(input: ItemInput!): Item
   createPurchase(input: ShoppingInput!): Shopping
   tagItems(itemIDs: [Int!]!, tagID: Int!): [Int!]!
-  untagItems(itemIDs: [Int!]!, tagID: Int!): [Int!]!
+  untagItems(itemIDs: [Int!]!, tagID: Int!): Tag!
   createTag(input: TagInput!): Tag!
 }
 `, BuiltIn: false},
@@ -1126,9 +1126,9 @@ func (ec *executionContext) _Mutation_untagItems(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]int)
+	res := resTmp.(*ent.Tag)
 	fc.Result = res
-	return ec.marshalNInt2ᚕintᚄ(ctx, field.Selections, res)
+	return ec.marshalNTag2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐTag(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createTag(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
