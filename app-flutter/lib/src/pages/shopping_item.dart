@@ -11,6 +11,7 @@ import '../constants/constants.dart';
 import '../components/text.dart';
 import './purchase_details.dart';
 import './settings/settings.dart';
+import '../style/style.dart';
 
 var shoppingNumberFormat =
     NumberFormat.compactCurrency(decimalDigits: 2, symbol: '');
@@ -38,6 +39,7 @@ class _ShoppingItemDetailPage extends State {
       body: ListView(
         children: [
           TableCalendar<PurchaseItem>(
+            calendarStyle: customCalendarStyle,
             focusedDay: _focusedDay,
             firstDay: DateTime.now().subtract(const Duration(days: 365 * 3)),
             lastDay: DateTime.now(),

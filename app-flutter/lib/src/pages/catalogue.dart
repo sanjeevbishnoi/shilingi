@@ -331,7 +331,7 @@ class _ItemWidget extends StatelessWidget {
                 : Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      color: Colors.green,
+                      color: Colors.lightGreen,
                     ),
                     height: 40,
                     width: 40,

@@ -9,6 +9,7 @@ import '../models/model.dart' as model;
 import '../components/components.dart';
 import '../gql/gql.dart' as queries;
 import '../constants/constants.dart';
+import '../style/style.dart';
 
 var formatAmt = NumberFormat('#,##0.00', 'en_US');
 var formatAmtWithoutDecimal =
@@ -100,7 +101,6 @@ class _PurchasesPageState extends State<PurchasesPage> {
 
     return Scaffold(
       backgroundColor: mainScaffoldBg,
-      appBar: AppBar(title: const Text('Shilingi')),
       body: VisibilityDetector(
         key: visibilityKey,
         onVisibilityChanged: (visibilityInfo) {
@@ -115,6 +115,13 @@ class _PurchasesPageState extends State<PurchasesPage> {
           child: ListView(
             children: [
               TableCalendar<model.Purchase>(
+                headerStyle: const HeaderStyle(
+                  decoration: BoxDecoration(
+                    color: Colors.lightGreen,
+                  ),
+                  headerMargin: EdgeInsets.only(bottom: 15.0),
+                ),
+                calendarStyle: customCalendarStyle,
                 rangeSelectionMode: _rangeSelectionMode,
                 rangeStartDay: _rangeStart,
                 rangeEndDay: _rangeEnd,
