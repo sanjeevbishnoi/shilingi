@@ -38,3 +38,12 @@ var mutationTagItems = gql(r'''
       tagItems(itemIDs: $itemIDs, tagID: $tagID)
     }
 ''');
+
+var mutationUntagItems = gql(r'''
+    mutation untagItems($itemIDs: [Int!]!, $tagID: Int!) {
+      untagItems(itemIDs: $itemIDs, tagID: $tagID) {
+        id
+        name
+      }
+    }
+''');

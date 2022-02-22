@@ -8,6 +8,10 @@ import '../models/model.dart';
 import '../gql/gql.dart';
 import './settings/settings.dart';
 
+enum LabelsAppbarMore {
+  removeItem,
+}
+
 class LabelItemsPage extends StatefulWidget {
   const LabelItemsPage({Key? key}) : super(key: key);
 
@@ -17,23 +21,58 @@ class LabelItemsPage extends StatefulWidget {
 
 class _LabelItemsPageState extends State<LabelItemsPage> {
   Refetch? _refetch;
+  bool _removeItems = false;
   @override
   Widget build(BuildContext context) {
     var settings = ModalRoute.of(context)!.settings.arguments
         as LabelItemPageRouteSettings;
 
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: mainScaffoldBg,
-        appBar: AppBar(
-          title: Text(settings.tag.name),
-          actions: [
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.playlist_add),
+    var appBar = AppBar(
+      elevation: 0,
+      title: Text(settings.tag.name),
+      actions: [
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.playlist_add),
+        ),
+        PopupMenuButton(
+          onSelected: (value) {
+            switch (value) {
+              case LabelsAppbarMore.removeItem:
+                setState(() {
+                  _removeItems = true;
+                });
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem<LabelsAppbarMore>(
+              child: Text('Remove items'),
+              value: LabelsAppbarMore.removeItem,
             ),
           ],
         ),
+      ],
+    );
+    if (_removeItems) {
+      appBar = AppBar(
+        elevation: 0,
+        backgroundColor: Colors.redAccent,
+        title: const Text('Remove items'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () {
+            setState(() {
+              _removeItems = false;
+            });
+          },
+        ),
+      );
+    }
+
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: mainScaffoldBg,
+        appBar: appBar,
         body: Query(
           options: QueryOptions(document: itemsQuery, variables: {
             'tagID': settings.tag.id,
@@ -80,7 +119,15 @@ class _LabelItemsPageState extends State<LabelItemsPage> {
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                      child: _ItemList(items: items.items),
+                      child: _ItemList(
+                          items: items.items,
+                          removeItems: _removeItems,
+                          tag: settings.tag,
+                          refetch: () {
+                            if (_refetch != null) {
+                              _refetch!();
+                            }
+                          }),
                     ),
                   ],
                 ),
@@ -141,31 +188,61 @@ class _EmptyLabelList extends StatelessWidget {
 
 class _ItemList extends StatelessWidget {
   final List<Item> items;
+  final bool removeItems;
+  final Tag tag;
+  final VoidCallback refetch;
 
-  const _ItemList({required this.items, Key? key}) : super(key: key);
+  const _ItemList(
+      {required this.items,
+      required this.removeItems,
+      required this.tag,
+      required this.refetch,
+      Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         for (var item in items)
-          _ItemWidget(item: item, toggleItem: (i) {}, selectedItems: []),
+          _ItemWidget(
+            item: item,
+            toggleItem: (i) {},
+            selectedItems: const [],
+            removeItems: removeItems,
+            tag: tag,
+            refetch: refetch,
+            key: Key(item.id.toString()),
+          ),
       ],
     );
   }
 }
 
-class _ItemWidget extends StatelessWidget {
+class _ItemWidget extends StatefulWidget {
   final Item item;
   final Function(Item) toggleItem;
   final List<Item> selectedItems;
+  final bool removeItems;
+  final Tag tag;
+  final VoidCallback refetch;
 
-  const _ItemWidget({
-    Key? key,
-    required this.item,
-    required this.toggleItem,
-    required this.selectedItems,
-  }) : super(key: key);
+  const _ItemWidget(
+      {Key? key,
+      required this.item,
+      required this.toggleItem,
+      required this.removeItems,
+      required this.selectedItems,
+      required this.tag,
+      required this.refetch})
+      : super(key: key);
+
+  @override
+  State createState() => _ItemWidgetState();
+}
+
+class _ItemWidgetState extends State<_ItemWidget> {
+  bool _loading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -178,20 +255,24 @@ class _ItemWidget extends StatelessWidget {
         child: InkWell(
           splashColor: Colors.black38,
           onTap: () {
-            if (selectedItems.isNotEmpty) {
-              toggleItem(item);
+            if (_loading || widget.removeItems) {
+              return;
+            }
+
+            if (widget.selectedItems.isNotEmpty) {
+              widget.toggleItem(widget.item);
               return;
             }
 
             Navigator.of(context).pushNamed(shoppingItemPage,
                 arguments: ShoppingItemRouteSettings(
-                    itemId: item.id!, name: item.name));
+                    itemId: widget.item.id!, name: widget.item.name));
           },
           onLongPress: () {
-            toggleItem(item);
+            widget.toggleItem(widget.item);
           },
           child: ListTile(
-            leading: selectedItems.any((i) => i.id == item.id)
+            leading: widget.selectedItems.any((i) => i.id == widget.item.id)
                 ? const Icon(Icons.check)
                 : Container(
                     decoration: BoxDecoration(
@@ -201,15 +282,69 @@ class _ItemWidget extends StatelessWidget {
                     height: 40,
                     width: 40,
                     child: Center(
-                      child: Text(item.name[0].toUpperCase(),
+                      child: Text(widget.item.name[0].toUpperCase(),
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                     ),
                   ),
-            title: Text(item.name),
-            trailing: const Icon(Icons.chevron_right_sharp),
+            title: Text(widget.item.name),
+            trailing: _TrailingItemWidget(
+                loading: _loading,
+                removeItem: widget.removeItems,
+                removeItemFn: _removeItem),
           ),
         ),
       ),
     );
+  }
+
+  void _removeItem() {
+    setState(() {
+      _loading = true;
+    });
+    var cli = GraphQLProvider.of(context).value;
+    cli
+        .mutate(
+      MutationOptions(document: mutationUntagItems, variables: {
+        'itemIDs': [widget.item.id],
+        'tagID': widget.tag.id,
+      }),
+    )
+        .then((value) => widget.refetch(), onError: (e, s) {
+      var snackBar = const SnackBar(
+        content: Text('Unable to remove the item'),
+        backgroundColor: Colors.redAccent,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    });
+  }
+}
+
+class _TrailingItemWidget extends StatelessWidget {
+  final bool loading;
+  final bool removeItem;
+  final VoidCallback removeItemFn;
+
+  const _TrailingItemWidget(
+      {Key? key,
+      required this.loading,
+      required this.removeItem,
+      required this.removeItemFn})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return loading
+        ? const Padding(
+            padding: EdgeInsets.all(14.0),
+            child: SizedBox(
+                child: CircularProgressIndicator(), width: 20, height: 20),
+          )
+        : removeItem
+            ? IconButton(
+                icon: const Icon(Icons.highlight_remove_outlined,
+                    color: Colors.redAccent),
+                onPressed: removeItemFn,
+              )
+            : const Icon(Icons.chevron_right_sharp);
   }
 }
