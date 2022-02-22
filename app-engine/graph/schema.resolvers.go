@@ -42,12 +42,20 @@ func (r *mutationResolver) TagItems(ctx context.Context, itemIDs []int, tagID in
 		return nil, gqlerror.Errorf("tag with id %d does not exist", tagID)
 	}
 
-	cli.Item.Update().
+	_, err := cli.Item.Update().
 		Where(
 			item.IDIn(itemIDs...),
+			item.Not(
+				item.HasTagsWith(
+					tag.ID(tagID),
+				),
+			),
 		).
 		AddTagIDs(tagID).
 		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	return itemIDs, nil
 }
