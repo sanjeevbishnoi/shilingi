@@ -18,5 +18,6 @@ type Mutation {
   createItem(input: ItemInput!): Item
   createPurchase(input: ShoppingInput!): Shopping
   tagItems(itemIDs: [Int!]!, tagID: Int!): [Int!]!
+  untagItems(itemIDs: [Int!]!, tagID: Int!): [Int!]!
   createTag(input: TagInput!): Tag!
 }

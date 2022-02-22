@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -50,6 +51,10 @@ func (r *mutationResolver) TagItems(ctx context.Context, itemIDs []int, tagID in
 		Save(ctx)
 
 	return itemIDs, nil
+}
+
+func (r *mutationResolver) UntagItems(ctx context.Context, itemIDs []int, tagID int) ([]int, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *mutationResolver) CreateTag(ctx context.Context, input model.TagInput) (*ent.Tag, error) {

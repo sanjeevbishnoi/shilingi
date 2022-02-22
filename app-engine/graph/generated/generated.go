@@ -62,6 +62,7 @@ type ComplexityRoot struct {
 		CreatePurchase func(childComplexity int, input model.ShoppingInput) int
 		CreateTag      func(childComplexity int, input model.TagInput) int
 		TagItems       func(childComplexity int, itemIDs []int, tagID int) int
+		UntagItems     func(childComplexity int, itemIDs []int, tagID int) int
 	}
 
 	Query struct {
@@ -110,6 +111,7 @@ type MutationResolver interface {
 	CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error)
 	CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error)
 	TagItems(ctx context.Context, itemIDs []int, tagID int) ([]int, error)
+	UntagItems(ctx context.Context, itemIDs []int, tagID int) ([]int, error)
 	CreateTag(ctx context.Context, input model.TagInput) (*ent.Tag, error)
 }
 type QueryResolver interface {
@@ -217,6 +219,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.TagItems(childComplexity, args["itemIDs"].([]int), args["tagID"].(int)), true
+
+	case "Mutation.untagItems":
+		if e.complexity.Mutation.UntagItems == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_untagItems_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UntagItems(childComplexity, args["itemIDs"].([]int), args["tagID"].(int)), true
 
 	case "Query.items":
 		if e.complexity.Query.Items == nil {
@@ -571,6 +585,7 @@ type Mutation {
   createItem(input: ItemInput!): Item
   createPurchase(input: ShoppingInput!): Shopping
   tagItems(itemIDs: [Int!]!, tagID: Int!): [Int!]!
+  untagItems(itemIDs: [Int!]!, tagID: Int!): [Int!]!
   createTag(input: TagInput!): Tag!
 }
 `, BuiltIn: false},
@@ -627,6 +642,30 @@ func (ec *executionContext) field_Mutation_createTag_args(ctx context.Context, r
 }
 
 func (ec *executionContext) field_Mutation_tagItems_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []int
+	if tmp, ok := rawArgs["itemIDs"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("itemIDs"))
+		arg0, err = ec.unmarshalNInt2ᚕintᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["itemIDs"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["tagID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tagID"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["tagID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_untagItems_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 []int
@@ -1034,6 +1073,48 @@ func (ec *executionContext) _Mutation_tagItems(ctx context.Context, field graphq
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().TagItems(rctx, args["itemIDs"].([]int), args["tagID"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]int)
+	fc.Result = res
+	return ec.marshalNInt2ᚕintᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_untagItems(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_untagItems_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UntagItems(rctx, args["itemIDs"].([]int), args["tagID"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3503,6 +3584,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_createPurchase(ctx, field)
 		case "tagItems":
 			out.Values[i] = ec._Mutation_tagItems(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "untagItems":
+			out.Values[i] = ec._Mutation_untagItems(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
