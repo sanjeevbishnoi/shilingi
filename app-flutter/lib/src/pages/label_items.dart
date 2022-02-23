@@ -32,7 +32,10 @@ class _LabelItemsPageState extends State<LabelItemsPage> {
       title: Text(settings.tag.name),
       actions: [
         IconButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const _SelectItemPageView()));
+          },
           icon: const Icon(Icons.playlist_add),
         ),
         PopupMenuButton(
@@ -165,7 +168,7 @@ class _EmptyLabelList extends StatelessWidget {
             UnDraw(
                 height: 150.0,
                 illustration: UnDrawIllustration.floating,
-                color: Colors.greenAccent),
+                color: Colors.lightGreen),
             const Text('No items with this label',
                 style: TextStyle(fontSize: 18.0)),
             TextButton(
@@ -277,7 +280,7 @@ class _ItemWidgetState extends State<_ItemWidget> {
                 : Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      color: Colors.green,
+                      color: Colors.lightGreen,
                     ),
                     height: 40,
                     width: 40,
@@ -346,5 +349,113 @@ class _TrailingItemWidget extends StatelessWidget {
                 onPressed: removeItemFn,
               )
             : const Icon(Icons.chevron_right_sharp);
+  }
+}
+
+class _SelectItemPageView extends StatelessWidget {
+  const _SelectItemPageView({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: mainScaffoldBg,
+      appBar: AppBar(title: const Text('Choose an item')),
+      body: Query(
+        options: QueryOptions(
+          document: itemsQuery,
+        ),
+        builder: (QueryResult result,
+            {Refetch? refetch, FetchMore? fetchMore}) {
+          if (result.isLoading && result.data == null) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          } else if (result.hasException) {
+            return Padding(
+              padding: const EdgeInsets.all(30.0),
+              child: Align(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    UnDraw(
+                        height: 150.0,
+                        illustration: UnDrawIllustration.warning,
+                        color: Colors.redAccent),
+                    const Text('Unable to load items',
+                        style: TextStyle(fontSize: 18.0)),
+                    TextButton(
+                      onPressed: () {
+                        if (refetch != null) refetch();
+                      },
+                      child: const Text('Try again'),
+                      style: ButtonStyle(
+                        shape:
+                            MaterialStateProperty.all<RoundedRectangleBorder>(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(50.0),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          var items = Items.fromJson(result.data!);
+
+          return RefreshIndicator(
+            onRefresh: () {
+              if (refetch != null) {
+                return refetch();
+              }
+              return Future.value(null);
+            },
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
+              child: _ItemsListSelect(items: items.items),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ItemsListSelect extends StatefulWidget {
+  final List<Item> items;
+
+  const _ItemsListSelect({Key? key, required this.items}) : super(key: key);
+
+  @override
+  State createState() => _ItemsListSelectState();
+}
+
+class _ItemsListSelectState extends State<_ItemsListSelect> {
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        for (var item in widget.items)
+          ListTile(
+            leading: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.lightGreen,
+              ),
+              height: 40,
+              width: 40,
+              child: Center(
+                child: Text(item.name[0].toUpperCase(),
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+            title: Text(item.name),
+          ),
+      ],
+    );
   }
 }
