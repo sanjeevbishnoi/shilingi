@@ -33,8 +33,13 @@ class _LabelItemsPageState extends State<LabelItemsPage> {
       actions: [
         IconButton(
           onPressed: () {
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => const _SelectItemPageView()));
+            Navigator.of(context)
+                .push(MaterialPageRoute(
+                    builder: (context) =>
+                        _SelectItemPageView(tag: settings.tag)))
+                .then((value) {
+              if (_refetch != null) _refetch!();
+            });
           },
           icon: const Icon(Icons.playlist_add),
         ),
@@ -353,7 +358,9 @@ class _TrailingItemWidget extends StatelessWidget {
 }
 
 class _SelectItemPageView extends StatelessWidget {
-  const _SelectItemPageView({Key? key}) : super(key: key);
+  final Tag tag;
+
+  const _SelectItemPageView({Key? key, required this.tag}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -416,7 +423,7 @@ class _SelectItemPageView extends StatelessWidget {
             child: Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
-              child: _ItemsListSelect(items: items.items),
+              child: _ItemsListSelect(items: items.items, tag: tag),
             ),
           );
         },
@@ -427,8 +434,10 @@ class _SelectItemPageView extends StatelessWidget {
 
 class _ItemsListSelect extends StatefulWidget {
   final List<Item> items;
+  final Tag tag;
 
-  const _ItemsListSelect({Key? key, required this.items}) : super(key: key);
+  const _ItemsListSelect({Key? key, required this.items, required this.tag})
+      : super(key: key);
 
   @override
   State createState() => _ItemsListSelectState();
@@ -440,20 +449,64 @@ class _ItemsListSelectState extends State<_ItemsListSelect> {
     return ListView(
       children: [
         for (var item in widget.items)
-          ListTile(
-            leading: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: Colors.lightGreen,
-              ),
-              height: 40,
-              width: 40,
-              child: Center(
-                child: Text(item.name[0].toUpperCase(),
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                var cli = GraphQLProvider.of(context).value;
+                var result = cli.mutate(
+                    MutationOptions(document: mutationTagItems, variables: {
+                  'tagID': widget.tag.id,
+                  'itemIDs': [item.id],
+                }));
+
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return FutureBuilder(
+                      future: result,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.done) {
+                          return const AlertDialog(
+                            content: Text('Item added successfully'),
+                          );
+                        }
+                        return WillPopScope(
+                          onWillPop: () async {
+                            return false;
+                          },
+                          child: AlertDialog(
+                            content: Row(
+                              children: const [
+                                CircularProgressIndicator(),
+                                SizedBox(width: 20),
+                                Text('Adding item...'),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ).whenComplete(() => Navigator.pop(context));
+              },
+              splashColor: Colors.black38,
+              child: ListTile(
+                leading: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.lightGreen,
+                  ),
+                  height: 40,
+                  width: 40,
+                  child: Center(
+                    child: Text(item.name[0].toUpperCase(),
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                title: Text(item.name),
               ),
             ),
-            title: Text(item.name),
           ),
       ],
     );
