@@ -51,40 +51,21 @@ class _PurchasesPageState extends State<PurchasesPage> {
       _widgets = [
         const SizedBox(height: 15.0),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 20.0),
-          child: Text(
-            'Total expenditure in ${DateFormat("MMM").format(focusedDay)}',
-            style: const TextStyle(
-              color: Colors.black38,
-              fontWeight: FontWeight.w600,
-              fontSize: 20,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                    child: StatCard(
+                        title: DateFormat('MMM').format(focusedDay),
+                        value: _monthExpenditure())),
+                const SizedBox(width: 10),
+                Expanded(
+                    child: StatCard(
+                        title: _getExpenditureText(),
+                        value: _getExpenditure())),
+              ],
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-          child: Text(
-            'Kes ${formatAmt.format(_monthExpenditure())}',
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16.0),
-          ),
-        ),
-        const SizedBox(height: 15.0),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 20.0),
-          child: Text(
-            _getExpenditureText(),
-            style: const TextStyle(
-              color: Colors.black38,
-              fontWeight: FontWeight.w600,
-              fontSize: 20,
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-          child: Text(
-            'Kes ${formatAmt.format(_getExpenditure())}',
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16.0),
           ),
         ),
         const SizedBox(height: 15.0),

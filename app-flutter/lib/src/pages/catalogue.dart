@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:azlistview/azlistview.dart';
+import 'package:ms_undraw/ms_undraw.dart';
 
 import '../constants/constants.dart';
 import '../components/components.dart';
@@ -215,10 +216,21 @@ class _CataloguePageState extends State<CataloguePage> {
                 child: CircularProgressIndicator(),
               );
             } else if (result.hasException) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(30.0),
-                  child: Text('${result.exception}'),
+              return Padding(
+                padding: const EdgeInsets.all(30.0),
+                child: Align(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      UnDraw(
+                          height: 150.0,
+                          illustration: UnDrawIllustration.warning,
+                          color: Colors.redAccent),
+                      const Text('Unable to load items',
+                          style: TextStyle(fontSize: 18.0)),
+                    ],
+                  ),
                 ),
               );
             }
