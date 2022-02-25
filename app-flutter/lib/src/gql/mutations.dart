@@ -47,3 +47,12 @@ var mutationUntagItems = gql(r'''
       }
     }
 ''');
+
+var mutationEditTag = gql(r'''
+    mutation editTag($id: Int!, $input: TagInput!) {
+      editTag(id: $id, input: $input) {
+        id
+        name
+      }
+    }
+''');

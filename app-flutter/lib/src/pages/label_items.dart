@@ -7,9 +7,11 @@ import '../constants/constants.dart';
 import '../models/model.dart';
 import '../gql/gql.dart';
 import './settings/settings.dart';
+import '../components/components.dart';
 
 enum LabelsAppbarMore {
   removeItem,
+  editLabel,
 }
 
 class LabelItemsPage extends StatefulWidget {
@@ -22,14 +24,21 @@ class LabelItemsPage extends StatefulWidget {
 class _LabelItemsPageState extends State<LabelItemsPage> {
   Refetch? _refetch;
   bool _removeItems = false;
+  String _tagName = '';
   @override
   Widget build(BuildContext context) {
     var settings = ModalRoute.of(context)!.settings.arguments
         as LabelItemPageRouteSettings;
+    if (_tagName.isEmpty) {
+      _tagName = settings.tag.name;
+    } else {
+      settings = LabelItemPageRouteSettings(
+          tag: Tag(name: _tagName, id: settings.tag.id));
+    }
 
     var appBar = AppBar(
       elevation: 0,
-      title: Text(settings.tag.name),
+      title: Text(_tagName),
       actions: [
         IconButton(
           onPressed: () {
@@ -50,12 +59,29 @@ class _LabelItemsPageState extends State<LabelItemsPage> {
                 setState(() {
                   _removeItems = true;
                 });
+                break;
+              case LabelsAppbarMore.editLabel:
+                showDialog(
+                    context: context,
+                    builder: (context) => EditLabelDialog(
+                        tag: settings.tag,
+                        onSuccess: (value) {
+                          Future.value(value).then((value) {
+                            setState(() {
+                              _tagName = value;
+                            });
+                          });
+                        }));
             }
           },
           itemBuilder: (context) => [
             const PopupMenuItem<LabelsAppbarMore>(
               child: Text('Remove items'),
               value: LabelsAppbarMore.removeItem,
+            ),
+            const PopupMenuItem<LabelsAppbarMore>(
+              child: Text('Rename label'),
+              value: LabelsAppbarMore.editLabel,
             ),
           ],
         ),
