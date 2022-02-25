@@ -86,6 +86,21 @@ func (r *mutationResolver) CreateTag(ctx context.Context, input model.TagInput) 
 	return t, err
 }
 
+func (r *mutationResolver) EditTag(ctx context.Context, id int, input model.TagInput) (*ent.Tag, error) {
+	cleanedTagName := utils.CleanTagName(input.Name)
+	// check whether there is an already existing tag with the same name
+	cli := ent.FromContext(ctx)
+
+	t, _ := cli.Tag.Query().
+		Where(tag.Name(cleanedTagName)).
+		Only(ctx)
+	if t != nil && t.ID != id {
+		return nil, gqlerror.Errorf("A tag with a similar name exists")
+	}
+
+	return cli.Tag.UpdateOneID(id).SetName(cleanedTagName).Save(ctx)
+}
+
 func (r *queryResolver) Items(ctx context.Context, tagID *int) ([]*ent.Item, error) {
 	query := r.cli.Item.Query()
 	if tagID != nil {
