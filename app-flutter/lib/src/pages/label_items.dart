@@ -131,7 +131,12 @@ class _LabelItemsPageState extends State<LabelItemsPage> {
 
             var items = Items.fromJson(result.data!);
             if (items.items.isEmpty) {
-              return const _EmptyLabelList();
+              return _EmptyLabelList(
+                tag: settings.tag,
+                refetch: () {
+                  if (_refetch != null) _refetch!();
+                },
+              );
             }
             return RefreshIndicator(
                 child: ListView(
@@ -185,7 +190,11 @@ class LabelItemPageRouteSettings {
 }
 
 class _EmptyLabelList extends StatelessWidget {
-  const _EmptyLabelList({Key? key}) : super(key: key);
+  final Tag tag;
+  final VoidCallback? refetch;
+
+  const _EmptyLabelList({Key? key, required this.tag, this.refetch})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -197,13 +206,22 @@ class _EmptyLabelList extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             UnDraw(
-                height: 150.0,
-                illustration: UnDrawIllustration.floating,
-                color: Colors.lightGreen),
+              height: 150.0,
+              illustration: UnDrawIllustration.floating,
+              color: Colors.lightGreen,
+              useMemCache: true,
+            ),
             const Text('No items with this label',
                 style: TextStyle(fontSize: 18.0)),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.of(context)
+                    .push(MaterialPageRoute(
+                        builder: (context) => _SelectItemPageView(tag: tag)))
+                    .then((value) {
+                  if (refetch != null) refetch!();
+                });
+              },
               child: const Text('Add an item'),
               style: ButtonStyle(
                 shape: MaterialStateProperty.all<RoundedRectangleBorder>(

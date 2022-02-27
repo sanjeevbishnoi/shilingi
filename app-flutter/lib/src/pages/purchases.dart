@@ -4,6 +4,7 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+import 'package:ms_undraw/ms_undraw.dart';
 
 import '../models/model.dart' as model;
 import '../components/components.dart';
@@ -76,7 +77,26 @@ class _PurchasesPageState extends State<PurchasesPage> {
             child: WPurchase(purchase),
           ),
         ],
-        const SizedBox(height: 20.0),
+        if (_getActivePurchases().isEmpty) ...[
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                UnDraw(
+                  height: 100.0,
+                  illustration: UnDrawIllustration.empty_cart,
+                  color: Colors.grey,
+                  useMemCache: true,
+                ),
+                const SizedBox(height: 10.0),
+                const Text('No purchases recorded',
+                    style: TextStyle(color: Colors.grey)),
+              ],
+            ),
+          ),
+        ]
       ];
     }
 
