@@ -250,14 +250,15 @@ class _PurchasesPageState extends State<PurchasesPage> {
     setState(() {
       _loading = true;
     });
+    var after = model.DateTimeToJson(start);
+    var before = model.DateTimeToJson(end);
     return client
         .query(
       QueryOptions(
         document: queries.purchasesQuery,
         variables: {
-          "after":
-              model.DateTimeToJson(start.subtract(const Duration(days: 1))),
-          "before": model.DateTimeToJson(end),
+          "after": after,
+          "before": before,
         },
         fetchPolicy: FetchPolicy.cacheFirst,
       ),
