@@ -91,8 +91,11 @@ class _PurchasesPageState extends State<PurchasesPage> {
                   useMemCache: true,
                 ),
                 const SizedBox(height: 10.0),
-                const Text('No purchases recorded',
-                    style: TextStyle(color: Colors.grey)),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 30.0),
+                  child: Text('No purchases recorded for the highlighted date',
+                      style: TextStyle(color: Colors.grey)),
+                ),
               ],
             ),
           ),
@@ -165,7 +168,9 @@ class _PurchasesPageState extends State<PurchasesPage> {
                     _rangeEnd = end;
                     _rangeSelectionMode = RangeSelectionMode.toggledOn;
                     if (start != null && end != null) {
-                      _fetchRangePurchases(context, start, end);
+                      end = DateTime(end!.year, end!.month, end!.day)
+                          .add(const Duration(days: 1));
+                      _fetchRangePurchases(context, start, end!);
                     }
                   });
                 },
@@ -239,7 +244,8 @@ class _PurchasesPageState extends State<PurchasesPage> {
     });
   }
 
-  Future _fetchRangePurchases(BuildContext, DateTime start, DateTime end) {
+  Future _fetchRangePurchases(
+      BuildContext context, DateTime start, DateTime end) {
     var client = GraphQLProvider.of(context).value;
     setState(() {
       _loading = true;
@@ -331,7 +337,7 @@ List<DateTime> _getMonthDateRange(DateTime start) {
   } else {
     year += 1;
   }
-  var end = DateTime(year, month, 1).subtract(const Duration(days: 1));
+  var end = DateTime(year, month, 1);
 
   return [DateTime(start.year, start.month, 1), end];
 }

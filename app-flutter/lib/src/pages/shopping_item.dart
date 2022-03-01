@@ -193,7 +193,7 @@ List<DateTime> _getMonthDateRange(DateTime start) {
   } else {
     year += 1;
   }
-  var end = DateTime(year, month, 1).subtract(const Duration(days: 1));
+  var end = DateTime(year, month, 1);
 
   return [DateTime(start.year, start.month, 1), end];
 }
