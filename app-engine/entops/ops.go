@@ -2,6 +2,7 @@ package entops
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"strings"
 
@@ -153,4 +154,29 @@ func GetOrCreateItemsByName(ctx context.Context, names []string) ([]*ent.Item, e
 
 	items = append(items, createItems...)
 	return items, nil
+}
+
+// EditItem updates the item attributes as provided by input
+func EditItem(ctx context.Context, id int, input model.ItemInput) (*ent.Item, error) {
+	cli := ent.FromContext(ctx)
+	slug := Slugify(input.Name)
+	// check if there exists another item with the same name
+	exists, err := cli.Item.Query().
+		Where(
+			item.Slug(slug),
+			item.Not(
+				item.ID(id),
+			),
+		).Exist(ctx)
+	if exists || err != nil {
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New("item with a similar name exists, duplicates are not allowed")
+	}
+
+	return cli.Item.UpdateOneID(id).
+		SetName(input.Name).
+		SetSlug(slug).
+		Save(ctx)
 }
