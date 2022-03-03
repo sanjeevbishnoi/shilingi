@@ -21,4 +21,5 @@ type Mutation {
   untagItems(itemIDs: [Int!]!, tagID: Int!): Tag!
   createTag(input: TagInput!): Tag!
   editTag(id: Int!, input: TagInput!): Tag!
+  editItem(id: Int!, input: ItemInput!): Item!
 }

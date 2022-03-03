@@ -61,6 +61,7 @@ type ComplexityRoot struct {
 		CreateItem     func(childComplexity int, input model.ItemInput) int
 		CreatePurchase func(childComplexity int, input model.ShoppingInput) int
 		CreateTag      func(childComplexity int, input model.TagInput) int
+		EditItem       func(childComplexity int, id int, input model.ItemInput) int
 		EditTag        func(childComplexity int, id int, input model.TagInput) int
 		TagItems       func(childComplexity int, itemIDs []int, tagID int) int
 		UntagItems     func(childComplexity int, itemIDs []int, tagID int) int
@@ -115,6 +116,7 @@ type MutationResolver interface {
 	UntagItems(ctx context.Context, itemIDs []int, tagID int) (*ent.Tag, error)
 	CreateTag(ctx context.Context, input model.TagInput) (*ent.Tag, error)
 	EditTag(ctx context.Context, id int, input model.TagInput) (*ent.Tag, error)
+	EditItem(ctx context.Context, id int, input model.ItemInput) (*ent.Item, error)
 }
 type QueryResolver interface {
 	Items(ctx context.Context, tagID *int) ([]*ent.Item, error)
@@ -209,6 +211,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateTag(childComplexity, args["input"].(model.TagInput)), true
+
+	case "Mutation.editItem":
+		if e.complexity.Mutation.EditItem == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_editItem_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.EditItem(childComplexity, args["id"].(int), args["input"].(model.ItemInput)), true
 
 	case "Mutation.editTag":
 		if e.complexity.Mutation.EditTag == nil {
@@ -602,6 +616,7 @@ type Mutation {
   untagItems(itemIDs: [Int!]!, tagID: Int!): Tag!
   createTag(input: TagInput!): Tag!
   editTag(id: Int!, input: TagInput!): Tag!
+  editItem(id: Int!, input: ItemInput!): Item!
 }
 `, BuiltIn: false},
 }
@@ -653,6 +668,30 @@ func (ec *executionContext) field_Mutation_createTag_args(ctx context.Context, r
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_editItem_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 model.ItemInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalNItemInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐItemInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -1252,6 +1291,48 @@ func (ec *executionContext) _Mutation_editTag(ctx context.Context, field graphql
 	res := resTmp.(*ent.Tag)
 	fc.Result = res
 	return ec.marshalNTag2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐTag(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_editItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_editItem_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().EditItem(rctx, args["id"].(int), args["input"].(model.ItemInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Item)
+	fc.Result = res
+	return ec.marshalNItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItem(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_items(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3683,6 +3764,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "editItem":
+			out.Values[i] = ec._Mutation_editItem(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4415,6 +4501,10 @@ func (ec *executionContext) marshalNInt2ᚕintᚄ(ctx context.Context, sel ast.S
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalNItem2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItem(ctx context.Context, sel ast.SelectionSet, v ent.Item) graphql.Marshaler {
+	return ec._Item(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNItem2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItemᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.Item) graphql.Marshaler {
