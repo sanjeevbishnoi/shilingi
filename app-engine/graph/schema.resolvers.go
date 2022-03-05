@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -108,7 +107,11 @@ func (r *mutationResolver) EditItem(ctx context.Context, id int, input model.Ite
 }
 
 func (r *mutationResolver) DeleteTag(ctx context.Context, id int) (*bool, error) {
-	panic(fmt.Errorf("not implemented"))
+	cli := ent.FromContext(ctx)
+	if err := cli.Tag.DeleteOneID(id).Exec(ctx); err != nil {
+		return Bool(false), err
+	}
+	return Bool(true), nil
 }
 
 func (r *queryResolver) Items(ctx context.Context, tagID *int) ([]*ent.Item, error) {
