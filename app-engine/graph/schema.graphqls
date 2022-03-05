@@ -22,4 +22,5 @@ type Mutation {
   createTag(input: TagInput!): Tag!
   editTag(id: Int!, input: TagInput!): Tag!
   editItem(id: Int!, input: ItemInput!): Item!
+  deleteTag(id: Int!): Boolean
 }
