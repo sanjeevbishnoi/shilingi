@@ -56,3 +56,9 @@ var mutationEditTag = gql(r'''
       }
     }
 ''');
+
+var mutationDeleteTag = gql(r'''
+    mutation deleteTag($id: Int!) {
+      deleteTag(id: $id)
+    }
+''');

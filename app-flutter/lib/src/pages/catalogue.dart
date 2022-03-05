@@ -146,7 +146,8 @@ class _CataloguePageState extends State<CataloguePage> {
                                         var settings =
                                             LabelItemPageRouteSettings(
                                                 tag: label);
-                                        Navigator.of(context).push(
+                                        Navigator.of(context)
+                                            .push(
                                           MaterialPageRoute(
                                             builder: (context) {
                                               return const LabelItemsPage();
@@ -154,7 +155,11 @@ class _CataloguePageState extends State<CataloguePage> {
                                             settings: RouteSettings(
                                                 arguments: settings),
                                           ),
-                                        );
+                                        )
+                                            .then((value) {
+                                          if (_refetch != null) _refetch!();
+                                          Navigator.of(context).pop();
+                                        });
                                       },
                                       splashColor: Colors.black38,
                                       child: ListTile(

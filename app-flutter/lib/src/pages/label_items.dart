@@ -12,6 +12,7 @@ import '../components/components.dart';
 enum LabelsAppbarMore {
   removeItem,
   editLabel,
+  deleteLabel,
 }
 
 class LabelItemsPage extends StatefulWidget {
@@ -72,6 +73,87 @@ class _LabelItemsPageState extends State<LabelItemsPage> {
                             });
                           });
                         }));
+                break;
+              case LabelsAppbarMore.deleteLabel:
+                showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        content: const Text(
+                            'Are you sure you want to delete this label?'),
+                        actions: [
+                          TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text('No')),
+                          TextButton(
+                              onPressed: () {
+                                var cli = GraphQLProvider.of(context).value;
+                                var result = cli.mutate(
+                                  MutationOptions(
+                                    document: mutationDeleteTag,
+                                    variables: {
+                                      'id': settings.tag.id,
+                                    },
+                                  ),
+                                );
+                                Navigator.of(context).pop();
+                                var hasPopped = false;
+                                showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return WillPopScope(
+                                        onWillPop: () async {
+                                          return result.then(
+                                            (value) {
+                                              hasPopped = true;
+                                              return true;
+                                            },
+                                          );
+                                        },
+                                        child: AlertDialog(
+                                          content: Row(
+                                            children: const [
+                                              CircularProgressIndicator(),
+                                              SizedBox(width: 10),
+                                              Text('Deleting label...')
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    });
+                                result.then((value) {
+                                  if (value.hasException) {
+                                    var snackBar = const SnackBar(
+                                        content:
+                                            Text('Unable to delete label'));
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(snackBar);
+                                    if (!hasPopped) {
+                                      // Close alert dialog with delete loading bar
+                                      Navigator.of(context).pop();
+                                    }
+                                    return;
+                                  }
+                                  var snackBar = const SnackBar(
+                                      content: Text('Label has beed deleted.'));
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(snackBar);
+                                  if (!hasPopped) {
+                                    // Close alert dialog with delete loading bar
+                                    Navigator.of(context).pop();
+                                  }
+                                  // Pops to the previous page after the label's page
+                                  Navigator.of(context).pop();
+                                });
+                              },
+                              child: const Text('Yes',
+                                  style: TextStyle(color: Colors.redAccent))),
+                        ],
+                      );
+                    });
+                break;
             }
           },
           itemBuilder: (context) => [
@@ -82,6 +164,10 @@ class _LabelItemsPageState extends State<LabelItemsPage> {
             const PopupMenuItem<LabelsAppbarMore>(
               child: Text('Rename label'),
               value: LabelsAppbarMore.editLabel,
+            ),
+            const PopupMenuItem<LabelsAppbarMore>(
+              child: Text('Delete label'),
+              value: LabelsAppbarMore.deleteLabel,
             ),
           ],
         ),
