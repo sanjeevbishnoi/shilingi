@@ -61,6 +61,7 @@ type ComplexityRoot struct {
 		CreateItem     func(childComplexity int, input model.ItemInput) int
 		CreatePurchase func(childComplexity int, input model.ShoppingInput) int
 		CreateTag      func(childComplexity int, input model.TagInput) int
+		DeleteTag      func(childComplexity int, id int) int
 		EditItem       func(childComplexity int, id int, input model.ItemInput) int
 		EditTag        func(childComplexity int, id int, input model.TagInput) int
 		TagItems       func(childComplexity int, itemIDs []int, tagID int) int
@@ -117,6 +118,7 @@ type MutationResolver interface {
 	CreateTag(ctx context.Context, input model.TagInput) (*ent.Tag, error)
 	EditTag(ctx context.Context, id int, input model.TagInput) (*ent.Tag, error)
 	EditItem(ctx context.Context, id int, input model.ItemInput) (*ent.Item, error)
+	DeleteTag(ctx context.Context, id int) (*bool, error)
 }
 type QueryResolver interface {
 	Items(ctx context.Context, tagID *int) ([]*ent.Item, error)
@@ -211,6 +213,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateTag(childComplexity, args["input"].(model.TagInput)), true
+
+	case "Mutation.deleteTag":
+		if e.complexity.Mutation.DeleteTag == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteTag_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteTag(childComplexity, args["id"].(int)), true
 
 	case "Mutation.editItem":
 		if e.complexity.Mutation.EditItem == nil {
@@ -617,6 +631,7 @@ type Mutation {
   createTag(input: TagInput!): Tag!
   editTag(id: Int!, input: TagInput!): Tag!
   editItem(id: Int!, input: ItemInput!): Item!
+  deleteTag(id: Int!): Boolean
 }
 `, BuiltIn: false},
 }
@@ -668,6 +683,21 @@ func (ec *executionContext) field_Mutation_createTag_args(ctx context.Context, r
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteTag_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -1333,6 +1363,45 @@ func (ec *executionContext) _Mutation_editItem(ctx context.Context, field graphq
 	res := resTmp.(*ent.Item)
 	fc.Result = res
 	return ec.marshalNItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItem(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteTag(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteTag_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteTag(rctx, args["id"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_items(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3769,6 +3838,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "deleteTag":
+			out.Values[i] = ec._Mutation_deleteTag(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
