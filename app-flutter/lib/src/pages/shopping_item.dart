@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:shilingi/src/components/components.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,13 +9,16 @@ import 'package:google_fonts/google_fonts.dart';
 import '../gql/gql.dart';
 import '../models/model.dart';
 import '../constants/constants.dart';
-import '../components/text.dart';
 import './purchase_details.dart';
 import './settings/settings.dart';
 import '../style/style.dart';
 
 var shoppingNumberFormat =
     NumberFormat.compactCurrency(decimalDigits: 2, symbol: '');
+
+enum appBarDropDown {
+  editItem,
+}
 
 class ShoppingItemDetailPage extends StatefulWidget {
   const ShoppingItemDetailPage({Key? key}) : super(key: key);
@@ -28,14 +32,47 @@ class _ShoppingItemDetailPage extends State {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   List<PurchaseItem> _items = [];
+  String _itemName = '';
 
   @override
   Widget build(BuildContext context) {
     final args =
         ModalRoute.of(context)!.settings.arguments as ShoppingItemRouteSettings;
+    if (_itemName.isEmpty) {
+      _itemName = args.name;
+    }
     return Scaffold(
       backgroundColor: mainScaffoldBg,
-      appBar: AppBar(title: Text('${args.name} Details')),
+      appBar: AppBar(
+        title: Text('$_itemName Details'),
+        actions: [
+          PopupMenuButton(
+              onSelected: (value) {
+                switch (value) {
+                  case appBarDropDown.editItem:
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return _EditItemNameDialog(
+                              name: _itemName,
+                              itemId: args.itemId,
+                              onSuccess: (value) {
+                                setState(() {
+                                  _itemName = value;
+                                });
+                              });
+                        });
+                    break;
+                }
+              },
+              itemBuilder: (context) => <PopupMenuItem<appBarDropDown>>[
+                    const PopupMenuItem(
+                      child: Text('Edit name'),
+                      value: appBarDropDown.editItem,
+                    ),
+                  ]),
+        ],
+      ),
       body: ListView(
         children: [
           TableCalendar<PurchaseItem>(
@@ -95,7 +132,7 @@ class _ShoppingItemDetailPage extends State {
                             'Total in ${DateFormat("MMM").format(_focusedDay)}',
                         value: shoppingNumberFormat
                             .format(_calculateTotal(_items)))),
-                Expanded(child: SizedBox(width: 10)),
+                const Expanded(child: SizedBox(width: 10)),
               ],
             ),
           ),
@@ -285,6 +322,118 @@ class _PurchaseItem extends StatelessWidget {
               ),
             )),
       ),
+    );
+  }
+}
+
+class _EditItemNameDialog extends StatefulWidget {
+  final String name;
+  final int itemId;
+  final ValueCallback<String> onSuccess;
+
+  const _EditItemNameDialog(
+      {Key? key,
+      required this.name,
+      required this.itemId,
+      required this.onSuccess})
+      : super(key: key);
+
+  @override
+  State createState() => _EditItemNameDialogState();
+}
+
+class _EditItemNameDialogState extends State<_EditItemNameDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _controller;
+  String _name = '';
+  bool _loading = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = widget.name;
+    _controller = TextEditingController();
+    _controller.text = _name;
+    _controller.addListener(() {
+      setState(() {
+        _name = _controller.text;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Rename item'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          enabled: !_loading,
+          controller: _controller,
+          decoration: InputDecoration(
+            labelText: 'Item name',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+            errorText: _errorMessage,
+            errorMaxLines: 3,
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: _loading
+                ? null
+                : () {
+                    Navigator.of(context).pop();
+                  },
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+        TextButton(
+            onPressed: !_loading && _name.isNotEmpty
+                ? () {
+                    setState(() {
+                      _loading = true;
+                      _errorMessage = '';
+                    });
+                    var cli = GraphQLProvider.of(context).value;
+                    var result = cli.mutate(
+                      MutationOptions(
+                        document: mutationEditItem,
+                        variables: {
+                          'id': widget.itemId,
+                          'input': {
+                            'name': _name,
+                          },
+                        },
+                      ),
+                    );
+                    result.then((value) {
+                      if (value.data != null) {
+                        var item = Item.fromJson(value.data!['editItem']);
+                        widget.onSuccess(item.name);
+                        var snackBar =
+                            const SnackBar(content: Text('Item name updated'));
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                      } else if (value.hasException) {
+                        if (value.exception!.graphqlErrors.isNotEmpty) {
+                          setState(() {
+                            _errorMessage =
+                                value.exception!.graphqlErrors[0].message;
+                            _loading = false;
+                          });
+                          return;
+                        }
+                        var snackBar = const SnackBar(
+                            content: Text('Unable to update item name'));
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                      }
+                      Navigator.of(context).pop();
+                    });
+                  }
+                : null,
+            child: Text(_loading ? 'Saving...' : 'Ok')),
+      ],
     );
   }
 }

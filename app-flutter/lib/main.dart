@@ -36,6 +36,7 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           primarySwatch: Colors.lightGreen,
           textTheme: GoogleFonts.rubikTextTheme(),
+          appBarTheme: AppBarTheme.of(context).copyWith(elevation: 0),
         ),
         initialRoute: '/',
         routes: {

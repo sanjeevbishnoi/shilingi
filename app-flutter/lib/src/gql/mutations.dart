@@ -62,3 +62,12 @@ var mutationDeleteTag = gql(r'''
       deleteTag(id: $id)
     }
 ''');
+
+var mutationEditItem = gql(r'''
+    mutation editItem($id: Int!, $input: ItemInput!) {
+      editItem(id: $id, input: $input) {
+        id
+        name
+      }
+    }
+''');
