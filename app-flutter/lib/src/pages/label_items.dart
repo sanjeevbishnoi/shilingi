@@ -98,31 +98,7 @@ class _LabelItemsPageState extends State<LabelItemsPage> {
                                     },
                                   ),
                                 );
-                                Navigator.of(context).pop();
                                 var hasPopped = false;
-                                showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return WillPopScope(
-                                        onWillPop: () async {
-                                          return result.then(
-                                            (value) {
-                                              hasPopped = true;
-                                              return true;
-                                            },
-                                          );
-                                        },
-                                        child: AlertDialog(
-                                          content: Row(
-                                            children: const [
-                                              CircularProgressIndicator(),
-                                              SizedBox(width: 10),
-                                              Text('Deleting label...')
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    });
                                 result.then((value) {
                                   if (value.hasException) {
                                     var snackBar = const SnackBar(
@@ -136,17 +112,63 @@ class _LabelItemsPageState extends State<LabelItemsPage> {
                                     }
                                     return;
                                   }
-                                  var snackBar = const SnackBar(
-                                      content: Text('Label has beed deleted.'));
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(snackBar);
-                                  if (!hasPopped) {
-                                    // Close alert dialog with delete loading bar
-                                    Navigator.of(context).pop();
-                                  }
-                                  // Pops to the previous page after the label's page
-                                  Navigator.of(context).pop();
+                                  // Navigator.of(context).popUntil((route) =>
+                                  // route.settings.name == '/catalogue');
                                 });
+                                Navigator.of(context).pop();
+                                showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return FutureBuilder(
+                                        future: result,
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.done) {
+                                            return AlertDialog(
+                                              content:
+                                                  const Text('Label deleted'),
+                                              actions: [
+                                                TextButton(
+                                                  child: const Text('Ok'),
+                                                  onPressed: () {
+                                                    Navigator.of(context)
+                                                        .popUntil((route) =>
+                                                            route.settings
+                                                                .name ==
+                                                            '/catalogue');
+                                                  },
+                                                ),
+                                              ],
+                                            );
+                                          }
+
+                                          return WillPopScope(
+                                            onWillPop: () async {
+                                              return result.then(
+                                                (value) {
+                                                  hasPopped = true;
+                                                  return true;
+                                                },
+                                              );
+                                            },
+                                            child: AlertDialog(
+                                              content: Row(
+                                                children: const [
+                                                  CircularProgressIndicator(),
+                                                  SizedBox(width: 10),
+                                                  Text('Deleting label...')
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    }).then(
+                                  (value) {
+                                    Navigator.of(context).popUntil((route) =>
+                                        route.settings.name == '/catalogue');
+                                  },
+                                );
                               },
                               child: const Text('Yes',
                                   style: TextStyle(color: Colors.redAccent))),
