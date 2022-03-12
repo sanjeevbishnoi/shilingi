@@ -11,6 +11,8 @@ import '../components/components.dart';
 import '../gql/gql.dart' as queries;
 import '../constants/constants.dart';
 import '../style/style.dart';
+import './date_range_analytics.dart';
+import './settings/settings.dart';
 
 var formatAmt = NumberFormat('#,##0.00', 'en_US');
 var formatAmtWithoutDecimal =
@@ -57,14 +59,22 @@ class _PurchasesPageState extends State<PurchasesPage> {
             child: Row(
               children: [
                 Expanded(
-                    child: StatCard(
-                        title: DateFormat('MMM').format(focusedDay),
-                        value: _monthExpenditure())),
+                  child: StatCard(
+                    title: DateFormat('MMM').format(focusedDay),
+                    value: _monthExpenditure(),
+                    goTo: DateRangeAnalytics(),
+                    settings: _getMonthAnalyticsSettings(),
+                  ),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
-                    child: StatCard(
-                        title: _getExpenditureText(),
-                        value: _getExpenditure())),
+                  child: StatCard(
+                    title: _getExpenditureText(),
+                    value: _getExpenditure(),
+                    goTo: DateRangeAnalytics(),
+                    settings: _getDateRageAnalyticsSettings(),
+                  ),
+                ),
               ],
             ),
           ),
@@ -136,8 +146,8 @@ class _PurchasesPageState extends State<PurchasesPage> {
                 onDaySelected: (selectedDay, focused) {
                   if (!isSameDay(selectedDay, _selectedDay)) {
                     setState(() {
-                      _selectedDay = selectedDay;
                       focusedDay = focused;
+                      _selectedDay = focused;
                       _rangeStart = null;
                       _rangeEnd = null;
                       _rangeSelectionMode = RangeSelectionMode.toggledOff;
@@ -154,7 +164,10 @@ class _PurchasesPageState extends State<PurchasesPage> {
                 },
                 calendarFormat: calendarFormat,
                 onPageChanged: (focused) {
-                  focusedDay = focused;
+                  setState(() {
+                    focusedDay = focused;
+                    _selectedDay = focused;
+                  });
                   _fetchPurchases(context, focused);
                 },
                 onCalendarCreated: (_) {
@@ -162,7 +175,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
                 },
                 onRangeSelected: (start, end, focused) {
                   setState(() {
-                    _selectedDay = null;
+                    _selectedDay = focused;
                     focusedDay = focused;
                     _rangeStart = start;
                     _rangeEnd = end;
@@ -213,7 +226,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
     if (_rangeStart != null && _rangeEnd != null) {
       return '${f.format(_rangeStart!)} to ${f.format(_rangeEnd!)}';
     }
-    return f.format(focusedDay);
+    return f.format(_selectedDay!);
   }
 
   Future _fetchPurchases(BuildContext context, DateTime start) {
@@ -299,7 +312,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
       return total;
     }
 
-    return _totalExpenditure(focusedDay);
+    return _totalExpenditure(_selectedDay);
   }
 
   bool get _rangeOn {
@@ -327,6 +340,18 @@ class _PurchasesPageState extends State<PurchasesPage> {
       return _rangePurchases;
     }
     return _getPurchasesOnDay(focusedDay);
+  }
+
+  AnalyticsForSettings _getMonthAnalyticsSettings() {
+    return AnalyticsForSettings(
+        analyticsFor: AnalyticsFor.month, month: focusedDay.month);
+  }
+
+  AnalyticsForSettings _getDateRageAnalyticsSettings() {
+    return AnalyticsForSettings(
+        analyticsFor: AnalyticsFor.dateRange,
+        after: _rangeStart,
+        before: _rangeEnd);
   }
 }
 
