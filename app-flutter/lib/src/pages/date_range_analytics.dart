@@ -72,11 +72,8 @@ class DateRangeAnalytics extends StatelessWidget {
           }
 
           var purchases = Purchases.fromJson(result.data!);
-          var expenditureByLabel = _filterByTag(purchases);
-          var max = 0.0;
-          if (expenditureByLabel.isNotEmpty) {
-            max = expenditureByLabel.last.total;
-          }
+          var byLabel = _filterByTag(purchases);
+          var byVendor = _filterByVendor(purchases);
 
           return ListView(
             children: [
@@ -86,17 +83,11 @@ class DateRangeAnalytics extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    StatSection(
-                        title: 'Expenditure by label',
-                        child: Column(
-                          children: [
-                            for (var tag in expenditureByLabel.reversed)
-                              SimpleBar(
-                                  title: tag.name,
-                                  value: tag.total,
-                                  width: tag.total / max),
-                          ],
-                        )),
+                    StatSectionWrapper(
+                        title: 'Expenditure by label', entries: byLabel),
+                    StatSectionWrapper(
+                        title: 'Expenditure by vendor/store',
+                        entries: byVendor),
                   ],
                 ),
               ),
@@ -107,32 +98,50 @@ class DateRangeAnalytics extends StatelessWidget {
     );
   }
 
-  SortedList<TagTotal> _filterByTag(Purchases purchases) {
-    Map<String, TagTotal> result = {};
-    var list = SortedList<TagTotal>((a, b) {
-      if (a.total > b.total) {
-        return 1;
-      } else if (a.total < b.total) {
-        return -1;
-      }
-      return 0;
-    });
+  SortedList<SimpleBarEntry<PurchaseItem>> _filterByTag(Purchases purchases) {
+    var result =
+        SortedList<SimpleBarEntry<PurchaseItem>>((a, b) => a.compareTo(b));
+    var map = <String, SimpleBarEntry<PurchaseItem>>{};
+
     purchases.purchases.forEach((purchase) {
-      purchase.items?.forEach((item) {
-        var isNotEmpty = item.item?.tags?.isNotEmpty;
-        var tag = TagTotal(name: 'uncategorized', total: item.total);
-        var name = 'uncategorized';
-        if (isNotEmpty != null && isNotEmpty) {
-          name = item.item!.tags![0].name;
-          tag = TagTotal(name: name, total: item.total);
+      purchase.items!.forEach((purchaseItem) {
+        var entry = SimpleBarEntry<PurchaseItem>(
+            label: 'uncategorized',
+            value: purchaseItem.total,
+            items: [purchaseItem]);
+        // Retrieve the tag for the item
+        if (purchaseItem.item?.tags?.isNotEmpty ?? false) {
+          entry = SimpleBarEntry<PurchaseItem>(
+              label: purchaseItem.item!.tags![0].name,
+              value: purchaseItem.total,
+              items: [purchaseItem]);
         }
-        var total = result[name] ?? TagTotal(name: name, total: 0);
-        result[tag.name] = total + tag;
+        map.update(entry.label, (value) => value + entry,
+            ifAbsent: () => entry);
       });
     });
 
-    result.values.forEach((element) => list.add(element));
-    return list;
+    map.values.forEach((entry) => result.add(entry));
+    return result;
+  }
+
+  SortedList<SimpleBarEntry<Purchase>> _filterByVendor(Purchases purchases) {
+    var result = SortedList<SimpleBarEntry<Purchase>>((a, b) => a.compareTo(b));
+    var map = <String, SimpleBarEntry<Purchase>>{};
+
+    purchases.purchases.forEach((purchase) {
+      var entry = SimpleBarEntry<Purchase>(
+          label: purchase.vendor.name,
+          value: purchase.total!,
+          items: [purchase]);
+      map.update(entry.label, (value) => value + entry, ifAbsent: () => entry);
+    });
+
+    map.values.forEach(
+      (entry) => result.add(entry),
+    );
+
+    return result;
   }
 }
 
@@ -147,6 +156,7 @@ class StatSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 20.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10.0),
@@ -179,7 +189,7 @@ class StatSectionWrapper<E> extends StatelessWidget {
   Widget build(BuildContext context) {
     var max = 0.0;
     if (entries.isNotEmpty) {
-      max = entries.reversed.last.value;
+      max = entries.last.value;
     }
 
     return StatSection(
@@ -276,4 +286,20 @@ class SimpleBarEntry<E> {
 
   const SimpleBarEntry(
       {required this.label, required this.value, required this.items});
+
+  factory SimpleBarEntry.empty(String label) =>
+      SimpleBarEntry(label: label, value: 0, items: []);
+
+  SimpleBarEntry<E> operator +(SimpleBarEntry<E> other) {
+    return SimpleBarEntry(
+        label: label,
+        value: value + other.value,
+        items: [...items, ...other.items]);
+  }
+
+  int compareTo(SimpleBarEntry<E> other) => value > other.value
+      ? 1
+      : value < other.value
+          ? -1
+          : 0;
 }
