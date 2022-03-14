@@ -136,7 +136,7 @@ func (r *queryResolver) ShoppingItems(ctx context.Context, after time.Time, befo
 			),
 			shoppingitem.HasShoppingWith(
 				shopping.DateGTE(after),
-				shopping.DateLTE(before),
+				shopping.DateLT(before),
 			),
 		).All(ctx)
 }
@@ -146,7 +146,7 @@ func (r *queryResolver) Purchases(ctx context.Context, before time.Time, after t
 		Where(
 			shopping.And(
 				shopping.DateGTE(after),
-				shopping.DateLTE(before),
+				shopping.DateLT(before),
 			),
 		).
 		Order(ent.Desc(shopping.FieldDate, shopping.FieldCreateTime)).

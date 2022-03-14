@@ -85,12 +85,17 @@ class DateRangeAnalytics extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     StatSectionWrapper(
-                        title: 'Expenditure by label', entries: byLabel),
+                        title: 'Expenditure by label',
+                        entries: byLabel,
+                        truncate: true),
                     StatSectionWrapper(
                         title: 'Expenditure by vendor/store',
-                        entries: byVendor),
+                        entries: byVendor,
+                        truncate: true),
                     StatSectionWrapper(
-                        title: 'Itemized expenditure', entries: byItem),
+                        title: 'Itemized expenditure',
+                        entries: byItem,
+                        truncate: true),
                   ],
                 ),
               ),
@@ -199,30 +204,66 @@ class StatSection extends StatelessWidget {
   }
 }
 
-class StatSectionWrapper<E> extends StatelessWidget {
+class StatSectionWrapper<E> extends StatefulWidget {
   final String title;
   final SortedList<SimpleBarEntry<E>> entries;
+  final bool truncate;
+  final int initialCount;
 
   const StatSectionWrapper(
-      {Key? key, required this.title, required this.entries})
+      {Key? key,
+      required this.title,
+      required this.entries,
+      this.truncate = false,
+      this.initialCount = 5})
       : super(key: key);
+
+  @override
+  State createState() => _StatSectionWrapper<E>();
+}
+
+class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
+  bool _truncated = true;
+  late final bool _showToggleButton;
+
+  @override
+  void initState() {
+    super.initState();
+    _showToggleButton =
+        widget.initialCount < widget.entries.length && widget.truncate;
+  }
 
   @override
   Widget build(BuildContext context) {
     var max = 0.0;
-    if (entries.isNotEmpty) {
-      max = entries.last.value;
+    if (widget.entries.isNotEmpty) {
+      max = widget.entries.last.value;
     }
 
+    var initialCount = widget.initialCount > widget.entries.length
+        ? widget.entries.length
+        : widget.initialCount;
+
     return StatSection(
-        title: title,
+        title: widget.title,
         child: Column(
           children: [
-            for (var entry in entries.reversed)
+            for (var entry in _truncated
+                ? widget.entries.reversed.toList().sublist(0, initialCount)
+                : widget.entries.reversed)
               SimpleBar(
                   title: entry.label,
                   value: entry.value,
                   width: entry.value / max),
+            if (_showToggleButton)
+              Center(
+                  child: TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _truncated = !_truncated;
+                        });
+                      },
+                      child: Text(_truncated ? 'Show more' : 'Show less')))
           ],
         ));
   }
