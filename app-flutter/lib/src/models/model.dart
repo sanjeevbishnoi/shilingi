@@ -47,8 +47,10 @@ class Item {
   final String name;
   @JsonKey(includeIfNull: false)
   final int? id;
+  @JsonKey(includeIfNull: false)
+  final List<Tag>? tags;
 
-  const Item({required this.name, this.id});
+  const Item({required this.name, this.id, this.tags});
 
   Map<String, dynamic> toJson() => _$ItemToJson(this);
 

@@ -55,6 +55,9 @@ Map<String, dynamic> _$PurchaseItemsToJson(PurchaseItems instance) =>
 Item _$ItemFromJson(Map<String, dynamic> json) => Item(
       name: json['name'] as String,
       id: json['id'] as int?,
+      tags: (json['tags'] as List<dynamic>?)
+          ?.map((e) => Tag.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$ItemToJson(Item instance) {
@@ -69,6 +72,7 @@ Map<String, dynamic> _$ItemToJson(Item instance) {
   }
 
   writeNotNull('id', instance.id);
+  writeNotNull('tags', instance.tags);
   return val;
 }
 

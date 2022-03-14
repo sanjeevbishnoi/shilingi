@@ -62,8 +62,9 @@ class _PurchasesPageState extends State<PurchasesPage> {
                   child: StatCard(
                     title: DateFormat('MMM').format(focusedDay),
                     value: _monthExpenditure(),
-                    goTo: DateRangeAnalytics(),
-                    settings: _getMonthAnalyticsSettings(),
+                    goTo: DateRangeAnalytics(
+                      analyticsFor: _getMonthAnalyticsSettings(),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -71,8 +72,9 @@ class _PurchasesPageState extends State<PurchasesPage> {
                   child: StatCard(
                     title: _getExpenditureText(),
                     value: _getExpenditure(),
-                    goTo: DateRangeAnalytics(),
-                    settings: _getDateRageAnalyticsSettings(),
+                    goTo: DateRangeAnalytics(
+                      analyticsFor: _getDateRageAnalyticsSettings(),
+                    ),
                   ),
                 ),
               ],
@@ -350,7 +352,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
   AnalyticsForSettings _getDateRageAnalyticsSettings() {
     return AnalyticsForSettings(
         analyticsFor: AnalyticsFor.dateRange,
-        after: _rangeStart,
+        after: _rangeStart ?? _selectedDay,
         before: _rangeEnd);
   }
 }
