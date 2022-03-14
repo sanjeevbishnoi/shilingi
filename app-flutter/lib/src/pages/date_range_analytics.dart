@@ -74,6 +74,7 @@ class DateRangeAnalytics extends StatelessWidget {
           var purchases = Purchases.fromJson(result.data!);
           var byLabel = _filterByTag(purchases);
           var byVendor = _filterByVendor(purchases);
+          var byItem = _filterByItem(purchases);
 
           return ListView(
             children: [
@@ -88,6 +89,8 @@ class DateRangeAnalytics extends StatelessWidget {
                     StatSectionWrapper(
                         title: 'Expenditure by vendor/store',
                         entries: byVendor),
+                    StatSectionWrapper(
+                        title: 'Itemized expenditure', entries: byItem),
                   ],
                 ),
               ),
@@ -141,6 +144,25 @@ class DateRangeAnalytics extends StatelessWidget {
       (entry) => result.add(entry),
     );
 
+    return result;
+  }
+
+  SortedList<SimpleBarEntry<PurchaseItem>> _filterByItem(Purchases purchases) {
+    var result = SortedList<SimpleBarEntry<PurchaseItem>>(
+      (a, b) => a.compareTo(b),
+    );
+    var map = <int, SimpleBarEntry<PurchaseItem>>{};
+
+    purchases.purchases.forEach((purchase) {
+      purchase.items!.forEach((item) {
+        var entry = SimpleBarEntry(
+            label: item.item!.name, value: item.total, items: [item]);
+        map.update(item.item!.id!, (value) => value + entry,
+            ifAbsent: (() => entry));
+      });
+    });
+
+    map.values.forEach((element) => result.add(element));
     return result;
   }
 }

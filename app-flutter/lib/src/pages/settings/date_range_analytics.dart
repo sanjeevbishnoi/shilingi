@@ -40,9 +40,8 @@ class AnalyticsForSettings {
       case AnalyticsFor.dateRange:
         _start = DateTime(after!.year, after!.month, after!.day);
         _end = before?.add(const Duration(days: 1)) ??
-            _start
-                ?.add(const Duration(days: 1))
-                .subtract(const Duration(minutes: 1));
+            _start?.add(const Duration(days: 1));
+        _end = DateTime(_end!.year, _end!.month, _end!.day);
         _calculated = true;
         break;
     }
