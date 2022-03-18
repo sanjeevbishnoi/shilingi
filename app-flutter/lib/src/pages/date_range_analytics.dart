@@ -84,13 +84,17 @@ class DateRangeAnalytics extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    InheritedSwitcherWrapper(
-                      child: const CustomAnimatedSwitcher(),
-                      switchable: StatSectionWrapper(
-                          key: const ValueKey('parent-label'),
-                          title: 'Expenditure by label',
-                          entries: byLabel,
-                          truncate: true),
+                    AnimatedSize(
+                      alignment: Alignment.topCenter,
+                      duration: const Duration(milliseconds: 400),
+                      child: InheritedSwitcherWrapper(
+                        child: const CustomAnimatedSwitcher(),
+                        switchable: StatSectionWrapper(
+                            key: const ValueKey('parent-label'),
+                            title: 'Expenditure by label',
+                            entries: byLabel,
+                            truncate: true),
+                      ),
                     ),
                     StatSectionWrapper(
                         title: 'Expenditure by vendor/store',
@@ -180,12 +184,14 @@ class StatSection extends StatelessWidget {
   final String title;
   final Widget child;
   final bool canGoBack;
+  final List<Widget> actions;
 
   const StatSection(
       {Key? key,
       required this.title,
       required this.child,
-      this.canGoBack = false})
+      this.canGoBack = false,
+      this.actions = const []})
       : super(key: key);
 
   @override
@@ -201,23 +207,28 @@ class StatSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            if (canGoBack) ...[
-              IconButton(
-                onPressed: () {
-                  var inherited = InheritedWidgetSwitcher.of(context);
-                  inherited?.goBack();
-                },
-                icon: const Icon(Icons.chevron_left),
+          Row(
+            children: [
+              if (canGoBack) ...[
+                IconButton(
+                  onPressed: () {
+                    var inherited = InheritedWidgetSwitcher.of(context);
+                    inherited?.goBack();
+                  },
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16.0,
+                        color: Colors.grey)),
               ),
-              const SizedBox(width: 10),
+              for (var action in actions) action,
             ],
-            Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16.0,
-                    color: Colors.grey)),
-          ]),
+          ),
           child,
         ],
       ),
@@ -248,12 +259,23 @@ class StatSectionWrapper<E> extends StatefulWidget {
 class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
   bool _truncated = true;
   late final bool _showToggleButton;
+  bool _showPercentage = false;
+  int _count = 0;
 
   @override
   void initState() {
     super.initState();
     _showToggleButton =
         widget.initialCount < widget.entries.length && widget.truncate;
+    _count = widget.initialCount;
+  }
+
+  bool _isUpwardEnabled() {
+    return _count > widget.initialCount;
+  }
+
+  bool _isDownloadEnabled() {
+    return _count < widget.entries.length;
   }
 
   @override
@@ -262,12 +284,16 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
     if (widget.entries.isNotEmpty) {
       max = widget.entries.last.value;
     }
+    var result = widget.entries.reduce((value, element) => value + element);
+    var total = result.value;
 
-    var initialCount = widget.initialCount > widget.entries.length
-        ? widget.entries.length
-        : widget.initialCount;
+    var initialCount =
+        _count > widget.entries.length ? widget.entries.length : _count;
 
-    return StatSection(
+    return AnimatedSize(
+      alignment: Alignment.topCenter,
+      duration: const Duration(milliseconds: 400),
+      child: StatSection(
         title: widget.title,
         canGoBack: widget.canGoBack,
         child: Column(
@@ -278,34 +304,76 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
               SimpleBar(
                 title: entry.label,
                 value: entry.value,
-                width: entry.value / max,
                 entry: entry,
+                max: max,
+                showPercentage: _showPercentage,
+                total: total,
               ),
             if (_showToggleButton)
-              Center(
-                  child: TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _truncated = !_truncated;
-                        });
-                      },
-                      child: Text(_truncated ? 'Show more' : 'Show less')))
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                      child: IconButton(
+                          iconSize: 16,
+                          onPressed: _isUpwardEnabled()
+                              ? () {
+                                  setState(() {
+                                    _count = widget.initialCount;
+                                  });
+                                }
+                              : null,
+                          icon: const Icon(Icons.arrow_upward))),
+                  const SizedBox(width: 5),
+                  CircleAvatar(
+                      child: IconButton(
+                          iconSize: 16,
+                          onPressed: _isDownloadEnabled()
+                              ? () {
+                                  setState(() {
+                                    _count = initialCount + widget.initialCount;
+                                  });
+                                }
+                              : null,
+                          icon: const Icon(Icons.arrow_downward))),
+                ],
+              ),
           ],
-        ));
+        ),
+        actions: [
+          CircleAvatar(
+            radius: 15,
+            child: IconButton(
+              onPressed: () {
+                setState(() {
+                  _showPercentage = !_showPercentage;
+                });
+              },
+              icon: const Icon(Icons.percent),
+              iconSize: 14.0,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
 class SimpleBar extends StatefulWidget {
   final String title;
   final double value;
-  final double width;
+  final double max;
+  final double total;
   final SimpleBarEntry? entry;
+  final bool showPercentage;
 
   const SimpleBar(
       {Key? key,
       required this.title,
       required this.value,
-      required this.width,
+      required this.max,
+      required this.total,
+      this.showPercentage = false,
       this.entry})
       : super(key: key);
 
@@ -323,12 +391,21 @@ class SimpleBarState extends State<SimpleBar> {
       drilldown = (widget.entry as NavigatableBarEntry).build(context);
     }
 
+    var per = widget.value / widget.max;
+    if (widget.showPercentage) {
+      per = widget.value / widget.total;
+    }
+    var valueText = 'Kes ' + _format.format(widget.value);
+    if (widget.showPercentage) {
+      valueText = _format.format(per * 100) + '%';
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         var w = constraints.maxWidth;
         Future.delayed(Duration.zero, () {
           setState(() {
-            var result = widget.width * w;
+            var result = per * w;
             if (width != result) {
               width = result;
             }
@@ -361,7 +438,7 @@ class SimpleBarState extends State<SimpleBar> {
                                   child: Text(widget.title,
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w600))),
-                              Text('Kes ' + _format.format(widget.value)),
+                              Text(valueText),
                             ],
                           ),
                           AnimatedContainer(
