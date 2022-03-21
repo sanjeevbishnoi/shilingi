@@ -12,6 +12,106 @@ import '../models/model.dart';
 
 var _format = NumberFormat('#,##0', 'en_US');
 
+class AnalyticsHeader extends StatelessWidget {
+  final AnalyticsForSettings analyticsFor;
+  final List<Purchase> purchases;
+
+  const AnalyticsHeader(
+      {Key? key, required this.analyticsFor, required this.purchases})
+      : super(key: key);
+
+  double get _totalSpend {
+    var total = 0.0;
+    for (var purchase in purchases) {
+      total += purchase.total!;
+    }
+    return total;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.analytics),
+          const SizedBox(width: 10),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (analyticsFor.analyticsFor == AnalyticsFor.month)
+              _AnalyticsHeaderMonth(month: analyticsFor.month!),
+            if (analyticsFor.analyticsFor == AnalyticsFor.dateRange)
+              _AnalyticsHeaderDateRange(
+                  start: analyticsFor.start, end: analyticsFor.end),
+            const SizedBox(height: 12),
+            Text('Kes ${_format.format(_totalSpend)}',
+                style: const TextStyle(
+                  fontSize: 22,
+                )),
+            const Text('Total spend', style: TextStyle(color: Colors.grey)),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnalyticsHeaderMonth extends StatelessWidget {
+  final int month;
+
+  const _AnalyticsHeaderMonth({Key? key, required this.month})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    var date = DateTime(DateTime.now().year, month, 1);
+    var text = DateFormat('MMMM').format(date);
+    return Text('Analytics for $text',
+        style: const TextStyle(
+            fontWeight: FontWeight.w500, color: Colors.grey, fontSize: 20));
+  }
+}
+
+class _AnalyticsHeaderDateRange extends StatelessWidget {
+  final DateTime start;
+  final DateTime end;
+
+  const _AnalyticsHeaderDateRange(
+      {Key? key, required this.start, required this.end})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Analytics for',
+            style: TextStyle(
+                fontWeight: FontWeight.w500, color: Colors.grey, fontSize: 20)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(DateFormat('EEE, MMM d').format(start),
+                style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey,
+                    fontSize: 14)),
+            const SizedBox(width: 5.0),
+            const Icon(Icons.arrow_right),
+            const SizedBox(width: 5.0),
+            Text(DateFormat('EEE, MMM d').format(end),
+                style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey,
+                    fontSize: 14)),
+          ],
+        )
+      ],
+    );
+  }
+}
+
 class DateRangeAnalytics extends StatelessWidget {
   final AnalyticsForSettings analyticsFor;
 
@@ -76,6 +176,26 @@ class DateRangeAnalytics extends StatelessWidget {
           var byVendor = _filterByVendor(purchases);
           var byItem = _filterByItem(purchases);
 
+          if (purchases.purchases.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.all(30.0),
+              child: Align(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    UnDraw(
+                        height: 150.0,
+                        illustration: UnDrawIllustration.warning,
+                        color: Colors.redAccent),
+                    const Text('No data to show',
+                        style: TextStyle(fontSize: 18.0)),
+                  ],
+                ),
+              ),
+            );
+          }
+
           return ListView(
             children: [
               Padding(
@@ -84,13 +204,16 @@ class DateRangeAnalytics extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    AnalyticsHeader(
+                      analyticsFor: analyticsFor,
+                      purchases: purchases.purchases,
+                    ),
                     AnimatedSize(
                       alignment: Alignment.topCenter,
                       duration: const Duration(milliseconds: 400),
                       child: InheritedSwitcherWrapper(
                         child: const CustomAnimatedSwitcher(),
                         switchable: StatSectionWrapper(
-                            key: const ValueKey('parent-label'),
                             title: 'Expenditure by label',
                             entries: byLabel,
                             truncate: true),
@@ -309,6 +432,7 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
                 showPercentage: _showPercentage,
                 total: total,
               ),
+            if (widget.entries.isEmpty) const Text('No data'),
             if (_showToggleButton)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
