@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:ms_undraw/ms_undraw.dart';
 import 'package:sorted_list/sorted_list.dart';
+import 'package:expandable_page_view/expandable_page_view.dart';
 
 import './settings/settings.dart';
 import '../constants/constants.dart';
@@ -203,30 +204,39 @@ class DateRangeAnalytics extends StatelessWidget {
                     vertical: 30.0, horizontal: 30.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     AnalyticsHeader(
                       analyticsFor: analyticsFor,
                       purchases: purchases.purchases,
                     ),
-                    AnimatedSize(
-                      alignment: Alignment.topCenter,
-                      duration: const Duration(milliseconds: 400),
-                      child: InheritedSwitcherWrapper(
-                        child: const CustomAnimatedSwitcher(),
-                        switchable: StatSectionWrapper(
-                            title: 'Expenditure by label',
-                            entries: byLabel,
-                            truncate: true),
+                    Flexible(
+                      flex: 1,
+                      fit: FlexFit.loose,
+                      child: AnalyticsPageView(
+                        pages: [
+                          AnimatedSize(
+                            alignment: Alignment.topCenter,
+                            duration: const Duration(milliseconds: 400),
+                            child: InheritedSwitcherWrapper(
+                              child: const CustomAnimatedSwitcher(),
+                              switchable: StatSectionWrapper(
+                                  title: 'Expenditure by label',
+                                  entries: byLabel,
+                                  truncate: true),
+                            ),
+                          ),
+                          StatSectionWrapper(
+                              title: 'Expenditure by vendor/store',
+                              entries: byVendor,
+                              truncate: true),
+                          StatSectionWrapper(
+                              title: 'Itemized expenditure',
+                              entries: byItem,
+                              truncate: true),
+                        ],
                       ),
                     ),
-                    StatSectionWrapper(
-                        title: 'Expenditure by vendor/store',
-                        entries: byVendor,
-                        truncate: true),
-                    StatSectionWrapper(
-                        title: 'Itemized expenditure',
-                        entries: byItem,
-                        truncate: true),
                   ],
                 ),
               ),
@@ -303,6 +313,41 @@ class DateRangeAnalytics extends StatelessWidget {
   }
 }
 
+class AnalyticsPageView extends StatefulWidget {
+  final List<Widget> pages;
+
+  const AnalyticsPageView({Key? key, required this.pages}) : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() {
+    return _AnalyticsPageViewState();
+  }
+}
+
+class _AnalyticsPageViewState extends State<AnalyticsPageView> {
+  late final PageController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController(initialPage: 0, viewportFraction: .9);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ExpandablePageView(
+      controller: _controller,
+      children: [
+        for (var page in widget.pages)
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            child: page,
+          ),
+      ],
+    );
+  }
+}
+
 class StatSection extends StatelessWidget {
   final String title;
   final Widget child;
@@ -371,7 +416,7 @@ class StatSectionWrapper<E> extends StatefulWidget {
       required this.title,
       required this.entries,
       this.truncate = false,
-      this.initialCount = 5,
+      this.initialCount = 10,
       this.canGoBack = false})
       : super(key: key);
 
@@ -420,6 +465,7 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
         title: widget.title,
         canGoBack: widget.canGoBack,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             for (var entry in _truncated
                 ? widget.entries.reversed.toList().sublist(0, initialCount)
