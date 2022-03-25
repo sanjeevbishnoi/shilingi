@@ -7,6 +7,7 @@ import '../../constants/constants.dart';
 import '../../components/analytics/simple_bar.dart';
 import '../../models/model.dart';
 import '../items_to_label_page.dart';
+import '../settings/settings.dart';
 
 var _format = NumberFormat('#,##0', 'en_US');
 
@@ -64,6 +65,14 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
     if (_selected.isNotEmpty) {
       appBar = AppBar(
         backgroundColor: Colors.lightGreenAccent,
+        leading: IconButton(
+          onPressed: () {
+            setState(() {
+              _selected.clear();
+            });
+          },
+          icon: const Icon(Icons.close),
+        ),
         title: Text('${_selected.length} selected items'),
         actions: [
           PopupMenuButton<_Popup>(
@@ -153,7 +162,18 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
                 const SizedBox(height: 14),
                 for (var item in items)
                   SelectableWidget(
-                    callback: () {
+                    tapCallback: () {
+                      if (_selected.isNotEmpty) {
+                        setState(() {
+                          _toggleItem(item.id!);
+                        });
+                      } else {
+                        Navigator.of(context).pushNamed(shoppingItemPage,
+                            arguments: ShoppingItemRouteSettings(
+                                itemId: item.id!, name: item.name));
+                      }
+                    },
+                    onLongPress: () {
                       setState(() {
                         _toggleItem(item.id!);
                       });
@@ -177,10 +197,14 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
 
 class SelectableWidget extends StatelessWidget {
   final Widget child;
-  final VoidCallback callback;
+  final VoidCallback tapCallback;
+  final VoidCallback? onLongPress;
 
   const SelectableWidget(
-      {Key? key, required this.child, required this.callback})
+      {Key? key,
+      required this.child,
+      required this.tapCallback,
+      this.onLongPress})
       : super(key: key);
 
   @override
@@ -189,7 +213,8 @@ class SelectableWidget extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         splashColor: Colors.black12,
-        onTap: callback,
+        onTap: tapCallback,
+        onLongPress: onLongPress,
         child: child,
       ),
     );
@@ -294,6 +319,7 @@ class _PurchaseItemEntryState extends State<_PurchaseItemEntry> {
           );
         },
       ),
+      trailing: const Icon(Icons.chevron_right),
     );
   }
 }
