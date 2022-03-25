@@ -76,8 +76,12 @@ class SelectLabelPage extends StatelessWidget {
                                   });
                               future.then((result) {
                                 if (result.data != null) {
-                                  Navigator.popUntil(context,
-                                      ModalRoute.withName(cataloguePage));
+                                  if (args.genericPop) {
+                                    Navigator.of(context).pop();
+                                  } else {
+                                    Navigator.popUntil(context,
+                                        ModalRoute.withName(cataloguePage));
+                                  }
                                   var snackBar = SnackBar(
                                     content: Text(
                                         'Items have been added to label \'${label.name}\''),
@@ -85,8 +89,12 @@ class SelectLabelPage extends StatelessWidget {
                                   ScaffoldMessenger.of(context)
                                       .showSnackBar(snackBar);
                                 } else {
-                                  Navigator.popUntil(context,
-                                      ModalRoute.withName(cataloguePage));
+                                  if (args.genericPop) {
+                                    Navigator.of(context).pop();
+                                  } else {
+                                    Navigator.popUntil(context,
+                                        ModalRoute.withName(cataloguePage));
+                                  }
                                   var snackBar = SnackBar(
                                     content: Text(
                                         'Unable to add items to label \'${label.name}\''),
@@ -249,5 +257,9 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
 class SelectLabelSettings {
   final List<int> itemIds;
 
-  SelectLabelSettings({required this.itemIds});
+  /// genericPop tells whether the select label page will just do a normal single pop
+  // command from the Navigator
+  final bool genericPop;
+
+  SelectLabelSettings({required this.itemIds, this.genericPop = false});
 }
