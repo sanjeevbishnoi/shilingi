@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -71,6 +72,11 @@ func (r *mutationResolver) UntagItems(ctx context.Context, itemIDs []int, tagID 
 func (r *mutationResolver) CreateTag(ctx context.Context, input model.TagInput) (*ent.Tag, error) {
 	cli := ent.FromContext(ctx)
 	cleanedTagName := utils.CleanTagName(input.Name)
+
+	if cleanedTagName == "uncategorized" {
+		return nil, errors.New("'uncategorized' is a reserved label name")
+	}
+
 	t, err := cli.Tag.Query().Where(tag.Name(cleanedTagName)).Only(ctx)
 	if ent.IsNotFound(err) {
 		// Create the tag
