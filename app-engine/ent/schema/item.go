@@ -31,6 +31,9 @@ func (Item) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("purchases", ShoppingItem.Type),
 		edge.To("tags", Tag.Type),
+		edge.From("sublabel", SubLabel.Type).
+			Ref("items").
+			Unique(),
 	}
 }
 

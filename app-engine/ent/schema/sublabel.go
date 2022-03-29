@@ -28,6 +28,7 @@ func (SubLabel) Edges() []ent.Edge {
 		edge.From("parent", Tag.Type).
 			Ref("children").
 			Unique(),
+		edge.To("items", Item.Type),
 	}
 }
 
