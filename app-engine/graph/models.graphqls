@@ -59,6 +59,7 @@ input VendorInput  {
 type Tag implements Node {
   id: ID!
   name: String!
+  children: [SubLabel!]!
 }
 
 input TagInput {
