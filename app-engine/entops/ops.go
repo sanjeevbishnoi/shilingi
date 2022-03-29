@@ -272,3 +272,28 @@ func AddItemsToSubLabel(ctx context.Context, subLabelID int, itemIDs []int) (*en
 
 	return label, err
 }
+
+// RemoveItemsFromSubLabel ...
+//
+// NOTE: we do not return an error if any of the items is not labelled with the
+// provided label id, but we do validate that only the items with the label
+// are unlabeled
+func RemoveItemsFromSubLabel(ctx context.Context, subLabelID int, itemIDs []int) (*ent.SubLabel, error) {
+	cli := ent.FromContext(ctx)
+	label, err := cli.SubLabel.Get(ctx, subLabelID)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = cli.Item.Update().
+		Where(
+			item.IDIn(itemIDs...),
+			item.HasSublabelWith(
+				sublabel.ID(label.ID),
+			),
+		).
+		ClearSublabel().
+		Save(ctx)
+
+	return label, err
+}
