@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 )
 
@@ -27,7 +28,8 @@ type TagQuery struct {
 	fields     []string
 	predicates []predicate.Tag
 	// eager-loading edges.
-	withItems *ItemQuery
+	withItems    *ItemQuery
+	withChildren *SubLabelQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -79,6 +81,28 @@ func (tq *TagQuery) QueryItems() *ItemQuery {
 			sqlgraph.From(tag.Table, tag.FieldID, selector),
 			sqlgraph.To(item.Table, item.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, tag.ItemsTable, tag.ItemsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChildren chains the current query on the "children" edge.
+func (tq *TagQuery) QueryChildren() *SubLabelQuery {
+	query := &SubLabelQuery{config: tq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := tq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := tq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tag.Table, tag.FieldID, selector),
+			sqlgraph.To(sublabel.Table, sublabel.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, tag.ChildrenTable, tag.ChildrenColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
 		return fromU, nil
@@ -262,12 +286,13 @@ func (tq *TagQuery) Clone() *TagQuery {
 		return nil
 	}
 	return &TagQuery{
-		config:     tq.config,
-		limit:      tq.limit,
-		offset:     tq.offset,
-		order:      append([]OrderFunc{}, tq.order...),
-		predicates: append([]predicate.Tag{}, tq.predicates...),
-		withItems:  tq.withItems.Clone(),
+		config:       tq.config,
+		limit:        tq.limit,
+		offset:       tq.offset,
+		order:        append([]OrderFunc{}, tq.order...),
+		predicates:   append([]predicate.Tag{}, tq.predicates...),
+		withItems:    tq.withItems.Clone(),
+		withChildren: tq.withChildren.Clone(),
 		// clone intermediate query.
 		sql:  tq.sql.Clone(),
 		path: tq.path,
@@ -282,6 +307,17 @@ func (tq *TagQuery) WithItems(opts ...func(*ItemQuery)) *TagQuery {
 		opt(query)
 	}
 	tq.withItems = query
+	return tq
+}
+
+// WithChildren tells the query-builder to eager-load the nodes that are connected to
+// the "children" edge. The optional arguments are used to configure the query builder of the edge.
+func (tq *TagQuery) WithChildren(opts ...func(*SubLabelQuery)) *TagQuery {
+	query := &SubLabelQuery{config: tq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	tq.withChildren = query
 	return tq
 }
 
@@ -350,8 +386,9 @@ func (tq *TagQuery) sqlAll(ctx context.Context) ([]*Tag, error) {
 	var (
 		nodes       = []*Tag{}
 		_spec       = tq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			tq.withItems != nil,
+			tq.withChildren != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
@@ -436,6 +473,35 @@ func (tq *TagQuery) sqlAll(ctx context.Context) ([]*Tag, error) {
 			for i := range nodes {
 				nodes[i].Edges.Items = append(nodes[i].Edges.Items, n)
 			}
+		}
+	}
+
+	if query := tq.withChildren; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*Tag)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Children = []*SubLabel{}
+		}
+		query.withFKs = true
+		query.Where(predicate.SubLabel(func(s *sql.Selector) {
+			s.Where(sql.InValues(tag.ChildrenColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.tag_children
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "tag_children" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "tag_children" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Children = append(node.Edges.Children, n)
 		}
 	}
 

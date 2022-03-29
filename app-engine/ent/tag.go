@@ -32,9 +32,11 @@ type Tag struct {
 type TagEdges struct {
 	// Items holds the value of the items edge.
 	Items []*Item `json:"items,omitempty"`
+	// Children holds the value of the children edge.
+	Children []*SubLabel `json:"children,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // ItemsOrErr returns the Items value or an error if the edge
@@ -44,6 +46,15 @@ func (e TagEdges) ItemsOrErr() ([]*Item, error) {
 		return e.Items, nil
 	}
 	return nil, &NotLoadedError{edge: "items"}
+}
+
+// ChildrenOrErr returns the Children value or an error if the edge
+// was not loaded in eager-loading.
+func (e TagEdges) ChildrenOrErr() ([]*SubLabel, error) {
+	if e.loadedTypes[1] {
+		return e.Children, nil
+	}
+	return nil, &NotLoadedError{edge: "children"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -104,6 +115,11 @@ func (t *Tag) assignValues(columns []string, values []interface{}) error {
 // QueryItems queries the "items" edge of the Tag entity.
 func (t *Tag) QueryItems() *ItemQuery {
 	return (&TagClient{config: t.config}).QueryItems(t)
+}
+
+// QueryChildren queries the "children" edge of the Tag entity.
+func (t *Tag) QueryChildren() *SubLabelQuery {
+	return (&TagClient{config: t.config}).QueryChildren(t)
 }
 
 // Update returns a builder for updating this Tag.

@@ -65,6 +65,18 @@ func (si *ShoppingItemQuery) collectField(ctx *graphql.OperationContext, field g
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (sl *SubLabelQuery) CollectFields(ctx context.Context, satisfies ...string) *SubLabelQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		sl = sl.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return sl
+}
+
+func (sl *SubLabelQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *SubLabelQuery {
+	return sl
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (t *TagQuery) CollectFields(ctx context.Context, satisfies ...string) *TagQuery {
 	if fc := graphql.GetFieldContext(ctx); fc != nil {
 		t = t.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)

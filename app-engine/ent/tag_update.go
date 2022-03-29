@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 )
 
@@ -48,6 +49,21 @@ func (tu *TagUpdate) AddItems(i ...*Item) *TagUpdate {
 	return tu.AddItemIDs(ids...)
 }
 
+// AddChildIDs adds the "children" edge to the SubLabel entity by IDs.
+func (tu *TagUpdate) AddChildIDs(ids ...int) *TagUpdate {
+	tu.mutation.AddChildIDs(ids...)
+	return tu
+}
+
+// AddChildren adds the "children" edges to the SubLabel entity.
+func (tu *TagUpdate) AddChildren(s ...*SubLabel) *TagUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return tu.AddChildIDs(ids...)
+}
+
 // Mutation returns the TagMutation object of the builder.
 func (tu *TagUpdate) Mutation() *TagMutation {
 	return tu.mutation
@@ -72,6 +88,27 @@ func (tu *TagUpdate) RemoveItems(i ...*Item) *TagUpdate {
 		ids[j] = i[j].ID
 	}
 	return tu.RemoveItemIDs(ids...)
+}
+
+// ClearChildren clears all "children" edges to the SubLabel entity.
+func (tu *TagUpdate) ClearChildren() *TagUpdate {
+	tu.mutation.ClearChildren()
+	return tu
+}
+
+// RemoveChildIDs removes the "children" edge to SubLabel entities by IDs.
+func (tu *TagUpdate) RemoveChildIDs(ids ...int) *TagUpdate {
+	tu.mutation.RemoveChildIDs(ids...)
+	return tu
+}
+
+// RemoveChildren removes "children" edges to SubLabel entities.
+func (tu *TagUpdate) RemoveChildren(s ...*SubLabel) *TagUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return tu.RemoveChildIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -229,6 +266,60 @@ func (tu *TagUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if tu.mutation.ChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tag.ChildrenTable,
+			Columns: []string{tag.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.RemovedChildrenIDs(); len(nodes) > 0 && !tu.mutation.ChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tag.ChildrenTable,
+			Columns: []string{tag.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tag.ChildrenTable,
+			Columns: []string{tag.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, tu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{tag.Label}
@@ -269,6 +360,21 @@ func (tuo *TagUpdateOne) AddItems(i ...*Item) *TagUpdateOne {
 	return tuo.AddItemIDs(ids...)
 }
 
+// AddChildIDs adds the "children" edge to the SubLabel entity by IDs.
+func (tuo *TagUpdateOne) AddChildIDs(ids ...int) *TagUpdateOne {
+	tuo.mutation.AddChildIDs(ids...)
+	return tuo
+}
+
+// AddChildren adds the "children" edges to the SubLabel entity.
+func (tuo *TagUpdateOne) AddChildren(s ...*SubLabel) *TagUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return tuo.AddChildIDs(ids...)
+}
+
 // Mutation returns the TagMutation object of the builder.
 func (tuo *TagUpdateOne) Mutation() *TagMutation {
 	return tuo.mutation
@@ -293,6 +399,27 @@ func (tuo *TagUpdateOne) RemoveItems(i ...*Item) *TagUpdateOne {
 		ids[j] = i[j].ID
 	}
 	return tuo.RemoveItemIDs(ids...)
+}
+
+// ClearChildren clears all "children" edges to the SubLabel entity.
+func (tuo *TagUpdateOne) ClearChildren() *TagUpdateOne {
+	tuo.mutation.ClearChildren()
+	return tuo
+}
+
+// RemoveChildIDs removes the "children" edge to SubLabel entities by IDs.
+func (tuo *TagUpdateOne) RemoveChildIDs(ids ...int) *TagUpdateOne {
+	tuo.mutation.RemoveChildIDs(ids...)
+	return tuo
+}
+
+// RemoveChildren removes "children" edges to SubLabel entities.
+func (tuo *TagUpdateOne) RemoveChildren(s ...*SubLabel) *TagUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return tuo.RemoveChildIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -466,6 +593,60 @@ func (tuo *TagUpdateOne) sqlSave(ctx context.Context) (_node *Tag, err error) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if tuo.mutation.ChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tag.ChildrenTable,
+			Columns: []string{tag.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.RemovedChildrenIDs(); len(nodes) > 0 && !tuo.mutation.ChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tag.ChildrenTable,
+			Columns: []string{tag.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tag.ChildrenTable,
+			Columns: []string{tag.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
 				},
 			},
 		}

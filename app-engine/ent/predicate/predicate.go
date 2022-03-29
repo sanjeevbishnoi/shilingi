@@ -15,6 +15,9 @@ type Shopping func(*sql.Selector)
 // ShoppingItem is the predicate function for shoppingitem builders.
 type ShoppingItem func(*sql.Selector)
 
+// SubLabel is the predicate function for sublabel builders.
+type SubLabel func(*sql.Selector)
+
 // Tag is the predicate function for tag builders.
 type Tag func(*sql.Selector)
 

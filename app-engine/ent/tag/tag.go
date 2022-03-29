@@ -21,6 +21,8 @@ const (
 	FieldName = "name"
 	// EdgeItems holds the string denoting the items edge name in mutations.
 	EdgeItems = "items"
+	// EdgeChildren holds the string denoting the children edge name in mutations.
+	EdgeChildren = "children"
 	// Table holds the table name of the tag in the database.
 	Table = "tags"
 	// ItemsTable is the table that holds the items relation/edge. The primary key declared below.
@@ -28,6 +30,13 @@ const (
 	// ItemsInverseTable is the table name for the Item entity.
 	// It exists in this package in order to avoid circular dependency with the "item" package.
 	ItemsInverseTable = "items"
+	// ChildrenTable is the table that holds the children relation/edge.
+	ChildrenTable = "sub_labels"
+	// ChildrenInverseTable is the table name for the SubLabel entity.
+	// It exists in this package in order to avoid circular dependency with the "sublabel" package.
+	ChildrenInverseTable = "sub_labels"
+	// ChildrenColumn is the table column denoting the children relation/edge.
+	ChildrenColumn = "tag_children"
 )
 
 // Columns holds all SQL columns for tag fields.

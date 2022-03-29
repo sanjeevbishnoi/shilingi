@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 )
 
@@ -68,6 +69,21 @@ func (tc *TagCreate) AddItems(i ...*Item) *TagCreate {
 		ids[j] = i[j].ID
 	}
 	return tc.AddItemIDs(ids...)
+}
+
+// AddChildIDs adds the "children" edge to the SubLabel entity by IDs.
+func (tc *TagCreate) AddChildIDs(ids ...int) *TagCreate {
+	tc.mutation.AddChildIDs(ids...)
+	return tc
+}
+
+// AddChildren adds the "children" edges to the SubLabel entity.
+func (tc *TagCreate) AddChildren(s ...*SubLabel) *TagCreate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return tc.AddChildIDs(ids...)
 }
 
 // Mutation returns the TagMutation object of the builder.
@@ -233,6 +249,25 @@ func (tc *TagCreate) createSpec() (*Tag, *sqlgraph.CreateSpec) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := tc.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tag.ChildrenTable,
+			Columns: []string{tag.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
 				},
 			},
 		}

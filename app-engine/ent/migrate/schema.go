@@ -78,6 +78,35 @@ var (
 			},
 		},
 	}
+	// SubLabelsColumns holds the columns for the "sub_labels" table.
+	SubLabelsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString},
+		{Name: "tag_children", Type: field.TypeInt, Nullable: true},
+	}
+	// SubLabelsTable holds the schema information for the "sub_labels" table.
+	SubLabelsTable = &schema.Table{
+		Name:       "sub_labels",
+		Columns:    SubLabelsColumns,
+		PrimaryKey: []*schema.Column{SubLabelsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sub_labels_tags_children",
+				Columns:    []*schema.Column{SubLabelsColumns[4]},
+				RefColumns: []*schema.Column{TagsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "sublabel_name_tag_children",
+				Unique:  true,
+				Columns: []*schema.Column{SubLabelsColumns[3], SubLabelsColumns[4]},
+			},
+		},
+	}
 	// TagsColumns holds the columns for the "tags" table.
 	TagsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -142,6 +171,7 @@ var (
 		ItemsTable,
 		ShoppingsTable,
 		ShoppingItemsTable,
+		SubLabelsTable,
 		TagsTable,
 		VendorsTable,
 		ItemTagsTable,
@@ -156,6 +186,7 @@ func init() {
 	ShoppingsTable.ForeignKeys[0].RefTable = VendorsTable
 	ShoppingItemsTable.ForeignKeys[0].RefTable = ItemsTable
 	ShoppingItemsTable.ForeignKeys[1].RefTable = ShoppingsTable
+	SubLabelsTable.ForeignKeys[0].RefTable = TagsTable
 	ItemTagsTable.ForeignKeys[0].RefTable = ItemsTable
 	ItemTagsTable.ForeignKeys[1].RefTable = TagsTable
 }

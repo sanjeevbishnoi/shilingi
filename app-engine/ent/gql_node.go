@@ -18,6 +18,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"golang.org/x/sync/semaphore"
@@ -255,12 +256,57 @@ func (si *ShoppingItem) Node(ctx context.Context) (node *Node, err error) {
 	return node, nil
 }
 
+func (sl *SubLabel) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     sl.ID,
+		Type:   "SubLabel",
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(sl.CreateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "create_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(sl.UpdateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "update_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(sl.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Tag",
+		Name: "parent",
+	}
+	err = sl.QueryParent().
+		Select(tag.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
 func (t *Tag) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     t.ID,
 		Type:   "Tag",
 		Fields: make([]*Field, 3),
-		Edges:  make([]*Edge, 1),
+		Edges:  make([]*Edge, 2),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(t.CreateTime); err != nil {
@@ -294,6 +340,16 @@ func (t *Tag) Node(ctx context.Context) (node *Node, err error) {
 	err = t.QueryItems().
 		Select(item.FieldID).
 		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "SubLabel",
+		Name: "children",
+	}
+	err = t.QueryChildren().
+		Select(sublabel.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -447,6 +503,15 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 			return nil, err
 		}
 		return n, nil
+	case sublabel.Table:
+		n, err := c.SubLabel.Query().
+			Where(sublabel.ID(id)).
+			CollectFields(ctx, "SubLabel").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case tag.Table:
 		n, err := c.Tag.Query().
 			Where(tag.ID(id)).
@@ -568,6 +633,19 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		nodes, err := c.ShoppingItem.Query().
 			Where(shoppingitem.IDIn(ids...)).
 			CollectFields(ctx, "ShoppingItem").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case sublabel.Table:
+		nodes, err := c.SubLabel.Query().
+			Where(sublabel.IDIn(ids...)).
+			CollectFields(ctx, "SubLabel").
 			All(ctx)
 		if err != nil {
 			return nil, err
