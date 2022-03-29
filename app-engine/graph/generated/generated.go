@@ -60,7 +60,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateItem     func(childComplexity int, input model.ItemInput) int
 		CreatePurchase func(childComplexity int, input model.ShoppingInput) int
-		CreateSubLabel func(childComplexity int, input model.SubLabelInput) int
+		CreateSubLabel func(childComplexity int, tagID int, input model.SubLabelInput) int
 		CreateTag      func(childComplexity int, input model.TagInput) int
 		DeleteTag      func(childComplexity int, id int) int
 		EditItem       func(childComplexity int, id int, input model.ItemInput) int
@@ -125,7 +125,7 @@ type MutationResolver interface {
 	EditTag(ctx context.Context, id int, input model.TagInput) (*ent.Tag, error)
 	EditItem(ctx context.Context, id int, input model.ItemInput) (*ent.Item, error)
 	DeleteTag(ctx context.Context, id int) (*bool, error)
-	CreateSubLabel(ctx context.Context, input model.SubLabelInput) (*ent.SubLabel, error)
+	CreateSubLabel(ctx context.Context, tagID int, input model.SubLabelInput) (*ent.SubLabel, error)
 }
 type QueryResolver interface {
 	Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error)
@@ -219,7 +219,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateSubLabel(childComplexity, args["input"].(model.SubLabelInput)), true
+		return e.complexity.Mutation.CreateSubLabel(childComplexity, args["tagID"].(int), args["input"].(model.SubLabelInput)), true
 
 	case "Mutation.createTag":
 		if e.complexity.Mutation.CreateTag == nil {
@@ -678,7 +678,7 @@ type Mutation {
   editTag(id: Int!, input: TagInput!): Tag!
   editItem(id: Int!, input: ItemInput!): Item!
   deleteTag(id: Int!): Boolean
-  createSubLabel(input: SubLabelInput!): SubLabel!
+  createSubLabel(tagID: Int!, input: SubLabelInput!): SubLabel!
 }
 `, BuiltIn: false},
 }
@@ -721,15 +721,24 @@ func (ec *executionContext) field_Mutation_createPurchase_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_createSubLabel_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.SubLabelInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNSubLabelInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐSubLabelInput(ctx, tmp)
+	var arg0 int
+	if tmp, ok := rawArgs["tagID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tagID"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["input"] = arg0
+	args["tagID"] = arg0
+	var arg1 model.SubLabelInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalNSubLabelInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐSubLabelInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -1500,7 +1509,7 @@ func (ec *executionContext) _Mutation_createSubLabel(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateSubLabel(rctx, args["input"].(model.SubLabelInput))
+		return ec.resolvers.Mutation().CreateSubLabel(rctx, args["tagID"].(int), args["input"].(model.SubLabelInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
