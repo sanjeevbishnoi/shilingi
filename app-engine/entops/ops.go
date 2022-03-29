@@ -10,6 +10,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/schema/utils"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
+	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
 )
@@ -186,15 +187,30 @@ func EditItem(ctx context.Context, id int, input model.ItemInput) (*ent.Item, er
 // CreateSubLabel validates and creates the sublabel
 func CreateSubLabel(ctx context.Context, tagID int, input model.SubLabelInput) (*ent.SubLabel, error) {
 	cli := ent.FromContext(ctx)
+
+	// Make sure that the tag already exists
+	t, err := cli.Tag.Query().Where(tag.ID(tagID)).Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	cleanedName := utils.CleanTagName(input.Name)
 	if cleanedName == "uncategorized" {
 		return nil, errors.New("'uncategorized' is a reserved label name")
 	}
 
-	_, err := cli.SubLabel.Query().Where(sublabel.Name(cleanedName)).Only(ctx)
+	label, err := cli.SubLabel.Query().Where(
+		sublabel.Name(cleanedName),
+		sublabel.HasParentWith(
+			tag.ID(t.ID),
+		),
+	).Only(ctx)
 	if ent.IsNotFound(err) {
-
+		label, err = cli.SubLabel.Create().
+			SetName(cleanedName).
+			SetParent(t).
+			Save(ctx)
 	}
 
-	return nil, nil
+	return label, err
 }
