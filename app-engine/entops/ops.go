@@ -8,6 +8,8 @@ import (
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
+	"github.com/kingzbauer/shilingi/app-engine/ent/schema/utils"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
 )
@@ -179,4 +181,20 @@ func EditItem(ctx context.Context, id int, input model.ItemInput) (*ent.Item, er
 		SetName(input.Name).
 		SetSlug(slug).
 		Save(ctx)
+}
+
+// CreateSubLabel validates and creates the sublabel
+func CreateSubLabel(ctx context.Context, tagID int, input model.SubLabelInput) (*ent.SubLabel, error) {
+	cli := ent.FromContext(ctx)
+	cleanedName := utils.CleanTagName(input.Name)
+	if cleanedName == "uncategorized" {
+		return nil, errors.New("'uncategorized' is a reserved label name")
+	}
+
+	_, err := cli.SubLabel.Query().Where(sublabel.Name(cleanedName)).Only(ctx)
+	if ent.IsNotFound(err) {
+
+	}
+
+	return nil, nil
 }
