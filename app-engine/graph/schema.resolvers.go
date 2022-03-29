@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -118,6 +119,10 @@ func (r *mutationResolver) DeleteTag(ctx context.Context, id int) (*bool, error)
 		return Bool(false), err
 	}
 	return Bool(true), nil
+}
+
+func (r *mutationResolver) CreateSubLabel(ctx context.Context, input model.SubLabelInput) (*ent.SubLabel, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {

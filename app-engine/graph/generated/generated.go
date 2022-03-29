@@ -60,6 +60,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateItem     func(childComplexity int, input model.ItemInput) int
 		CreatePurchase func(childComplexity int, input model.ShoppingInput) int
+		CreateSubLabel func(childComplexity int, input model.SubLabelInput) int
 		CreateTag      func(childComplexity int, input model.TagInput) int
 		DeleteTag      func(childComplexity int, id int) int
 		EditItem       func(childComplexity int, id int, input model.ItemInput) int
@@ -97,6 +98,11 @@ type ComplexityRoot struct {
 		Units        func(childComplexity int) int
 	}
 
+	SubLabel struct {
+		ID   func(childComplexity int) int
+		Name func(childComplexity int) int
+	}
+
 	Tag struct {
 		ID   func(childComplexity int) int
 		Name func(childComplexity int) int
@@ -119,6 +125,7 @@ type MutationResolver interface {
 	EditTag(ctx context.Context, id int, input model.TagInput) (*ent.Tag, error)
 	EditItem(ctx context.Context, id int, input model.ItemInput) (*ent.Item, error)
 	DeleteTag(ctx context.Context, id int) (*bool, error)
+	CreateSubLabel(ctx context.Context, input model.SubLabelInput) (*ent.SubLabel, error)
 }
 type QueryResolver interface {
 	Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error)
@@ -201,6 +208,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreatePurchase(childComplexity, args["input"].(model.ShoppingInput)), true
+
+	case "Mutation.createSubLabel":
+		if e.complexity.Mutation.CreateSubLabel == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createSubLabel_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateSubLabel(childComplexity, args["input"].(model.SubLabelInput)), true
 
 	case "Mutation.createTag":
 		if e.complexity.Mutation.CreateTag == nil {
@@ -434,6 +453,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ShoppingItem.Units(childComplexity), true
 
+	case "SubLabel.id":
+		if e.complexity.SubLabel.ID == nil {
+			break
+		}
+
+		return e.complexity.SubLabel.ID(childComplexity), true
+
+	case "SubLabel.name":
+		if e.complexity.SubLabel.Name == nil {
+			break
+		}
+
+		return e.complexity.SubLabel.Name(childComplexity), true
+
 	case "Tag.id":
 		if e.complexity.Tag.ID == nil {
 			break
@@ -606,6 +639,15 @@ type Tag implements Node {
 input TagInput {
   name: String!
 }
+
+type SubLabel {
+  id: ID!
+  name: String!
+}
+
+input SubLabelInput {
+  name: String!
+}
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `scalar Time
 scalar Decimal
@@ -636,6 +678,7 @@ type Mutation {
   editTag(id: Int!, input: TagInput!): Tag!
   editItem(id: Int!, input: ItemInput!): Item!
   deleteTag(id: Int!): Boolean
+  createSubLabel(input: SubLabelInput!): SubLabel!
 }
 `, BuiltIn: false},
 }
@@ -667,6 +710,21 @@ func (ec *executionContext) field_Mutation_createPurchase_args(ctx context.Conte
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNShoppingInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐShoppingInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createSubLabel_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.SubLabelInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNSubLabelInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐSubLabelInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1415,6 +1473,48 @@ func (ec *executionContext) _Mutation_deleteTag(ctx context.Context, field graph
 	res := resTmp.(*bool)
 	fc.Result = res
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createSubLabel(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createSubLabel_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateSubLabel(rctx, args["input"].(model.SubLabelInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.SubLabel)
+	fc.Result = res
+	return ec.marshalNSubLabel2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐSubLabel(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_items(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2205,6 +2305,76 @@ func (ec *executionContext) _ShoppingItem_total(ctx context.Context, field graph
 	res := resTmp.(*decimal.Decimal)
 	fc.Result = res
 	return ec.marshalNDecimal2ᚖgithubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SubLabel_id(ctx context.Context, field graphql.CollectedField, obj *ent.SubLabel) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SubLabel",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNID2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SubLabel_name(ctx context.Context, field graphql.CollectedField, obj *ent.SubLabel) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SubLabel",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tag_id(ctx context.Context, field graphql.CollectedField, obj *ent.Tag) (ret graphql.Marshaler) {
@@ -3668,6 +3838,29 @@ func (ec *executionContext) unmarshalInputShoppingItemInput(ctx context.Context,
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSubLabelInput(ctx context.Context, obj interface{}) (model.SubLabelInput, error) {
+	var it model.SubLabelInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputTagInput(ctx context.Context, obj interface{}) (model.TagInput, error) {
 	var it model.TagInput
 	asMap := map[string]interface{}{}
@@ -3853,6 +4046,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deleteTag":
 			out.Values[i] = ec._Mutation_deleteTag(ctx, field)
+		case "createSubLabel":
+			out.Values[i] = ec._Mutation_createSubLabel(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4126,6 +4324,38 @@ func (ec *executionContext) _ShoppingItem(ctx context.Context, sel ast.Selection
 				}
 				return res
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var subLabelImplementors = []string{"SubLabel"}
+
+func (ec *executionContext) _SubLabel(ctx context.Context, sel ast.SelectionSet, obj *ent.SubLabel) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, subLabelImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SubLabel")
+		case "id":
+			out.Values[i] = ec._SubLabel_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._SubLabel_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4812,6 +5042,25 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNSubLabel2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐSubLabel(ctx context.Context, sel ast.SelectionSet, v ent.SubLabel) graphql.Marshaler {
+	return ec._SubLabel(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSubLabel2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐSubLabel(ctx context.Context, sel ast.SelectionSet, v *ent.SubLabel) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._SubLabel(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNSubLabelInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐSubLabelInput(ctx context.Context, v interface{}) (model.SubLabelInput, error) {
+	res, err := ec.unmarshalInputSubLabelInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNTag2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐTag(ctx context.Context, sel ast.SelectionSet, v ent.Tag) graphql.Marshaler {
