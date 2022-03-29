@@ -117,6 +117,91 @@ class SimpleBarState extends State<SimpleBar> {
   }
 }
 
+class DraggableSimpleBar<E extends Object> extends StatelessWidget {
+  final Widget child;
+  final E data;
+
+  const DraggableSimpleBar({Key? key, required this.child, required this.data})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return LongPressDraggable(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.drag_indicator),
+          const SizedBox(width: 5),
+          Flexible(
+            flex: 1,
+            fit: FlexFit.loose,
+            child: child,
+          ),
+        ],
+      ),
+      feedback: Container(
+        width: 250,
+        height: 60,
+        child: child,
+        padding: const EdgeInsets.only(top: 0, left: 12, right: 12, bottom: 0),
+        decoration: BoxDecoration(
+          color: Colors.white70,
+          borderRadius: BorderRadius.circular(
+            8.0,
+          ),
+        ),
+      ),
+      data: data,
+    );
+  }
+}
+
+class TargetSimpleBar<E extends Object> extends StatelessWidget {
+  final Widget child;
+  final void Function(E) onAccept;
+
+  const TargetSimpleBar({Key? key, required this.child, required this.onAccept})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<E>(
+      builder: (context, candidateData, rejectedData) {
+        if (candidateData.isEmpty) {
+          return child;
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.lightGreenAccent),
+          ),
+          child: child,
+        );
+      },
+      onAccept: onAccept,
+    );
+  }
+}
+
+// class _TargetSimpleBar<E extends Object> extends State<TargetSimpleBar> {
+// @override
+// Widget build(BuildContext context) {
+// return DragTarget(builder: (context, candidateData, rejectedData) {
+// if (candidateData.isEmpty) {
+// return widget.child;
+// }
+//
+// return Container(
+// decoration: BoxDecoration(
+// border: Border.all(color: Colors.lightGreenAccent),
+// ),
+// child: widget.child,
+// );
+// });
+// }
+// }
+
 class SimpleBarEntry<E> {
   final String label;
   final double value;
@@ -129,8 +214,17 @@ class SimpleBarEntry<E> {
       SimpleBarEntry(label: label, value: 0, items: []);
 
   SimpleBarEntry<E> operator +(SimpleBarEntry<E> other) {
+    return add(other);
+  }
+
+  SimpleBarEntry<E> add(SimpleBarEntry<E> other) {
+    var newLabel = label;
+    if (label != other.label) {
+      newLabel = '$label + ${other.label}';
+    }
+
     return SimpleBarEntry(
-        label: label,
+        label: newLabel,
         value: value + other.value,
         items: [...items, ...other.items]);
   }
@@ -240,6 +334,24 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
     return _count < widget.entries.length;
   }
 
+  void _merge(SimpleBarEntry<E> item, SimpleBarEntry<E> into) {
+    var indexInto = widget.entries.indexWhere((i) => i.label == into.label);
+    if (indexInto == -1) {
+      return;
+    }
+
+    widget.entries.removeAt(indexInto);
+    var indexItem = widget.entries.indexWhere((i) => i.label == item.label);
+    if (indexInto == -1) {
+      return;
+    }
+    widget.entries.removeAt(indexItem);
+    var newEntry = into.add(item);
+    setState(() {
+      widget.entries.add(newEntry);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     var max = 0.0;
@@ -264,13 +376,21 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
             for (var entry in _truncated
                 ? widget.entries.reversed.toList().sublist(0, initialCount)
                 : widget.entries.reversed)
-              SimpleBar(
-                title: entry.label,
-                value: entry.value,
-                entry: entry,
-                max: max,
-                showPercentage: _showPercentage,
-                total: total,
+              TargetSimpleBar<SimpleBarEntry<E>>(
+                child: DraggableSimpleBar<SimpleBarEntry<E>>(
+                  child: SimpleBar(
+                    title: entry.label,
+                    value: entry.value,
+                    entry: entry,
+                    max: max,
+                    showPercentage: _showPercentage,
+                    total: total,
+                  ),
+                  data: entry,
+                ),
+                onAccept: (item) {
+                  _merge(item, entry);
+                },
               ),
             if (widget.entries.isEmpty) const Text('No data'),
             if (_showToggleButton)
