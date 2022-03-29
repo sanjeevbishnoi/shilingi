@@ -14,7 +14,7 @@ import (
 
 // SubLabel is the model entity for the SubLabel schema.
 type SubLabel struct {
-	config `json:"-"`
+	config `conform:"-" json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
 	// CreateTime holds the value of the "create_time" field.
@@ -23,7 +23,7 @@ type SubLabel struct {
 	UpdateTime time.Time `json:"update_time,omitempty"`
 	// Name holds the value of the "name" field.
 	// Label name
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitempty" conform:"trim"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubLabelQuery when eager-loading is set.
 	Edges        SubLabelEdges `json:"edges"`
