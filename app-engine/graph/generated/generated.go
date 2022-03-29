@@ -694,7 +694,7 @@ input TagInput {
   name: String!
 }
 
-type SubLabel {
+type SubLabel implements Node {
   id: ID!
   name: String!
   items: [Item!]!
@@ -4240,6 +4240,11 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Tag(ctx, sel, obj)
+	case *ent.SubLabel:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._SubLabel(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -4656,7 +4661,7 @@ func (ec *executionContext) _ShoppingItem(ctx context.Context, sel ast.Selection
 	return out
 }
 
-var subLabelImplementors = []string{"SubLabel"}
+var subLabelImplementors = []string{"SubLabel", "Node"}
 
 func (ec *executionContext) _SubLabel(ctx context.Context, sel ast.SelectionSet, obj *ent.SubLabel) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, subLabelImplementors)
