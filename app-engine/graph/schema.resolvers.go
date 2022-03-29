@@ -126,7 +126,7 @@ func (r *mutationResolver) CreateSubLabel(ctx context.Context, tagID int, input 
 }
 
 func (r *mutationResolver) AddItemsToSubLabel(ctx context.Context, subLabelID int, itemIDs []int) (*ent.SubLabel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return entops.AddItemsToSubLabel(ctx, subLabelID, itemIDs)
 }
 
 func (r *mutationResolver) RemoveItemsFromSubLabel(ctx context.Context, subLabelID int, itemIDs []int) (*ent.SubLabel, error) {

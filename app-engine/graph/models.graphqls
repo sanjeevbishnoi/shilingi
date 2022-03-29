@@ -67,7 +67,7 @@ input TagInput {
   name: String!
 }
 
-type SubLabel {
+type SubLabel implements Node {
   id: ID!
   name: String!
   items: [Item!]!

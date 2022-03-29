@@ -13,6 +13,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 // CreatePurchase verifies and creates a new purchase
@@ -211,6 +212,63 @@ func CreateSubLabel(ctx context.Context, tagID int, input model.SubLabelInput) (
 			SetParent(t).
 			Save(ctx)
 	}
+
+	return label, err
+}
+
+// AddItemsToSubLabel adds the provided items under the label provided
+func AddItemsToSubLabel(ctx context.Context, subLabelID int, itemIDs []int) (*ent.SubLabel, error) {
+	cli := ent.FromContext(ctx)
+	// Make sure the items are part of the parent label
+	label, err := cli.SubLabel.Query().
+		Where(
+			sublabel.ID(subLabelID),
+		).
+		WithParent().
+		Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := cli.Item.Query().
+		Where(
+			item.IDIn(itemIDs...),
+			item.HasTagsWith(
+				tag.ID(label.Edges.Parent.ID),
+			),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(items) != len(itemIDs) {
+		return nil, gqlerror.Errorf(
+			"At least %d of the items are not part of the parent label %q", len(itemIDs)-len(items), label.Edges.Parent.Name)
+	}
+
+	// Check if any of the items have sub-tags already
+	items, err = cli.Item.Query().
+		Where(
+			item.IDIn(itemIDs...),
+			item.HasSublabel(),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(items) > 0 {
+		return nil, gqlerror.Errorf(
+			"At least %d of the items have already been labeled", len(items))
+	}
+
+	_, err = cli.Item.Update().
+		Where(
+			item.IDIn(itemIDs...),
+		).
+		SetSublabelID(subLabelID).
+		Save(ctx)
 
 	return label, err
 }
