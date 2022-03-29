@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'package:sorted_list/sorted_list.dart';
 import 'package:intl/intl.dart';
+import 'package:graphql_flutter/graphql_flutter.dart';
 
 import '../../constants/constants.dart';
 import '../../components/analytics/simple_bar.dart';
 import '../../models/model.dart';
 import '../items_to_label_page.dart';
 import '../settings/settings.dart';
+import '../../gql/gql.dart';
 
 var _format = NumberFormat('#,##0', 'en_US');
 
@@ -90,6 +92,53 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
                   );
                   break;
                 case _Popup.remove:
+                  var payload = <String, dynamic>{
+                    'itemIDs': _selected,
+                    'tagID': widget.entry.labelId,
+                  };
+                  var cli = GraphQLProvider.of(context).value;
+                  var result = cli.mutate(MutationOptions(
+                      document: mutationUntagItems, variables: payload));
+                  showDialog(
+                      context: context,
+                      builder: (context) {
+                        return FutureBuilder<QueryResult>(
+                          future: result,
+                          builder: (context, snapshot) {
+                            switch (snapshot.connectionState) {
+                              case ConnectionState.done:
+                                return AlertDialog(
+                                  content: const Text(
+                                    'Done, items removed from label',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      child: const Text('close'),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                  ],
+                                );
+                              default:
+                                return WillPopScope(
+                                  child: AlertDialog(
+                                    content: Row(
+                                      children: const [
+                                        CircularProgressIndicator(),
+                                        SizedBox(width: 14),
+                                        Text('Working...'),
+                                      ],
+                                    ),
+                                  ),
+                                  onWillPop: () async {
+                                    return true;
+                                  },
+                                );
+                            }
+                          },
+                        );
+                      });
                   break;
               }
             },
@@ -223,10 +272,13 @@ class SelectableWidget extends StatelessWidget {
 
 class LabelsSimpleBarEntry extends SimpleBarEntry<PurchaseItem>
     implements NavigatableBarEntry {
+  final int labelId;
+
   const LabelsSimpleBarEntry(
       {required String label,
       required double value,
-      required List<PurchaseItem> items})
+      required List<PurchaseItem> items,
+      required this.labelId})
       : super(label: label, value: value, items: items);
 
   @override
@@ -238,6 +290,7 @@ class LabelsSimpleBarEntry extends SimpleBarEntry<PurchaseItem>
   @override
   SimpleBarEntry<PurchaseItem> operator +(SimpleBarEntry<PurchaseItem> other) {
     return LabelsSimpleBarEntry(
+        labelId: labelId,
         label: label,
         value: value + other.value,
         items: [...items, ...other.items]);

@@ -199,50 +199,58 @@ class DateRangeAnalytics extends StatelessWidget {
             );
           }
 
-          return ListView(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 30.0, horizontal: 30.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AnalyticsHeader(
-                      analyticsFor: analyticsFor,
-                      purchases: purchases.purchases,
-                    ),
-                    Flexible(
-                      flex: 1,
-                      fit: FlexFit.loose,
-                      child: AnalyticsPageView(
-                        pages: [
-                          AnimatedSize(
-                            alignment: Alignment.topCenter,
-                            duration: const Duration(milliseconds: 400),
-                            child: InheritedSwitcherWrapper(
-                              child: const CustomAnimatedSwitcher(),
-                              switchable: StatSectionWrapper(
-                                  title: 'Expenditure by label',
-                                  entries: byLabel,
-                                  truncate: true),
-                            ),
-                          ),
-                          StatSectionWrapper(
-                              title: 'Expenditure by vendor/store',
-                              entries: byVendor,
-                              truncate: true),
-                          StatSectionWrapper(
-                              title: 'Itemized expenditure',
-                              entries: byItem,
-                              truncate: true),
-                        ],
+          return RefreshIndicator(
+            child: ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 30.0, horizontal: 30.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnalyticsHeader(
+                        analyticsFor: analyticsFor,
+                        purchases: purchases.purchases,
                       ),
-                    ),
-                  ],
+                      Flexible(
+                        flex: 1,
+                        fit: FlexFit.loose,
+                        child: AnalyticsPageView(
+                          pages: [
+                            AnimatedSize(
+                              alignment: Alignment.topCenter,
+                              duration: const Duration(milliseconds: 400),
+                              child: InheritedSwitcherWrapper(
+                                child: const CustomAnimatedSwitcher(),
+                                switchable: StatSectionWrapper(
+                                    title: 'Expenditure by label',
+                                    entries: byLabel,
+                                    truncate: true),
+                              ),
+                            ),
+                            StatSectionWrapper(
+                                title: 'Expenditure by vendor/store',
+                                entries: byVendor,
+                                truncate: true),
+                            StatSectionWrapper(
+                                title: 'Itemized expenditure',
+                                entries: byItem,
+                                truncate: true),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            onRefresh: () {
+              if (refetch != null) {
+                return refetch();
+              }
+              return Future.value(null);
+            },
           );
         },
       ),
@@ -257,12 +265,14 @@ class DateRangeAnalytics extends StatelessWidget {
     purchases.purchases.forEach((purchase) {
       purchase.items!.forEach((purchaseItem) {
         var entry = LabelsSimpleBarEntry(
+            labelId: 0,
             label: 'uncategorized',
             value: purchaseItem.total,
             items: [purchaseItem]);
         // Retrieve the tag for the item
         if (purchaseItem.item?.tags?.isNotEmpty ?? false) {
           entry = LabelsSimpleBarEntry(
+              labelId: purchaseItem.item!.tags![0].id!,
               label: purchaseItem.item!.tags![0].name,
               value: purchaseItem.total,
               items: [purchaseItem]);
