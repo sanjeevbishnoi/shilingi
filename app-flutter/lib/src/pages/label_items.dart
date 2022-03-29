@@ -520,9 +520,10 @@ class _SelectItemPageView extends StatelessWidget {
       backgroundColor: mainScaffoldBg,
       appBar: AppBar(title: const Text('Choose an item')),
       body: Query(
-        options: QueryOptions(
-          document: itemsQuery,
-        ),
+        options: QueryOptions(document: itemsQuery, variables: {
+          "negate": true,
+          "tagID": tag.id,
+        }),
         builder: (QueryResult result,
             {Refetch? refetch, FetchMore? fetchMore}) {
           if (result.isLoading && result.data == null) {
@@ -598,69 +599,92 @@ class _ItemsListSelect extends StatefulWidget {
 class _ItemsListSelectState extends State<_ItemsListSelect> {
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        for (var item in widget.items)
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                var cli = GraphQLProvider.of(context).value;
-                var result = cli.mutate(
-                    MutationOptions(document: mutationTagItems, variables: {
-                  'tagID': widget.tag.id,
-                  'itemIDs': [item.id],
-                }));
+    if (widget.items.isNotEmpty) {
+      return ListView(
+        children: [
+          for (var item in widget.items)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  var cli = GraphQLProvider.of(context).value;
+                  var result = cli.mutate(
+                      MutationOptions(document: mutationTagItems, variables: {
+                    'tagID': widget.tag.id,
+                    'itemIDs': [item.id],
+                  }));
 
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return FutureBuilder(
-                      future: result,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.done) {
-                          return const AlertDialog(
-                            content: Text('Item added successfully'),
-                          );
-                        }
-                        return WillPopScope(
-                          onWillPop: () async {
-                            return false;
-                          },
-                          child: AlertDialog(
-                            content: Row(
-                              children: const [
-                                CircularProgressIndicator(),
-                                SizedBox(width: 20),
-                                Text('Adding item...'),
-                              ],
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return FutureBuilder(
+                        future: result,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.done) {
+                            return const AlertDialog(
+                              content: Text('Item added successfully'),
+                            );
+                          }
+                          return WillPopScope(
+                            onWillPop: () async {
+                              return false;
+                            },
+                            child: AlertDialog(
+                              content: Row(
+                                children: const [
+                                  CircularProgressIndicator(),
+                                  SizedBox(width: 20),
+                                  Text('Adding item...'),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ).whenComplete(() => Navigator.pop(context));
-              },
-              splashColor: Colors.black38,
-              child: ListTile(
-                leading: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: Colors.lightGreen,
+                          );
+                        },
+                      );
+                    },
+                  ).whenComplete(() => Navigator.pop(context));
+                },
+                splashColor: Colors.black38,
+                child: ListTile(
+                  leading: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.lightGreen,
+                    ),
+                    height: 40,
+                    width: 40,
+                    child: Center(
+                      child: Text(item.name[0].toUpperCase(),
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ),
                   ),
-                  height: 40,
-                  width: 40,
-                  child: Center(
-                    child: Text(item.name[0].toUpperCase(),
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                  ),
+                  title: Text(item.name),
                 ),
-                title: Text(item.name),
               ),
             ),
+        ],
+      );
+    } else {
+      return Padding(
+        padding: const EdgeInsets.only(left: 30.0, right: 30.0, bottom: 30.0),
+        child: Align(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              UnDraw(
+                height: 150.0,
+                illustration: UnDrawIllustration.empty_street,
+                color: Colors.lightGreen,
+                useMemCache: true,
+              ),
+              const Text('No items to add',
+                  style: TextStyle(fontSize: 18.0, color: Colors.grey)),
+            ],
           ),
-      ],
-    );
+        ),
+      );
+    }
   }
 }

@@ -78,8 +78,8 @@ var vendorAndItemsNames = gql(r'''
 ''');
 
 var itemsQuery = gql(r'''
-    query items($tagID: Int) {
-      items(tagID: $tagID) {
+    query items($tagID: Int, $negate: Boolean) {
+      items(tagID: $tagID, negate: $negate) {
         id
         name
       }

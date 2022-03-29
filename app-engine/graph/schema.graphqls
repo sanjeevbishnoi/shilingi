@@ -6,7 +6,11 @@ interface Node {
 }
 
 type Query {
-  items(tagID: Int): [Item!]!
+  # Retrieve a list of items. If tagID is provided, filter out items labeled with
+  # the tag. If both negate and tagID are provided, returns items that don't have
+  # label
+  # Providing negate without a tagID doesn't have any effect
+  items(tagID: Int, negate: Boolean): [Item!]!
   shoppingItems(after: Time!, before: Time!, itemID: Int!): [ShoppingItem!]!
   purchases(before: Time!, after: Time!): [Shopping!]!
   vendors: [Vendor!]!

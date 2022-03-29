@@ -120,14 +120,24 @@ func (r *mutationResolver) DeleteTag(ctx context.Context, id int) (*bool, error)
 	return Bool(true), nil
 }
 
-func (r *queryResolver) Items(ctx context.Context, tagID *int) ([]*ent.Item, error) {
+func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {
 	query := r.cli.Item.Query()
 	if tagID != nil {
-		query.Where(
-			item.HasTagsWith(
-				tag.ID(*tagID),
-			),
-		)
+		if negate == nil {
+			query = query.Where(
+				item.HasTagsWith(
+					tag.ID(*tagID),
+				),
+			)
+		} else if *negate {
+			query = query.Where(
+				item.Not(
+					item.HasTagsWith(
+						tag.ID(*tagID),
+					),
+				),
+			)
+		}
 	}
 	return query.
 		Order(ent.Asc(item.FieldName)).
@@ -170,7 +180,9 @@ func (r *queryResolver) Node(ctx context.Context, id int) (ent.Noder, error) {
 }
 
 func (r *queryResolver) Tags(ctx context.Context) ([]*ent.Tag, error) {
-	return r.cli.Tag.Query().All(ctx)
+	return r.cli.Tag.Query().
+		Order(ent.Asc(tag.FieldName)).
+		All(ctx)
 }
 
 // Mutation returns generated.MutationResolver implementation.
