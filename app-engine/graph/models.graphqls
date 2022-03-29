@@ -65,6 +65,11 @@ input TagInput {
   name: String!
 }
 
+type SubLabel {
+  id: ID!
+  name: String!
+}
+
 input SubLabelInput {
   name: String!
 }
