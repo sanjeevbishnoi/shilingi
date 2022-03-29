@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 )
 
 // Item is the model entity for the Item schema.
@@ -28,7 +29,8 @@ type Item struct {
 	Slug string `json:"slug,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ItemQuery when eager-loading is set.
-	Edges ItemEdges `json:"edges"`
+	Edges           ItemEdges `json:"edges"`
+	sub_label_items *int
 }
 
 // ItemEdges holds the relations/edges for other nodes in the graph.
@@ -37,9 +39,11 @@ type ItemEdges struct {
 	Purchases []*ShoppingItem `json:"purchases,omitempty"`
 	// Tags holds the value of the tags edge.
 	Tags []*Tag `json:"tags,omitempty"`
+	// Sublabel holds the value of the sublabel edge.
+	Sublabel *SubLabel `json:"sublabel,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // PurchasesOrErr returns the Purchases value or an error if the edge
@@ -60,6 +64,20 @@ func (e ItemEdges) TagsOrErr() ([]*Tag, error) {
 	return nil, &NotLoadedError{edge: "tags"}
 }
 
+// SublabelOrErr returns the Sublabel value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ItemEdges) SublabelOrErr() (*SubLabel, error) {
+	if e.loadedTypes[2] {
+		if e.Sublabel == nil {
+			// The edge sublabel was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: sublabel.Label}
+		}
+		return e.Sublabel, nil
+	}
+	return nil, &NotLoadedError{edge: "sublabel"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Item) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
@@ -71,6 +89,8 @@ func (*Item) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullString)
 		case item.FieldCreateTime, item.FieldUpdateTime:
 			values[i] = new(sql.NullTime)
+		case item.ForeignKeys[0]: // sub_label_items
+			values[i] = new(sql.NullInt64)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Item", columns[i])
 		}
@@ -116,6 +136,13 @@ func (i *Item) assignValues(columns []string, values []interface{}) error {
 			} else if value.Valid {
 				i.Slug = value.String
 			}
+		case item.ForeignKeys[0]:
+			if value, ok := values[j].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field sub_label_items", value)
+			} else if value.Valid {
+				i.sub_label_items = new(int)
+				*i.sub_label_items = int(value.Int64)
+			}
 		}
 	}
 	return nil
@@ -129,6 +156,11 @@ func (i *Item) QueryPurchases() *ShoppingItemQuery {
 // QueryTags queries the "tags" edge of the Item entity.
 func (i *Item) QueryTags() *TagQuery {
 	return (&ItemClient{config: i.config}).QueryTags(i)
+}
+
+// QuerySublabel queries the "sublabel" edge of the Item entity.
+func (i *Item) QuerySublabel() *SubLabelQuery {
+	return (&ItemClient{config: i.config}).QuerySublabel(i)
 }
 
 // Update returns a builder for updating this Item.

@@ -19,6 +19,8 @@ const (
 	FieldName = "name"
 	// EdgeParent holds the string denoting the parent edge name in mutations.
 	EdgeParent = "parent"
+	// EdgeItems holds the string denoting the items edge name in mutations.
+	EdgeItems = "items"
 	// Table holds the table name of the sublabel in the database.
 	Table = "sub_labels"
 	// ParentTable is the table that holds the parent relation/edge.
@@ -28,6 +30,13 @@ const (
 	ParentInverseTable = "tags"
 	// ParentColumn is the table column denoting the parent relation/edge.
 	ParentColumn = "tag_children"
+	// ItemsTable is the table that holds the items relation/edge.
+	ItemsTable = "items"
+	// ItemsInverseTable is the table name for the Item entity.
+	// It exists in this package in order to avoid circular dependency with the "item" package.
+	ItemsInverseTable = "items"
+	// ItemsColumn is the table column denoting the items relation/edge.
+	ItemsColumn = "sub_label_items"
 )
 
 // Columns holds all SQL columns for sublabel fields.

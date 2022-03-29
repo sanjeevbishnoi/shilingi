@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -11,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
@@ -27,6 +29,7 @@ type SubLabelQuery struct {
 	predicates []predicate.SubLabel
 	// eager-loading edges.
 	withParent *TagQuery
+	withItems  *ItemQuery
 	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -79,6 +82,28 @@ func (slq *SubLabelQuery) QueryParent() *TagQuery {
 			sqlgraph.From(sublabel.Table, sublabel.FieldID, selector),
 			sqlgraph.To(tag.Table, tag.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, sublabel.ParentTable, sublabel.ParentColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(slq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryItems chains the current query on the "items" edge.
+func (slq *SubLabelQuery) QueryItems() *ItemQuery {
+	query := &ItemQuery{config: slq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := slq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := slq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(sublabel.Table, sublabel.FieldID, selector),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, sublabel.ItemsTable, sublabel.ItemsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(slq.driver.Dialect(), step)
 		return fromU, nil
@@ -268,6 +293,7 @@ func (slq *SubLabelQuery) Clone() *SubLabelQuery {
 		order:      append([]OrderFunc{}, slq.order...),
 		predicates: append([]predicate.SubLabel{}, slq.predicates...),
 		withParent: slq.withParent.Clone(),
+		withItems:  slq.withItems.Clone(),
 		// clone intermediate query.
 		sql:  slq.sql.Clone(),
 		path: slq.path,
@@ -282,6 +308,17 @@ func (slq *SubLabelQuery) WithParent(opts ...func(*TagQuery)) *SubLabelQuery {
 		opt(query)
 	}
 	slq.withParent = query
+	return slq
+}
+
+// WithItems tells the query-builder to eager-load the nodes that are connected to
+// the "items" edge. The optional arguments are used to configure the query builder of the edge.
+func (slq *SubLabelQuery) WithItems(opts ...func(*ItemQuery)) *SubLabelQuery {
+	query := &ItemQuery{config: slq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	slq.withItems = query
 	return slq
 }
 
@@ -351,8 +388,9 @@ func (slq *SubLabelQuery) sqlAll(ctx context.Context) ([]*SubLabel, error) {
 		nodes       = []*SubLabel{}
 		withFKs     = slq.withFKs
 		_spec       = slq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			slq.withParent != nil,
+			slq.withItems != nil,
 		}
 	)
 	if slq.withParent != nil {
@@ -407,6 +445,35 @@ func (slq *SubLabelQuery) sqlAll(ctx context.Context) ([]*SubLabel, error) {
 			for i := range nodes {
 				nodes[i].Edges.Parent = n
 			}
+		}
+	}
+
+	if query := slq.withItems; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*SubLabel)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Items = []*Item{}
+		}
+		query.withFKs = true
+		query.Where(predicate.Item(func(s *sql.Selector) {
+			s.Where(sql.InValues(sublabel.ItemsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.sub_label_items
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "sub_label_items" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "sub_label_items" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Items = append(node.Edges.Items, n)
 		}
 	}
 

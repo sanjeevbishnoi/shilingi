@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
@@ -52,6 +53,21 @@ func (slu *SubLabelUpdate) SetParent(t *Tag) *SubLabelUpdate {
 	return slu.SetParentID(t.ID)
 }
 
+// AddItemIDs adds the "items" edge to the Item entity by IDs.
+func (slu *SubLabelUpdate) AddItemIDs(ids ...int) *SubLabelUpdate {
+	slu.mutation.AddItemIDs(ids...)
+	return slu
+}
+
+// AddItems adds the "items" edges to the Item entity.
+func (slu *SubLabelUpdate) AddItems(i ...*Item) *SubLabelUpdate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return slu.AddItemIDs(ids...)
+}
+
 // Mutation returns the SubLabelMutation object of the builder.
 func (slu *SubLabelUpdate) Mutation() *SubLabelMutation {
 	return slu.mutation
@@ -61,6 +77,27 @@ func (slu *SubLabelUpdate) Mutation() *SubLabelMutation {
 func (slu *SubLabelUpdate) ClearParent() *SubLabelUpdate {
 	slu.mutation.ClearParent()
 	return slu
+}
+
+// ClearItems clears all "items" edges to the Item entity.
+func (slu *SubLabelUpdate) ClearItems() *SubLabelUpdate {
+	slu.mutation.ClearItems()
+	return slu
+}
+
+// RemoveItemIDs removes the "items" edge to Item entities by IDs.
+func (slu *SubLabelUpdate) RemoveItemIDs(ids ...int) *SubLabelUpdate {
+	slu.mutation.RemoveItemIDs(ids...)
+	return slu
+}
+
+// RemoveItems removes "items" edges to Item entities.
+func (slu *SubLabelUpdate) RemoveItems(i ...*Item) *SubLabelUpdate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return slu.RemoveItemIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -193,6 +230,60 @@ func (slu *SubLabelUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if slu.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sublabel.ItemsTable,
+			Columns: []string{sublabel.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := slu.mutation.RemovedItemsIDs(); len(nodes) > 0 && !slu.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sublabel.ItemsTable,
+			Columns: []string{sublabel.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := slu.mutation.ItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sublabel.ItemsTable,
+			Columns: []string{sublabel.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, slu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{sublabel.Label}
@@ -237,6 +328,21 @@ func (sluo *SubLabelUpdateOne) SetParent(t *Tag) *SubLabelUpdateOne {
 	return sluo.SetParentID(t.ID)
 }
 
+// AddItemIDs adds the "items" edge to the Item entity by IDs.
+func (sluo *SubLabelUpdateOne) AddItemIDs(ids ...int) *SubLabelUpdateOne {
+	sluo.mutation.AddItemIDs(ids...)
+	return sluo
+}
+
+// AddItems adds the "items" edges to the Item entity.
+func (sluo *SubLabelUpdateOne) AddItems(i ...*Item) *SubLabelUpdateOne {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return sluo.AddItemIDs(ids...)
+}
+
 // Mutation returns the SubLabelMutation object of the builder.
 func (sluo *SubLabelUpdateOne) Mutation() *SubLabelMutation {
 	return sluo.mutation
@@ -246,6 +352,27 @@ func (sluo *SubLabelUpdateOne) Mutation() *SubLabelMutation {
 func (sluo *SubLabelUpdateOne) ClearParent() *SubLabelUpdateOne {
 	sluo.mutation.ClearParent()
 	return sluo
+}
+
+// ClearItems clears all "items" edges to the Item entity.
+func (sluo *SubLabelUpdateOne) ClearItems() *SubLabelUpdateOne {
+	sluo.mutation.ClearItems()
+	return sluo
+}
+
+// RemoveItemIDs removes the "items" edge to Item entities by IDs.
+func (sluo *SubLabelUpdateOne) RemoveItemIDs(ids ...int) *SubLabelUpdateOne {
+	sluo.mutation.RemoveItemIDs(ids...)
+	return sluo
+}
+
+// RemoveItems removes "items" edges to Item entities.
+func (sluo *SubLabelUpdateOne) RemoveItems(i ...*Item) *SubLabelUpdateOne {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return sluo.RemoveItemIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -394,6 +521,60 @@ func (sluo *SubLabelUpdateOne) sqlSave(ctx context.Context) (_node *SubLabel, er
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: tag.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if sluo.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sublabel.ItemsTable,
+			Columns: []string{sublabel.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := sluo.mutation.RemovedItemsIDs(); len(nodes) > 0 && !sluo.mutation.ItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sublabel.ItemsTable,
+			Columns: []string{sublabel.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := sluo.mutation.ItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sublabel.ItemsTable,
+			Columns: []string{sublabel.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
 				},
 			},
 		}

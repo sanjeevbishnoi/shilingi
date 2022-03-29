@@ -54,6 +54,8 @@ type ItemMutation struct {
 	tags             map[int]struct{}
 	removedtags      map[int]struct{}
 	clearedtags      bool
+	sublabel         *int
+	clearedsublabel  bool
 	done             bool
 	oldValue         func(context.Context) (*Item, error)
 	predicates       []predicate.Item
@@ -390,6 +392,45 @@ func (m *ItemMutation) ResetTags() {
 	m.removedtags = nil
 }
 
+// SetSublabelID sets the "sublabel" edge to the SubLabel entity by id.
+func (m *ItemMutation) SetSublabelID(id int) {
+	m.sublabel = &id
+}
+
+// ClearSublabel clears the "sublabel" edge to the SubLabel entity.
+func (m *ItemMutation) ClearSublabel() {
+	m.clearedsublabel = true
+}
+
+// SublabelCleared reports if the "sublabel" edge to the SubLabel entity was cleared.
+func (m *ItemMutation) SublabelCleared() bool {
+	return m.clearedsublabel
+}
+
+// SublabelID returns the "sublabel" edge ID in the mutation.
+func (m *ItemMutation) SublabelID() (id int, exists bool) {
+	if m.sublabel != nil {
+		return *m.sublabel, true
+	}
+	return
+}
+
+// SublabelIDs returns the "sublabel" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SublabelID instead. It exists only for internal usage by the builders.
+func (m *ItemMutation) SublabelIDs() (ids []int) {
+	if id := m.sublabel; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSublabel resets all changes to the "sublabel" edge.
+func (m *ItemMutation) ResetSublabel() {
+	m.sublabel = nil
+	m.clearedsublabel = false
+}
+
 // Where appends a list predicates to the ItemMutation builder.
 func (m *ItemMutation) Where(ps ...predicate.Item) {
 	m.predicates = append(m.predicates, ps...)
@@ -559,12 +600,15 @@ func (m *ItemMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ItemMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.purchases != nil {
 		edges = append(edges, item.EdgePurchases)
 	}
 	if m.tags != nil {
 		edges = append(edges, item.EdgeTags)
+	}
+	if m.sublabel != nil {
+		edges = append(edges, item.EdgeSublabel)
 	}
 	return edges
 }
@@ -585,13 +629,17 @@ func (m *ItemMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case item.EdgeSublabel:
+		if id := m.sublabel; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ItemMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedpurchases != nil {
 		edges = append(edges, item.EdgePurchases)
 	}
@@ -623,12 +671,15 @@ func (m *ItemMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ItemMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedpurchases {
 		edges = append(edges, item.EdgePurchases)
 	}
 	if m.clearedtags {
 		edges = append(edges, item.EdgeTags)
+	}
+	if m.clearedsublabel {
+		edges = append(edges, item.EdgeSublabel)
 	}
 	return edges
 }
@@ -641,6 +692,8 @@ func (m *ItemMutation) EdgeCleared(name string) bool {
 		return m.clearedpurchases
 	case item.EdgeTags:
 		return m.clearedtags
+	case item.EdgeSublabel:
+		return m.clearedsublabel
 	}
 	return false
 }
@@ -649,6 +702,9 @@ func (m *ItemMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *ItemMutation) ClearEdge(name string) error {
 	switch name {
+	case item.EdgeSublabel:
+		m.ClearSublabel()
+		return nil
 	}
 	return fmt.Errorf("unknown Item unique edge %s", name)
 }
@@ -662,6 +718,9 @@ func (m *ItemMutation) ResetEdge(name string) error {
 		return nil
 	case item.EdgeTags:
 		m.ResetTags()
+		return nil
+	case item.EdgeSublabel:
+		m.ResetSublabel()
 		return nil
 	}
 	return fmt.Errorf("unknown Item edge %s", name)
@@ -2138,6 +2197,9 @@ type SubLabelMutation struct {
 	clearedFields map[string]struct{}
 	parent        *int
 	clearedparent bool
+	items         map[int]struct{}
+	removeditems  map[int]struct{}
+	cleareditems  bool
 	done          bool
 	oldValue      func(context.Context) (*SubLabel, error)
 	predicates    []predicate.SubLabel
@@ -2369,6 +2431,60 @@ func (m *SubLabelMutation) ResetParent() {
 	m.clearedparent = false
 }
 
+// AddItemIDs adds the "items" edge to the Item entity by ids.
+func (m *SubLabelMutation) AddItemIDs(ids ...int) {
+	if m.items == nil {
+		m.items = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.items[ids[i]] = struct{}{}
+	}
+}
+
+// ClearItems clears the "items" edge to the Item entity.
+func (m *SubLabelMutation) ClearItems() {
+	m.cleareditems = true
+}
+
+// ItemsCleared reports if the "items" edge to the Item entity was cleared.
+func (m *SubLabelMutation) ItemsCleared() bool {
+	return m.cleareditems
+}
+
+// RemoveItemIDs removes the "items" edge to the Item entity by IDs.
+func (m *SubLabelMutation) RemoveItemIDs(ids ...int) {
+	if m.removeditems == nil {
+		m.removeditems = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.items, ids[i])
+		m.removeditems[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedItems returns the removed IDs of the "items" edge to the Item entity.
+func (m *SubLabelMutation) RemovedItemsIDs() (ids []int) {
+	for id := range m.removeditems {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ItemsIDs returns the "items" edge IDs in the mutation.
+func (m *SubLabelMutation) ItemsIDs() (ids []int) {
+	for id := range m.items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetItems resets all changes to the "items" edge.
+func (m *SubLabelMutation) ResetItems() {
+	m.items = nil
+	m.cleareditems = false
+	m.removeditems = nil
+}
+
 // Where appends a list predicates to the SubLabelMutation builder.
 func (m *SubLabelMutation) Where(ps ...predicate.SubLabel) {
 	m.predicates = append(m.predicates, ps...)
@@ -2521,9 +2637,12 @@ func (m *SubLabelMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubLabelMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.parent != nil {
 		edges = append(edges, sublabel.EdgeParent)
+	}
+	if m.items != nil {
+		edges = append(edges, sublabel.EdgeItems)
 	}
 	return edges
 }
@@ -2536,13 +2655,22 @@ func (m *SubLabelMutation) AddedIDs(name string) []ent.Value {
 		if id := m.parent; id != nil {
 			return []ent.Value{*id}
 		}
+	case sublabel.EdgeItems:
+		ids := make([]ent.Value, 0, len(m.items))
+		for id := range m.items {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubLabelMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
+	if m.removeditems != nil {
+		edges = append(edges, sublabel.EdgeItems)
+	}
 	return edges
 }
 
@@ -2550,15 +2678,24 @@ func (m *SubLabelMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *SubLabelMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
+	case sublabel.EdgeItems:
+		ids := make([]ent.Value, 0, len(m.removeditems))
+		for id := range m.removeditems {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubLabelMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedparent {
 		edges = append(edges, sublabel.EdgeParent)
+	}
+	if m.cleareditems {
+		edges = append(edges, sublabel.EdgeItems)
 	}
 	return edges
 }
@@ -2569,6 +2706,8 @@ func (m *SubLabelMutation) EdgeCleared(name string) bool {
 	switch name {
 	case sublabel.EdgeParent:
 		return m.clearedparent
+	case sublabel.EdgeItems:
+		return m.cleareditems
 	}
 	return false
 }
@@ -2590,6 +2729,9 @@ func (m *SubLabelMutation) ResetEdge(name string) error {
 	switch name {
 	case sublabel.EdgeParent:
 		m.ResetParent()
+		return nil
+	case sublabel.EdgeItems:
+		m.ResetItems()
 		return nil
 	}
 	return fmt.Errorf("unknown SubLabel edge %s", name)

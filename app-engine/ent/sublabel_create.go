@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 )
@@ -72,6 +73,21 @@ func (slc *SubLabelCreate) SetNillableParentID(id *int) *SubLabelCreate {
 // SetParent sets the "parent" edge to the Tag entity.
 func (slc *SubLabelCreate) SetParent(t *Tag) *SubLabelCreate {
 	return slc.SetParentID(t.ID)
+}
+
+// AddItemIDs adds the "items" edge to the Item entity by IDs.
+func (slc *SubLabelCreate) AddItemIDs(ids ...int) *SubLabelCreate {
+	slc.mutation.AddItemIDs(ids...)
+	return slc
+}
+
+// AddItems adds the "items" edges to the Item entity.
+func (slc *SubLabelCreate) AddItems(i ...*Item) *SubLabelCreate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return slc.AddItemIDs(ids...)
 }
 
 // Mutation returns the SubLabelMutation object of the builder.
@@ -235,6 +251,25 @@ func (slc *SubLabelCreate) createSpec() (*SubLabel, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.tag_children = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := slc.mutation.ItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sublabel.ItemsTable,
+			Columns: []string{sublabel.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: item.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

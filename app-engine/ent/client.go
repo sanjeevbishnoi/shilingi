@@ -276,6 +276,22 @@ func (c *ItemClient) QueryTags(i *Item) *TagQuery {
 	return query
 }
 
+// QuerySublabel queries the sublabel edge of a Item.
+func (c *ItemClient) QuerySublabel(i *Item) *SubLabelQuery {
+	query := &SubLabelQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := i.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(sublabel.Table, sublabel.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, item.SublabelTable, item.SublabelColumn),
+		)
+		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ItemClient) Hooks() []Hook {
 	return c.hooks.Item
@@ -619,6 +635,22 @@ func (c *SubLabelClient) QueryParent(sl *SubLabel) *TagQuery {
 			sqlgraph.From(sublabel.Table, sublabel.FieldID, id),
 			sqlgraph.To(tag.Table, tag.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, sublabel.ParentTable, sublabel.ParentColumn),
+		)
+		fromV = sqlgraph.Neighbors(sl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryItems queries the items edge of a SubLabel.
+func (c *SubLabelClient) QueryItems(sl *SubLabel) *ItemQuery {
+	query := &ItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(sublabel.Table, sublabel.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, sublabel.ItemsTable, sublabel.ItemsColumn),
 		)
 		fromV = sqlgraph.Neighbors(sl.driver.Dialect(), step)
 		return fromV, nil

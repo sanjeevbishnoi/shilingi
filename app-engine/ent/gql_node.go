@@ -56,7 +56,7 @@ func (i *Item) Node(ctx context.Context) (node *Node, err error) {
 		ID:     i.ID,
 		Type:   "Item",
 		Fields: make([]*Field, 4),
-		Edges:  make([]*Edge, 2),
+		Edges:  make([]*Edge, 3),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(i.CreateTime); err != nil {
@@ -108,6 +108,16 @@ func (i *Item) Node(ctx context.Context) (node *Node, err error) {
 	err = i.QueryTags().
 		Select(tag.FieldID).
 		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[2] = &Edge{
+		Type: "SubLabel",
+		Name: "sublabel",
+	}
+	err = i.QuerySublabel().
+		Select(sublabel.FieldID).
+		Scan(ctx, &node.Edges[2].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +271,7 @@ func (sl *SubLabel) Node(ctx context.Context) (node *Node, err error) {
 		ID:     sl.ID,
 		Type:   "SubLabel",
 		Fields: make([]*Field, 3),
-		Edges:  make([]*Edge, 1),
+		Edges:  make([]*Edge, 2),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(sl.CreateTime); err != nil {
@@ -295,6 +305,16 @@ func (sl *SubLabel) Node(ctx context.Context) (node *Node, err error) {
 	err = sl.QueryParent().
 		Select(tag.FieldID).
 		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "Item",
+		Name: "items",
+	}
+	err = sl.QueryItems().
+		Select(item.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
 	if err != nil {
 		return nil, err
 	}

@@ -16,12 +16,21 @@ var (
 		{Name: "update_time", Type: field.TypeTime},
 		{Name: "name", Type: field.TypeString},
 		{Name: "slug", Type: field.TypeString, Unique: true, Size: 250},
+		{Name: "sub_label_items", Type: field.TypeInt, Nullable: true},
 	}
 	// ItemsTable holds the schema information for the "items" table.
 	ItemsTable = &schema.Table{
 		Name:       "items",
 		Columns:    ItemsColumns,
 		PrimaryKey: []*schema.Column{ItemsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "items_sub_labels_items",
+				Columns:    []*schema.Column{ItemsColumns[5]},
+				RefColumns: []*schema.Column{SubLabelsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// ShoppingsColumns holds the columns for the "shoppings" table.
 	ShoppingsColumns = []*schema.Column{
@@ -179,6 +188,7 @@ var (
 )
 
 func init() {
+	ItemsTable.ForeignKeys[0].RefTable = SubLabelsTable
 	ItemsTable.Annotation = &entsql.Annotation{
 		Charset:   "utf8mb4",
 		Collation: "utf8mb4_0900_ai_ci",

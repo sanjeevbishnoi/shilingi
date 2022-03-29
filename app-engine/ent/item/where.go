@@ -551,6 +551,34 @@ func HasTagsWith(preds ...predicate.Tag) predicate.Item {
 	})
 }
 
+// HasSublabel applies the HasEdge predicate on the "sublabel" edge.
+func HasSublabel() predicate.Item {
+	return predicate.Item(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(SublabelTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SublabelTable, SublabelColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSublabelWith applies the HasEdge predicate on the "sublabel" edge with a given conditions (other predicates).
+func HasSublabelWith(preds ...predicate.SubLabel) predicate.Item {
+	return predicate.Item(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(SublabelInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SublabelTable, SublabelColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Item) predicate.Item {
 	return predicate.Item(func(s *sql.Selector) {

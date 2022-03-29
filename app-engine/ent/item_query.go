@@ -15,6 +15,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 )
 
@@ -30,6 +31,8 @@ type ItemQuery struct {
 	// eager-loading edges.
 	withPurchases *ShoppingItemQuery
 	withTags      *TagQuery
+	withSublabel  *SubLabelQuery
+	withFKs       bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -103,6 +106,28 @@ func (iq *ItemQuery) QueryTags() *TagQuery {
 			sqlgraph.From(item.Table, item.FieldID, selector),
 			sqlgraph.To(tag.Table, tag.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, item.TagsTable, item.TagsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySublabel chains the current query on the "sublabel" edge.
+func (iq *ItemQuery) QuerySublabel() *SubLabelQuery {
+	query := &SubLabelQuery{config: iq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := iq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := iq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, selector),
+			sqlgraph.To(sublabel.Table, sublabel.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, item.SublabelTable, item.SublabelColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
 		return fromU, nil
@@ -293,6 +318,7 @@ func (iq *ItemQuery) Clone() *ItemQuery {
 		predicates:    append([]predicate.Item{}, iq.predicates...),
 		withPurchases: iq.withPurchases.Clone(),
 		withTags:      iq.withTags.Clone(),
+		withSublabel:  iq.withSublabel.Clone(),
 		// clone intermediate query.
 		sql:  iq.sql.Clone(),
 		path: iq.path,
@@ -318,6 +344,17 @@ func (iq *ItemQuery) WithTags(opts ...func(*TagQuery)) *ItemQuery {
 		opt(query)
 	}
 	iq.withTags = query
+	return iq
+}
+
+// WithSublabel tells the query-builder to eager-load the nodes that are connected to
+// the "sublabel" edge. The optional arguments are used to configure the query builder of the edge.
+func (iq *ItemQuery) WithSublabel(opts ...func(*SubLabelQuery)) *ItemQuery {
+	query := &SubLabelQuery{config: iq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	iq.withSublabel = query
 	return iq
 }
 
@@ -385,12 +422,20 @@ func (iq *ItemQuery) prepareQuery(ctx context.Context) error {
 func (iq *ItemQuery) sqlAll(ctx context.Context) ([]*Item, error) {
 	var (
 		nodes       = []*Item{}
+		withFKs     = iq.withFKs
 		_spec       = iq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			iq.withPurchases != nil,
 			iq.withTags != nil,
+			iq.withSublabel != nil,
 		}
 	)
+	if iq.withSublabel != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, item.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Item{config: iq.config}
 		nodes = append(nodes, node)
@@ -501,6 +546,35 @@ func (iq *ItemQuery) sqlAll(ctx context.Context) ([]*Item, error) {
 			}
 			for i := range nodes {
 				nodes[i].Edges.Tags = append(nodes[i].Edges.Tags, n)
+			}
+		}
+	}
+
+	if query := iq.withSublabel; query != nil {
+		ids := make([]int, 0, len(nodes))
+		nodeids := make(map[int][]*Item)
+		for i := range nodes {
+			if nodes[i].sub_label_items == nil {
+				continue
+			}
+			fk := *nodes[i].sub_label_items
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
+		}
+		query.Where(sublabel.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "sub_label_items" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Sublabel = n
 			}
 		}
 	}

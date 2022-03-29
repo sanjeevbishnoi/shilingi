@@ -34,9 +34,11 @@ type SubLabel struct {
 type SubLabelEdges struct {
 	// Parent holds the value of the parent edge.
 	Parent *Tag `json:"parent,omitempty"`
+	// Items holds the value of the items edge.
+	Items []*Item `json:"items,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // ParentOrErr returns the Parent value or an error if the edge
@@ -51,6 +53,15 @@ func (e SubLabelEdges) ParentOrErr() (*Tag, error) {
 		return e.Parent, nil
 	}
 	return nil, &NotLoadedError{edge: "parent"}
+}
+
+// ItemsOrErr returns the Items value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubLabelEdges) ItemsOrErr() ([]*Item, error) {
+	if e.loadedTypes[1] {
+		return e.Items, nil
+	}
+	return nil, &NotLoadedError{edge: "items"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -120,6 +131,11 @@ func (sl *SubLabel) assignValues(columns []string, values []interface{}) error {
 // QueryParent queries the "parent" edge of the SubLabel entity.
 func (sl *SubLabel) QueryParent() *TagQuery {
 	return (&SubLabelClient{config: sl.config}).QueryParent(sl)
+}
+
+// QueryItems queries the "items" edge of the SubLabel entity.
+func (sl *SubLabel) QueryItems() *ItemQuery {
+	return (&SubLabelClient{config: sl.config}).QueryItems(sl)
 }
 
 // Update returns a builder for updating this SubLabel.
