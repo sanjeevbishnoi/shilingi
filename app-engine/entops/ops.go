@@ -297,3 +297,43 @@ func RemoveItemsFromSubLabel(ctx context.Context, subLabelID int, itemIDs []int)
 
 	return label, err
 }
+
+// EditSubLabel ...
+func EditSubLabel(ctx context.Context, subLabelID int, input model.SubLabelInput) (*ent.SubLabel, error) {
+	cli := ent.FromContext(ctx)
+	cleanedName := utils.CleanTagName(input.Name)
+	// Make sure the name is not "uncategorized"
+	if cleanedName == "uncategorized" {
+		return nil, gqlerror.Errorf("'uncategorized' is not a valid label name")
+	}
+
+	// Check that the  name is not used by an existing label within the same parent
+	label, err := cli.SubLabel.Query().
+		Where(sublabel.ID(subLabelID)).
+		WithParent().
+		Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	exists, err := cli.SubLabel.Query().
+		Where(
+			sublabel.Name(cleanedName),
+			sublabel.Not(
+				sublabel.ID(label.ID),
+			),
+			sublabel.HasParentWith(
+				tag.ID(label.Edges.Parent.ID),
+			),
+		).Exist(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, gqlerror.Errorf("another label with a similar name exists in parent label %s", label.Edges.Parent.Name)
+	}
+
+	return cli.SubLabel.UpdateOne(label).
+		SetName(cleanedName).
+		Save(ctx)
+}
