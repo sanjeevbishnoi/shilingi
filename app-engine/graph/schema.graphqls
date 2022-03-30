@@ -26,8 +26,10 @@ type Mutation {
   createTag(input: TagInput!): Tag!
   editTag(id: Int!, input: TagInput!): Tag!
   editItem(id: Int!, input: ItemInput!): Item!
-  deleteTag(id: Int!): Boolean
+  deleteTag(id: Int!): Boolean!
   createSubLabel(tagID: Int!, input: SubLabelInput!): SubLabel!
   addItemsToSubLabel(subLabelID: Int!, itemIDs: [Int!]!): SubLabel!
   removeItemsFromSubLabel(subLabelID: Int!, itemIDs: [Int!]!): SubLabel!
+  editSubLabel(subLabelID: Int!, input: SubLabelInput!): SubLabel!
+  deleteSubLabel(subLabelID: Int!): Boolean!
 }
