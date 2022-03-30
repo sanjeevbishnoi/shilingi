@@ -82,10 +82,17 @@ class SimpleBarState extends State<SimpleBar> {
                           Row(
                             children: [
                               Expanded(
-                                  child: Text(widget.title,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600))),
+                                child: Tooltip(
+                                  message: widget.title,
+                                  showDuration: const Duration(seconds: 5),
+                                  child: Text(
+                                    widget.title,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ),
                               Text(valueText),
                             ],
                           ),
