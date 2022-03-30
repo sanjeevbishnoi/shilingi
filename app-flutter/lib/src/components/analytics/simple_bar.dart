@@ -83,6 +83,7 @@ class SimpleBarState extends State<SimpleBar> {
                             children: [
                               Expanded(
                                   child: Text(widget.title,
+                                      overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w600))),
                               Text(valueText),
@@ -174,7 +175,8 @@ class TargetSimpleBar<E extends Object> extends StatelessWidget {
 
         return Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.lightGreenAccent),
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(8.0),
           ),
           child: child,
         );
@@ -335,6 +337,10 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
   }
 
   void _merge(SimpleBarEntry<E> item, SimpleBarEntry<E> into) {
+    if (item.label == into.label) {
+      return;
+    }
+
     var indexInto = widget.entries.indexWhere((i) => i.label == into.label);
     if (indexInto == -1) {
       return;
