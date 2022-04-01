@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:ms_undraw/ms_undraw.dart';
+import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:shilingi/src/gql/mutations.dart';
 
 import '../models/model.dart';
 
@@ -103,6 +105,8 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _controller;
   String _label = '';
+  bool _loading = false;
+  String? _errorText;
 
   @override
   void initState() {
@@ -134,6 +138,8 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10.0),
             ),
+            errorText: _errorText,
+            errorMaxLines: 3,
           ),
         ),
       ),
@@ -143,7 +149,41 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
               Navigator.of(context).pop();
             },
             child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
-        TextButton(onPressed: () {}, child: const Text('Add')),
+        TextButton(
+            onPressed: _label.isNotEmpty && !_loading
+                ? () async {
+                    var cli = GraphQLProvider.of(context).value;
+                    setState(() {
+                      _loading = true;
+                    });
+                    var result = await cli.mutate(
+                      MutationOptions(
+                        document: mutationCreateSubLabel,
+                        variables: {
+                          "tagID": widget.tag.id!,
+                          "input": {
+                            "name": _label,
+                          }
+                        },
+                      ),
+                    );
+                    if (result.hasException) {
+                      setState(() {
+                        _loading = false;
+                        _errorText = 'Unable to add label';
+                      });
+                    } else {
+                      setState(() {
+                        _loading = false;
+                      });
+                      var snackBar = const SnackBar(
+                          content: Text('The label has been added'));
+                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                      Navigator.of(context).pop();
+                    }
+                  }
+                : null,
+            child: Text(_loading ? 'Adding...' : 'Add')),
       ],
     );
   }
