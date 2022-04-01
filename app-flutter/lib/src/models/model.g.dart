@@ -159,6 +159,9 @@ Map<String, dynamic> _$VendorToJson(Vendor instance) {
 Tag _$TagFromJson(Map<String, dynamic> json) => Tag(
       name: json['name'] as String,
       id: json['id'] as int?,
+      children: (json['children'] as List<dynamic>?)
+          ?.map((e) => SubLabel.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$TagToJson(Tag instance) {
@@ -172,6 +175,7 @@ Map<String, dynamic> _$TagToJson(Tag instance) {
 
   writeNotNull('id', instance.id);
   val['name'] = instance.name;
+  writeNotNull('children', instance.children);
   return val;
 }
 
@@ -184,3 +188,26 @@ Tags _$TagsFromJson(Map<String, dynamic> json) => Tags(
 Map<String, dynamic> _$TagsToJson(Tags instance) => <String, dynamic>{
       'tags': instance.tags,
     };
+
+SubLabel _$SubLabelFromJson(Map<String, dynamic> json) => SubLabel(
+      name: json['name'] as String,
+      id: json['id'] as int?,
+      items: (json['items'] as List<dynamic>?)
+          ?.map((e) => Item.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$SubLabelToJson(SubLabel instance) {
+  final val = <String, dynamic>{};
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('id', instance.id);
+  val['name'] = instance.name;
+  writeNotNull('items', instance.items);
+  return val;
+}

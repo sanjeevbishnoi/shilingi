@@ -173,7 +173,8 @@ class SubLabel {
 
   const SubLabel({required this.name, this.id, this.items});
 
-  factory SubLabel.fromJson(Map<String, dynamic> json): _$SubLabelFromJson(json);
+  factory SubLabel.fromJson(Map<String, dynamic> json) =>
+      _$SubLabelFromJson(json);
 
   Map<String, dynamic> toJson() => _$SubLabelToJson(this);
 }
