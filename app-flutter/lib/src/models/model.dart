@@ -144,8 +144,10 @@ class Tag {
   @JsonKey(includeIfNull: false)
   final int? id;
   final String name;
+  @JsonKey(includeIfNull: false)
+  final List<SubLabel>? children;
 
-  const Tag({required this.name, this.id});
+  const Tag({required this.name, this.id, this.children});
 
   factory Tag.fromJson(Map<String, dynamic> json) => _$TagFromJson(json);
   Map<String, dynamic> toJson() => _$TagToJson(this);
@@ -159,4 +161,19 @@ class Tags {
 
   factory Tags.fromJson(Map<String, dynamic> json) => _$TagsFromJson(json);
   Map<String, dynamic> toJson() => _$TagsToJson(this);
+}
+
+@JsonSerializable()
+class SubLabel {
+  @JsonKey(includeIfNull: false)
+  final int? id;
+  final String name;
+  @JsonKey(includeIfNull: false)
+  final List<Item>? items;
+
+  const SubLabel({required this.name, this.id, this.items});
+
+  factory SubLabel.fromJson(Map<String, dynamic> json): _$SubLabelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SubLabelToJson(this);
 }
