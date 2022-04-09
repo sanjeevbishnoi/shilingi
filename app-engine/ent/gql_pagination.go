@@ -17,6 +17,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -914,6 +915,233 @@ func (si *ShoppingItem) ToEdge(order *ShoppingItemOrder) *ShoppingItemEdge {
 	return &ShoppingItemEdge{
 		Node:   si,
 		Cursor: order.Field.toCursor(si),
+	}
+}
+
+// SubLabelEdge is the edge representation of SubLabel.
+type SubLabelEdge struct {
+	Node   *SubLabel `json:"node"`
+	Cursor Cursor    `json:"cursor"`
+}
+
+// SubLabelConnection is the connection containing edges to SubLabel.
+type SubLabelConnection struct {
+	Edges      []*SubLabelEdge `json:"edges"`
+	PageInfo   PageInfo        `json:"pageInfo"`
+	TotalCount int             `json:"totalCount"`
+}
+
+// SubLabelPaginateOption enables pagination customization.
+type SubLabelPaginateOption func(*subLabelPager) error
+
+// WithSubLabelOrder configures pagination ordering.
+func WithSubLabelOrder(order *SubLabelOrder) SubLabelPaginateOption {
+	if order == nil {
+		order = DefaultSubLabelOrder
+	}
+	o := *order
+	return func(pager *subLabelPager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultSubLabelOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithSubLabelFilter configures pagination filter.
+func WithSubLabelFilter(filter func(*SubLabelQuery) (*SubLabelQuery, error)) SubLabelPaginateOption {
+	return func(pager *subLabelPager) error {
+		if filter == nil {
+			return errors.New("SubLabelQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type subLabelPager struct {
+	order  *SubLabelOrder
+	filter func(*SubLabelQuery) (*SubLabelQuery, error)
+}
+
+func newSubLabelPager(opts []SubLabelPaginateOption) (*subLabelPager, error) {
+	pager := &subLabelPager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultSubLabelOrder
+	}
+	return pager, nil
+}
+
+func (p *subLabelPager) applyFilter(query *SubLabelQuery) (*SubLabelQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *subLabelPager) toCursor(sl *SubLabel) Cursor {
+	return p.order.Field.toCursor(sl)
+}
+
+func (p *subLabelPager) applyCursors(query *SubLabelQuery, after, before *Cursor) *SubLabelQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultSubLabelOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *subLabelPager) applyOrder(query *SubLabelQuery, reverse bool) *SubLabelQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultSubLabelOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultSubLabelOrder.Field.field))
+	}
+	return query
+}
+
+// Paginate executes the query and returns a relay based cursor connection to SubLabel.
+func (sl *SubLabelQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...SubLabelPaginateOption,
+) (*SubLabelConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newSubLabelPager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if sl, err = pager.applyFilter(sl); err != nil {
+		return nil, err
+	}
+
+	conn := &SubLabelConnection{Edges: []*SubLabelEdge{}}
+	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
+		if hasCollectedField(ctx, totalCountField) ||
+			hasCollectedField(ctx, pageInfoField) {
+			count, err := sl.Count(ctx)
+			if err != nil {
+				return nil, err
+			}
+			conn.TotalCount = count
+			conn.PageInfo.HasNextPage = first != nil && count > 0
+			conn.PageInfo.HasPreviousPage = last != nil && count > 0
+		}
+		return conn, nil
+	}
+
+	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
+		count, err := sl.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		conn.TotalCount = count
+	}
+
+	sl = pager.applyCursors(sl, after, before)
+	sl = pager.applyOrder(sl, last != nil)
+	var limit int
+	if first != nil {
+		limit = *first + 1
+	} else if last != nil {
+		limit = *last + 1
+	}
+	if limit > 0 {
+		sl = sl.Limit(limit)
+	}
+
+	if field := getCollectedField(ctx, edgesField, nodeField); field != nil {
+		sl = sl.collectField(graphql.GetOperationContext(ctx), *field)
+	}
+
+	nodes, err := sl.All(ctx)
+	if err != nil || len(nodes) == 0 {
+		return conn, err
+	}
+
+	if len(nodes) == limit {
+		conn.PageInfo.HasNextPage = first != nil
+		conn.PageInfo.HasPreviousPage = last != nil
+		nodes = nodes[:len(nodes)-1]
+	}
+
+	var nodeAt func(int) *SubLabel
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *SubLabel {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *SubLabel {
+			return nodes[i]
+		}
+	}
+
+	conn.Edges = make([]*SubLabelEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		conn.Edges[i] = &SubLabelEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+
+	conn.PageInfo.StartCursor = &conn.Edges[0].Cursor
+	conn.PageInfo.EndCursor = &conn.Edges[len(conn.Edges)-1].Cursor
+	if conn.TotalCount == 0 {
+		conn.TotalCount = len(nodes)
+	}
+
+	return conn, nil
+}
+
+// SubLabelOrderField defines the ordering field of SubLabel.
+type SubLabelOrderField struct {
+	field    string
+	toCursor func(*SubLabel) Cursor
+}
+
+// SubLabelOrder defines the ordering of SubLabel.
+type SubLabelOrder struct {
+	Direction OrderDirection      `json:"direction"`
+	Field     *SubLabelOrderField `json:"field"`
+}
+
+// DefaultSubLabelOrder is the default ordering of SubLabel.
+var DefaultSubLabelOrder = &SubLabelOrder{
+	Direction: OrderDirectionAsc,
+	Field: &SubLabelOrderField{
+		field: sublabel.FieldID,
+		toCursor: func(sl *SubLabel) Cursor {
+			return Cursor{ID: sl.ID}
+		},
+	},
+}
+
+// ToEdge converts SubLabel into SubLabelEdge.
+func (sl *SubLabel) ToEdge(order *SubLabelOrder) *SubLabelEdge {
+	if order == nil {
+		order = DefaultSubLabelOrder
+	}
+	return &SubLabelEdge{
+		Node:   sl,
+		Cursor: order.Field.toCursor(sl),
 	}
 }
 

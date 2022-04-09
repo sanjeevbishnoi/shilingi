@@ -33,6 +33,7 @@ func (Tag) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("items", Item.Type).
 			Ref("tags"),
+		edge.To("children", SubLabel.Type),
 	}
 }
 

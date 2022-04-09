@@ -71,3 +71,21 @@ var mutationEditItem = gql(r'''
       }
     }
 ''');
+
+var mutationCreateSubLabel = gql(r'''
+    mutation createSubLabel($tagID: Int!, $input: SubLabelInput!) {
+      createSubLabel(tagID: $tagID, input: $input) {
+        id
+        name
+      }
+    }
+''');
+
+var mutationAddItemsToSubLabel = gql(r'''
+    mutation addItemsToSubLabel($subLabelID: Int!, $itemIDs: [Int!]!) {
+      addItemsToSubLabel(subLabelID: $subLabelID, itemIDs: $itemIDs) {
+        id
+        name
+      }
+    }
+''');

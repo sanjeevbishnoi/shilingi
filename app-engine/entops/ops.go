@@ -8,8 +8,12 @@ import (
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
+	"github.com/kingzbauer/shilingi/app-engine/ent/schema/utils"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
+	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 // CreatePurchase verifies and creates a new purchase
@@ -178,5 +182,158 @@ func EditItem(ctx context.Context, id int, input model.ItemInput) (*ent.Item, er
 	return cli.Item.UpdateOneID(id).
 		SetName(input.Name).
 		SetSlug(slug).
+		Save(ctx)
+}
+
+// CreateSubLabel validates and creates the sublabel
+func CreateSubLabel(ctx context.Context, tagID int, input model.SubLabelInput) (*ent.SubLabel, error) {
+	cli := ent.FromContext(ctx)
+
+	// Make sure that the tag already exists
+	t, err := cli.Tag.Query().Where(tag.ID(tagID)).Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	cleanedName := utils.CleanTagName(input.Name)
+	if cleanedName == "uncategorized" {
+		return nil, errors.New("'uncategorized' is a reserved label name")
+	}
+
+	label, err := cli.SubLabel.Query().Where(
+		sublabel.Name(cleanedName),
+		sublabel.HasParentWith(
+			tag.ID(t.ID),
+		),
+	).Only(ctx)
+	if ent.IsNotFound(err) {
+		label, err = cli.SubLabel.Create().
+			SetName(cleanedName).
+			SetParent(t).
+			Save(ctx)
+	}
+
+	return label, err
+}
+
+// AddItemsToSubLabel adds the provided items under the label provided
+func AddItemsToSubLabel(ctx context.Context, subLabelID int, itemIDs []int) (*ent.SubLabel, error) {
+	cli := ent.FromContext(ctx)
+	// Make sure the items are part of the parent label
+	label, err := cli.SubLabel.Query().
+		Where(
+			sublabel.ID(subLabelID),
+		).
+		WithParent().
+		Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := cli.Item.Query().
+		Where(
+			item.IDIn(itemIDs...),
+			item.HasTagsWith(
+				tag.ID(label.Edges.Parent.ID),
+			),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(items) != len(itemIDs) {
+		return nil, gqlerror.Errorf(
+			"At least %d of the items are not part of the parent label %q", len(itemIDs)-len(items), label.Edges.Parent.Name)
+	}
+
+	// Check if any of the items have sub-tags already
+	items, err = cli.Item.Query().
+		Where(
+			item.IDIn(itemIDs...),
+			item.HasSublabel(),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(items) > 0 {
+		return nil, gqlerror.Errorf(
+			"At least %d of the items have already been labeled", len(items))
+	}
+
+	_, err = cli.Item.Update().
+		Where(
+			item.IDIn(itemIDs...),
+		).
+		SetSublabelID(subLabelID).
+		Save(ctx)
+
+	return label, err
+}
+
+// RemoveItemsFromSubLabel ...
+//
+// NOTE: we do not return an error if any of the items is not labelled with the
+// provided label id, but we do validate that only the items with the label
+// are unlabeled
+func RemoveItemsFromSubLabel(ctx context.Context, subLabelID int, itemIDs []int) (*ent.SubLabel, error) {
+	cli := ent.FromContext(ctx)
+	label, err := cli.SubLabel.Get(ctx, subLabelID)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = cli.Item.Update().
+		Where(
+			item.IDIn(itemIDs...),
+			item.HasSublabelWith(
+				sublabel.ID(label.ID),
+			),
+		).
+		ClearSublabel().
+		Save(ctx)
+
+	return label, err
+}
+
+// EditSubLabel ...
+func EditSubLabel(ctx context.Context, subLabelID int, input model.SubLabelInput) (*ent.SubLabel, error) {
+	cli := ent.FromContext(ctx)
+	cleanedName := utils.CleanTagName(input.Name)
+	// Make sure the name is not "uncategorized"
+	if cleanedName == "uncategorized" {
+		return nil, gqlerror.Errorf("'uncategorized' is not a valid label name")
+	}
+
+	// Check that the  name is not used by an existing label within the same parent
+	label, err := cli.SubLabel.Query().
+		Where(sublabel.ID(subLabelID)).
+		WithParent().
+		Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	exists, err := cli.SubLabel.Query().
+		Where(
+			sublabel.Name(cleanedName),
+			sublabel.Not(
+				sublabel.ID(label.ID),
+			),
+			sublabel.HasParentWith(
+				tag.ID(label.Edges.Parent.ID),
+			),
+		).Exist(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, gqlerror.Errorf("another label with a similar name exists in parent label %s", label.Edges.Parent.Name)
+	}
+
+	return cli.SubLabel.UpdateOne(label).
+		SetName(cleanedName).
 		Save(ctx)
 }

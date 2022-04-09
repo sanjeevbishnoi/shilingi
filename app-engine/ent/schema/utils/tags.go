@@ -14,5 +14,6 @@ func CleanTagName(name string) string {
 	name = rmSpecialChars.ReplaceAllLiteralString(name, "")
 	name = extraSpaces.ReplaceAllLiteralString(name, " ")
 	name = strings.ToLower(name)
+	name = strings.TrimSpace(name)
 	return name
 }

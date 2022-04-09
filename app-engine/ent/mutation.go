@@ -12,6 +12,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/shopspring/decimal"
@@ -31,6 +32,7 @@ const (
 	TypeItem         = "Item"
 	TypeShopping     = "Shopping"
 	TypeShoppingItem = "ShoppingItem"
+	TypeSubLabel     = "SubLabel"
 	TypeTag          = "Tag"
 	TypeVendor       = "Vendor"
 )
@@ -52,6 +54,8 @@ type ItemMutation struct {
 	tags             map[int]struct{}
 	removedtags      map[int]struct{}
 	clearedtags      bool
+	sublabel         *int
+	clearedsublabel  bool
 	done             bool
 	oldValue         func(context.Context) (*Item, error)
 	predicates       []predicate.Item
@@ -388,6 +392,45 @@ func (m *ItemMutation) ResetTags() {
 	m.removedtags = nil
 }
 
+// SetSublabelID sets the "sublabel" edge to the SubLabel entity by id.
+func (m *ItemMutation) SetSublabelID(id int) {
+	m.sublabel = &id
+}
+
+// ClearSublabel clears the "sublabel" edge to the SubLabel entity.
+func (m *ItemMutation) ClearSublabel() {
+	m.clearedsublabel = true
+}
+
+// SublabelCleared reports if the "sublabel" edge to the SubLabel entity was cleared.
+func (m *ItemMutation) SublabelCleared() bool {
+	return m.clearedsublabel
+}
+
+// SublabelID returns the "sublabel" edge ID in the mutation.
+func (m *ItemMutation) SublabelID() (id int, exists bool) {
+	if m.sublabel != nil {
+		return *m.sublabel, true
+	}
+	return
+}
+
+// SublabelIDs returns the "sublabel" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SublabelID instead. It exists only for internal usage by the builders.
+func (m *ItemMutation) SublabelIDs() (ids []int) {
+	if id := m.sublabel; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSublabel resets all changes to the "sublabel" edge.
+func (m *ItemMutation) ResetSublabel() {
+	m.sublabel = nil
+	m.clearedsublabel = false
+}
+
 // Where appends a list predicates to the ItemMutation builder.
 func (m *ItemMutation) Where(ps ...predicate.Item) {
 	m.predicates = append(m.predicates, ps...)
@@ -557,12 +600,15 @@ func (m *ItemMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ItemMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.purchases != nil {
 		edges = append(edges, item.EdgePurchases)
 	}
 	if m.tags != nil {
 		edges = append(edges, item.EdgeTags)
+	}
+	if m.sublabel != nil {
+		edges = append(edges, item.EdgeSublabel)
 	}
 	return edges
 }
@@ -583,13 +629,17 @@ func (m *ItemMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case item.EdgeSublabel:
+		if id := m.sublabel; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ItemMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedpurchases != nil {
 		edges = append(edges, item.EdgePurchases)
 	}
@@ -621,12 +671,15 @@ func (m *ItemMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ItemMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedpurchases {
 		edges = append(edges, item.EdgePurchases)
 	}
 	if m.clearedtags {
 		edges = append(edges, item.EdgeTags)
+	}
+	if m.clearedsublabel {
+		edges = append(edges, item.EdgeSublabel)
 	}
 	return edges
 }
@@ -639,6 +692,8 @@ func (m *ItemMutation) EdgeCleared(name string) bool {
 		return m.clearedpurchases
 	case item.EdgeTags:
 		return m.clearedtags
+	case item.EdgeSublabel:
+		return m.clearedsublabel
 	}
 	return false
 }
@@ -647,6 +702,9 @@ func (m *ItemMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *ItemMutation) ClearEdge(name string) error {
 	switch name {
+	case item.EdgeSublabel:
+		m.ClearSublabel()
+		return nil
 	}
 	return fmt.Errorf("unknown Item unique edge %s", name)
 }
@@ -660,6 +718,9 @@ func (m *ItemMutation) ResetEdge(name string) error {
 		return nil
 	case item.EdgeTags:
 		m.ResetTags()
+		return nil
+	case item.EdgeSublabel:
+		m.ResetSublabel()
 		return nil
 	}
 	return fmt.Errorf("unknown Item edge %s", name)
@@ -2124,8 +2185,8 @@ func (m *ShoppingItemMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ShoppingItem edge %s", name)
 }
 
-// TagMutation represents an operation that mutates the Tag nodes in the graph.
-type TagMutation struct {
+// SubLabelMutation represents an operation that mutates the SubLabel nodes in the graph.
+type SubLabelMutation struct {
 	config
 	op            Op
 	typ           string
@@ -2134,12 +2195,567 @@ type TagMutation struct {
 	update_time   *time.Time
 	name          *string
 	clearedFields map[string]struct{}
+	parent        *int
+	clearedparent bool
 	items         map[int]struct{}
 	removeditems  map[int]struct{}
 	cleareditems  bool
 	done          bool
-	oldValue      func(context.Context) (*Tag, error)
-	predicates    []predicate.Tag
+	oldValue      func(context.Context) (*SubLabel, error)
+	predicates    []predicate.SubLabel
+}
+
+var _ ent.Mutation = (*SubLabelMutation)(nil)
+
+// sublabelOption allows management of the mutation configuration using functional options.
+type sublabelOption func(*SubLabelMutation)
+
+// newSubLabelMutation creates new mutation for the SubLabel entity.
+func newSubLabelMutation(c config, op Op, opts ...sublabelOption) *SubLabelMutation {
+	m := &SubLabelMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSubLabel,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSubLabelID sets the ID field of the mutation.
+func withSubLabelID(id int) sublabelOption {
+	return func(m *SubLabelMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SubLabel
+		)
+		m.oldValue = func(ctx context.Context) (*SubLabel, error) {
+			once.Do(func() {
+				if m.done {
+					err = fmt.Errorf("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SubLabel.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSubLabel sets the old SubLabel of the mutation.
+func withSubLabel(node *SubLabel) sublabelOption {
+	return func(m *SubLabelMutation) {
+		m.oldValue = func(context.Context) (*SubLabel, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SubLabelMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SubLabelMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SubLabelMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// SetCreateTime sets the "create_time" field.
+func (m *SubLabelMutation) SetCreateTime(t time.Time) {
+	m.create_time = &t
+}
+
+// CreateTime returns the value of the "create_time" field in the mutation.
+func (m *SubLabelMutation) CreateTime() (r time.Time, exists bool) {
+	v := m.create_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateTime returns the old "create_time" field's value of the SubLabel entity.
+// If the SubLabel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubLabelMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldCreateTime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldCreateTime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateTime: %w", err)
+	}
+	return oldValue.CreateTime, nil
+}
+
+// ResetCreateTime resets all changes to the "create_time" field.
+func (m *SubLabelMutation) ResetCreateTime() {
+	m.create_time = nil
+}
+
+// SetUpdateTime sets the "update_time" field.
+func (m *SubLabelMutation) SetUpdateTime(t time.Time) {
+	m.update_time = &t
+}
+
+// UpdateTime returns the value of the "update_time" field in the mutation.
+func (m *SubLabelMutation) UpdateTime() (r time.Time, exists bool) {
+	v := m.update_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdateTime returns the old "update_time" field's value of the SubLabel entity.
+// If the SubLabel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubLabelMutation) OldUpdateTime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldUpdateTime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldUpdateTime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdateTime: %w", err)
+	}
+	return oldValue.UpdateTime, nil
+}
+
+// ResetUpdateTime resets all changes to the "update_time" field.
+func (m *SubLabelMutation) ResetUpdateTime() {
+	m.update_time = nil
+}
+
+// SetName sets the "name" field.
+func (m *SubLabelMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *SubLabelMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the SubLabel entity.
+// If the SubLabel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubLabelMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *SubLabelMutation) ResetName() {
+	m.name = nil
+}
+
+// SetParentID sets the "parent" edge to the Tag entity by id.
+func (m *SubLabelMutation) SetParentID(id int) {
+	m.parent = &id
+}
+
+// ClearParent clears the "parent" edge to the Tag entity.
+func (m *SubLabelMutation) ClearParent() {
+	m.clearedparent = true
+}
+
+// ParentCleared reports if the "parent" edge to the Tag entity was cleared.
+func (m *SubLabelMutation) ParentCleared() bool {
+	return m.clearedparent
+}
+
+// ParentID returns the "parent" edge ID in the mutation.
+func (m *SubLabelMutation) ParentID() (id int, exists bool) {
+	if m.parent != nil {
+		return *m.parent, true
+	}
+	return
+}
+
+// ParentIDs returns the "parent" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ParentID instead. It exists only for internal usage by the builders.
+func (m *SubLabelMutation) ParentIDs() (ids []int) {
+	if id := m.parent; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetParent resets all changes to the "parent" edge.
+func (m *SubLabelMutation) ResetParent() {
+	m.parent = nil
+	m.clearedparent = false
+}
+
+// AddItemIDs adds the "items" edge to the Item entity by ids.
+func (m *SubLabelMutation) AddItemIDs(ids ...int) {
+	if m.items == nil {
+		m.items = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.items[ids[i]] = struct{}{}
+	}
+}
+
+// ClearItems clears the "items" edge to the Item entity.
+func (m *SubLabelMutation) ClearItems() {
+	m.cleareditems = true
+}
+
+// ItemsCleared reports if the "items" edge to the Item entity was cleared.
+func (m *SubLabelMutation) ItemsCleared() bool {
+	return m.cleareditems
+}
+
+// RemoveItemIDs removes the "items" edge to the Item entity by IDs.
+func (m *SubLabelMutation) RemoveItemIDs(ids ...int) {
+	if m.removeditems == nil {
+		m.removeditems = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.items, ids[i])
+		m.removeditems[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedItems returns the removed IDs of the "items" edge to the Item entity.
+func (m *SubLabelMutation) RemovedItemsIDs() (ids []int) {
+	for id := range m.removeditems {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ItemsIDs returns the "items" edge IDs in the mutation.
+func (m *SubLabelMutation) ItemsIDs() (ids []int) {
+	for id := range m.items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetItems resets all changes to the "items" edge.
+func (m *SubLabelMutation) ResetItems() {
+	m.items = nil
+	m.cleareditems = false
+	m.removeditems = nil
+}
+
+// Where appends a list predicates to the SubLabelMutation builder.
+func (m *SubLabelMutation) Where(ps ...predicate.SubLabel) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *SubLabelMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (SubLabel).
+func (m *SubLabelMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SubLabelMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.create_time != nil {
+		fields = append(fields, sublabel.FieldCreateTime)
+	}
+	if m.update_time != nil {
+		fields = append(fields, sublabel.FieldUpdateTime)
+	}
+	if m.name != nil {
+		fields = append(fields, sublabel.FieldName)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SubLabelMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case sublabel.FieldCreateTime:
+		return m.CreateTime()
+	case sublabel.FieldUpdateTime:
+		return m.UpdateTime()
+	case sublabel.FieldName:
+		return m.Name()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SubLabelMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case sublabel.FieldCreateTime:
+		return m.OldCreateTime(ctx)
+	case sublabel.FieldUpdateTime:
+		return m.OldUpdateTime(ctx)
+	case sublabel.FieldName:
+		return m.OldName(ctx)
+	}
+	return nil, fmt.Errorf("unknown SubLabel field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubLabelMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case sublabel.FieldCreateTime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateTime(v)
+		return nil
+	case sublabel.FieldUpdateTime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdateTime(v)
+		return nil
+	case sublabel.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SubLabel field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SubLabelMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SubLabelMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubLabelMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown SubLabel numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SubLabelMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SubLabelMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SubLabelMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown SubLabel nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SubLabelMutation) ResetField(name string) error {
+	switch name {
+	case sublabel.FieldCreateTime:
+		m.ResetCreateTime()
+		return nil
+	case sublabel.FieldUpdateTime:
+		m.ResetUpdateTime()
+		return nil
+	case sublabel.FieldName:
+		m.ResetName()
+		return nil
+	}
+	return fmt.Errorf("unknown SubLabel field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SubLabelMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.parent != nil {
+		edges = append(edges, sublabel.EdgeParent)
+	}
+	if m.items != nil {
+		edges = append(edges, sublabel.EdgeItems)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SubLabelMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case sublabel.EdgeParent:
+		if id := m.parent; id != nil {
+			return []ent.Value{*id}
+		}
+	case sublabel.EdgeItems:
+		ids := make([]ent.Value, 0, len(m.items))
+		for id := range m.items {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SubLabelMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removeditems != nil {
+		edges = append(edges, sublabel.EdgeItems)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SubLabelMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case sublabel.EdgeItems:
+		ids := make([]ent.Value, 0, len(m.removeditems))
+		for id := range m.removeditems {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SubLabelMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedparent {
+		edges = append(edges, sublabel.EdgeParent)
+	}
+	if m.cleareditems {
+		edges = append(edges, sublabel.EdgeItems)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SubLabelMutation) EdgeCleared(name string) bool {
+	switch name {
+	case sublabel.EdgeParent:
+		return m.clearedparent
+	case sublabel.EdgeItems:
+		return m.cleareditems
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SubLabelMutation) ClearEdge(name string) error {
+	switch name {
+	case sublabel.EdgeParent:
+		m.ClearParent()
+		return nil
+	}
+	return fmt.Errorf("unknown SubLabel unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SubLabelMutation) ResetEdge(name string) error {
+	switch name {
+	case sublabel.EdgeParent:
+		m.ResetParent()
+		return nil
+	case sublabel.EdgeItems:
+		m.ResetItems()
+		return nil
+	}
+	return fmt.Errorf("unknown SubLabel edge %s", name)
+}
+
+// TagMutation represents an operation that mutates the Tag nodes in the graph.
+type TagMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	create_time     *time.Time
+	update_time     *time.Time
+	name            *string
+	clearedFields   map[string]struct{}
+	items           map[int]struct{}
+	removeditems    map[int]struct{}
+	cleareditems    bool
+	children        map[int]struct{}
+	removedchildren map[int]struct{}
+	clearedchildren bool
+	done            bool
+	oldValue        func(context.Context) (*Tag, error)
+	predicates      []predicate.Tag
 }
 
 var _ ent.Mutation = (*TagMutation)(nil)
@@ -2383,6 +2999,60 @@ func (m *TagMutation) ResetItems() {
 	m.removeditems = nil
 }
 
+// AddChildIDs adds the "children" edge to the SubLabel entity by ids.
+func (m *TagMutation) AddChildIDs(ids ...int) {
+	if m.children == nil {
+		m.children = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.children[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChildren clears the "children" edge to the SubLabel entity.
+func (m *TagMutation) ClearChildren() {
+	m.clearedchildren = true
+}
+
+// ChildrenCleared reports if the "children" edge to the SubLabel entity was cleared.
+func (m *TagMutation) ChildrenCleared() bool {
+	return m.clearedchildren
+}
+
+// RemoveChildIDs removes the "children" edge to the SubLabel entity by IDs.
+func (m *TagMutation) RemoveChildIDs(ids ...int) {
+	if m.removedchildren == nil {
+		m.removedchildren = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.children, ids[i])
+		m.removedchildren[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChildren returns the removed IDs of the "children" edge to the SubLabel entity.
+func (m *TagMutation) RemovedChildrenIDs() (ids []int) {
+	for id := range m.removedchildren {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChildrenIDs returns the "children" edge IDs in the mutation.
+func (m *TagMutation) ChildrenIDs() (ids []int) {
+	for id := range m.children {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChildren resets all changes to the "children" edge.
+func (m *TagMutation) ResetChildren() {
+	m.children = nil
+	m.clearedchildren = false
+	m.removedchildren = nil
+}
+
 // Where appends a list predicates to the TagMutation builder.
 func (m *TagMutation) Where(ps ...predicate.Tag) {
 	m.predicates = append(m.predicates, ps...)
@@ -2535,9 +3205,12 @@ func (m *TagMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TagMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.items != nil {
 		edges = append(edges, tag.EdgeItems)
+	}
+	if m.children != nil {
+		edges = append(edges, tag.EdgeChildren)
 	}
 	return edges
 }
@@ -2552,15 +3225,24 @@ func (m *TagMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case tag.EdgeChildren:
+		ids := make([]ent.Value, 0, len(m.children))
+		for id := range m.children {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TagMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removeditems != nil {
 		edges = append(edges, tag.EdgeItems)
+	}
+	if m.removedchildren != nil {
+		edges = append(edges, tag.EdgeChildren)
 	}
 	return edges
 }
@@ -2575,15 +3257,24 @@ func (m *TagMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case tag.EdgeChildren:
+		ids := make([]ent.Value, 0, len(m.removedchildren))
+		for id := range m.removedchildren {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TagMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.cleareditems {
 		edges = append(edges, tag.EdgeItems)
+	}
+	if m.clearedchildren {
+		edges = append(edges, tag.EdgeChildren)
 	}
 	return edges
 }
@@ -2594,6 +3285,8 @@ func (m *TagMutation) EdgeCleared(name string) bool {
 	switch name {
 	case tag.EdgeItems:
 		return m.cleareditems
+	case tag.EdgeChildren:
+		return m.clearedchildren
 	}
 	return false
 }
@@ -2612,6 +3305,9 @@ func (m *TagMutation) ResetEdge(name string) error {
 	switch name {
 	case tag.EdgeItems:
 		m.ResetItems()
+		return nil
+	case tag.EdgeChildren:
+		m.ResetChildren()
 		return nil
 	}
 	return fmt.Errorf("unknown Tag edge %s", name)

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 )
 
@@ -90,6 +91,25 @@ func (ic *ItemCreate) AddTags(t ...*Tag) *ItemCreate {
 		ids[i] = t[i].ID
 	}
 	return ic.AddTagIDs(ids...)
+}
+
+// SetSublabelID sets the "sublabel" edge to the SubLabel entity by ID.
+func (ic *ItemCreate) SetSublabelID(id int) *ItemCreate {
+	ic.mutation.SetSublabelID(id)
+	return ic
+}
+
+// SetNillableSublabelID sets the "sublabel" edge to the SubLabel entity by ID if the given value is not nil.
+func (ic *ItemCreate) SetNillableSublabelID(id *int) *ItemCreate {
+	if id != nil {
+		ic = ic.SetSublabelID(*id)
+	}
+	return ic
+}
+
+// SetSublabel sets the "sublabel" edge to the SubLabel entity.
+func (ic *ItemCreate) SetSublabel(s *SubLabel) *ItemCreate {
+	return ic.SetSublabelID(s.ID)
 }
 
 // Mutation returns the ItemMutation object of the builder.
@@ -287,6 +307,26 @@ func (ic *ItemCreate) createSpec() (*Item, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ic.mutation.SublabelIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   item.SublabelTable,
+			Columns: []string{item.SublabelColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.sub_label_items = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

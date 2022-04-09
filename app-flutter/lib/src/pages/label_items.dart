@@ -8,6 +8,7 @@ import '../models/model.dart';
 import '../gql/gql.dart';
 import './settings/settings.dart';
 import '../components/components.dart';
+import './label_sub_labels_page.dart';
 
 enum LabelsAppbarMore {
   removeItem,
@@ -41,6 +42,13 @@ class _LabelItemsPageState extends State<LabelItemsPage> {
       elevation: 0,
       title: Text(_tagName),
       actions: [
+        IconButton(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => LabelSubLabelsPages(tag: settings.tag)));
+          },
+          icon: const Icon(Icons.lan_outlined),
+        ),
         IconButton(
           onPressed: () {
             Navigator.of(context)

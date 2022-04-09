@@ -86,6 +86,25 @@ var itemsQuery = gql(r'''
     }
 ''');
 
+var labelItems = gql(r'''
+    query itemsUnderSubLabel($labelID: Int!) {
+      node(id: $labelID) {
+        ... on Tag {
+          id
+          name
+          children {
+            id
+            name
+            items {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+''');
+
 var shoppingItemsQuery = gql(r'''
     query shoppingItems($after: Time!, $before: Time!, $itemID: Int!) {
       shoppingItems(after: $after, before: $before, itemID: $itemID) {

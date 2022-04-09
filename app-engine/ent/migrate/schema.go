@@ -16,12 +16,21 @@ var (
 		{Name: "update_time", Type: field.TypeTime},
 		{Name: "name", Type: field.TypeString},
 		{Name: "slug", Type: field.TypeString, Unique: true, Size: 250},
+		{Name: "sub_label_items", Type: field.TypeInt, Nullable: true},
 	}
 	// ItemsTable holds the schema information for the "items" table.
 	ItemsTable = &schema.Table{
 		Name:       "items",
 		Columns:    ItemsColumns,
 		PrimaryKey: []*schema.Column{ItemsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "items_sub_labels_items",
+				Columns:    []*schema.Column{ItemsColumns[5]},
+				RefColumns: []*schema.Column{SubLabelsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// ShoppingsColumns holds the columns for the "shoppings" table.
 	ShoppingsColumns = []*schema.Column{
@@ -75,6 +84,35 @@ var (
 				Columns:    []*schema.Column{ShoppingItemsColumns[9]},
 				RefColumns: []*schema.Column{ShoppingsColumns[0]},
 				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// SubLabelsColumns holds the columns for the "sub_labels" table.
+	SubLabelsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString},
+		{Name: "tag_children", Type: field.TypeInt, Nullable: true},
+	}
+	// SubLabelsTable holds the schema information for the "sub_labels" table.
+	SubLabelsTable = &schema.Table{
+		Name:       "sub_labels",
+		Columns:    SubLabelsColumns,
+		PrimaryKey: []*schema.Column{SubLabelsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sub_labels_tags_children",
+				Columns:    []*schema.Column{SubLabelsColumns[4]},
+				RefColumns: []*schema.Column{TagsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "sublabel_name_tag_children",
+				Unique:  true,
+				Columns: []*schema.Column{SubLabelsColumns[3], SubLabelsColumns[4]},
 			},
 		},
 	}
@@ -142,6 +180,7 @@ var (
 		ItemsTable,
 		ShoppingsTable,
 		ShoppingItemsTable,
+		SubLabelsTable,
 		TagsTable,
 		VendorsTable,
 		ItemTagsTable,
@@ -149,6 +188,7 @@ var (
 )
 
 func init() {
+	ItemsTable.ForeignKeys[0].RefTable = SubLabelsTable
 	ItemsTable.Annotation = &entsql.Annotation{
 		Charset:   "utf8mb4",
 		Collation: "utf8mb4_0900_ai_ci",
@@ -156,6 +196,7 @@ func init() {
 	ShoppingsTable.ForeignKeys[0].RefTable = VendorsTable
 	ShoppingItemsTable.ForeignKeys[0].RefTable = ItemsTable
 	ShoppingItemsTable.ForeignKeys[1].RefTable = ShoppingsTable
+	SubLabelsTable.ForeignKeys[0].RefTable = TagsTable
 	ItemTagsTable.ForeignKeys[0].RefTable = ItemsTable
 	ItemTagsTable.ForeignKeys[1].RefTable = TagsTable
 }

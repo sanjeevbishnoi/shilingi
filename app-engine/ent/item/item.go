@@ -23,6 +23,8 @@ const (
 	EdgePurchases = "purchases"
 	// EdgeTags holds the string denoting the tags edge name in mutations.
 	EdgeTags = "tags"
+	// EdgeSublabel holds the string denoting the sublabel edge name in mutations.
+	EdgeSublabel = "sublabel"
 	// Table holds the table name of the item in the database.
 	Table = "items"
 	// PurchasesTable is the table that holds the purchases relation/edge.
@@ -37,6 +39,13 @@ const (
 	// TagsInverseTable is the table name for the Tag entity.
 	// It exists in this package in order to avoid circular dependency with the "tag" package.
 	TagsInverseTable = "tags"
+	// SublabelTable is the table that holds the sublabel relation/edge.
+	SublabelTable = "items"
+	// SublabelInverseTable is the table name for the SubLabel entity.
+	// It exists in this package in order to avoid circular dependency with the "sublabel" package.
+	SublabelInverseTable = "sub_labels"
+	// SublabelColumn is the table column denoting the sublabel relation/edge.
+	SublabelColumn = "sub_label_items"
 )
 
 // Columns holds all SQL columns for item fields.
@@ -46,6 +55,12 @@ var Columns = []string{
 	FieldUpdateTime,
 	FieldName,
 	FieldSlug,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "items"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"sub_label_items",
 }
 
 var (
@@ -58,6 +73,11 @@ var (
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}

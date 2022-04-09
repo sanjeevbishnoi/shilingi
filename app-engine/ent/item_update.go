@@ -12,6 +12,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 )
 
@@ -70,6 +71,25 @@ func (iu *ItemUpdate) AddTags(t ...*Tag) *ItemUpdate {
 	return iu.AddTagIDs(ids...)
 }
 
+// SetSublabelID sets the "sublabel" edge to the SubLabel entity by ID.
+func (iu *ItemUpdate) SetSublabelID(id int) *ItemUpdate {
+	iu.mutation.SetSublabelID(id)
+	return iu
+}
+
+// SetNillableSublabelID sets the "sublabel" edge to the SubLabel entity by ID if the given value is not nil.
+func (iu *ItemUpdate) SetNillableSublabelID(id *int) *ItemUpdate {
+	if id != nil {
+		iu = iu.SetSublabelID(*id)
+	}
+	return iu
+}
+
+// SetSublabel sets the "sublabel" edge to the SubLabel entity.
+func (iu *ItemUpdate) SetSublabel(s *SubLabel) *ItemUpdate {
+	return iu.SetSublabelID(s.ID)
+}
+
 // Mutation returns the ItemMutation object of the builder.
 func (iu *ItemUpdate) Mutation() *ItemMutation {
 	return iu.mutation
@@ -115,6 +135,12 @@ func (iu *ItemUpdate) RemoveTags(t ...*Tag) *ItemUpdate {
 		ids[i] = t[i].ID
 	}
 	return iu.RemoveTagIDs(ids...)
+}
+
+// ClearSublabel clears the "sublabel" edge to the SubLabel entity.
+func (iu *ItemUpdate) ClearSublabel() *ItemUpdate {
+	iu.mutation.ClearSublabel()
+	return iu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -343,6 +369,41 @@ func (iu *ItemUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if iu.mutation.SublabelCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   item.SublabelTable,
+			Columns: []string{item.SublabelColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iu.mutation.SublabelIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   item.SublabelTable,
+			Columns: []string{item.SublabelColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, iu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{item.Label}
@@ -404,6 +465,25 @@ func (iuo *ItemUpdateOne) AddTags(t ...*Tag) *ItemUpdateOne {
 	return iuo.AddTagIDs(ids...)
 }
 
+// SetSublabelID sets the "sublabel" edge to the SubLabel entity by ID.
+func (iuo *ItemUpdateOne) SetSublabelID(id int) *ItemUpdateOne {
+	iuo.mutation.SetSublabelID(id)
+	return iuo
+}
+
+// SetNillableSublabelID sets the "sublabel" edge to the SubLabel entity by ID if the given value is not nil.
+func (iuo *ItemUpdateOne) SetNillableSublabelID(id *int) *ItemUpdateOne {
+	if id != nil {
+		iuo = iuo.SetSublabelID(*id)
+	}
+	return iuo
+}
+
+// SetSublabel sets the "sublabel" edge to the SubLabel entity.
+func (iuo *ItemUpdateOne) SetSublabel(s *SubLabel) *ItemUpdateOne {
+	return iuo.SetSublabelID(s.ID)
+}
+
 // Mutation returns the ItemMutation object of the builder.
 func (iuo *ItemUpdateOne) Mutation() *ItemMutation {
 	return iuo.mutation
@@ -449,6 +529,12 @@ func (iuo *ItemUpdateOne) RemoveTags(t ...*Tag) *ItemUpdateOne {
 		ids[i] = t[i].ID
 	}
 	return iuo.RemoveTagIDs(ids...)
+}
+
+// ClearSublabel clears the "sublabel" edge to the SubLabel entity.
+func (iuo *ItemUpdateOne) ClearSublabel() *ItemUpdateOne {
+	iuo.mutation.ClearSublabel()
+	return iuo
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -693,6 +779,41 @@ func (iuo *ItemUpdateOne) sqlSave(ctx context.Context) (_node *Item, err error) 
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: tag.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if iuo.mutation.SublabelCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   item.SublabelTable,
+			Columns: []string{item.SublabelColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iuo.mutation.SublabelIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   item.SublabelTable,
+			Columns: []string{item.SublabelColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: sublabel.FieldID,
 				},
 			},
 		}

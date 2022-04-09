@@ -38,6 +38,7 @@ class MyApp extends StatelessWidget {
           textTheme: GoogleFonts.rubikTextTheme(),
           appBarTheme: AppBarTheme.of(context).copyWith(elevation: 0),
         ),
+        themeMode: ThemeMode.dark,
         initialRoute: '/',
         routes: {
           purchasesPage: (context) => const PurchasesPage(),

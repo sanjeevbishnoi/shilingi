@@ -3,6 +3,7 @@ type Item implements Node {
   name: String!
   slug: String!
   tags: [Tag!]!
+  sublabel: SubLabel
 }
 
 input ItemInput {
@@ -59,8 +60,19 @@ input VendorInput  {
 type Tag implements Node {
   id: ID!
   name: String!
+  children: [SubLabel!]!
 }
 
 input TagInput {
+  name: String!
+}
+
+type SubLabel implements Node {
+  id: ID!
+  name: String!
+  items: [Item!]!
+}
+
+input SubLabelInput {
   name: String!
 }

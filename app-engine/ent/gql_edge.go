@@ -20,6 +20,14 @@ func (i *Item) Tags(ctx context.Context) ([]*Tag, error) {
 	return result, err
 }
 
+func (i *Item) Sublabel(ctx context.Context) (*SubLabel, error) {
+	result, err := i.Edges.SublabelOrErr()
+	if IsNotLoaded(err) {
+		result, err = i.QuerySublabel().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
 func (s *Shopping) Items(ctx context.Context) ([]*ShoppingItem, error) {
 	result, err := s.Edges.ItemsOrErr()
 	if IsNotLoaded(err) {
@@ -52,10 +60,34 @@ func (si *ShoppingItem) Shopping(ctx context.Context) (*Shopping, error) {
 	return result, err
 }
 
+func (sl *SubLabel) Parent(ctx context.Context) (*Tag, error) {
+	result, err := sl.Edges.ParentOrErr()
+	if IsNotLoaded(err) {
+		result, err = sl.QueryParent().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (sl *SubLabel) Items(ctx context.Context) ([]*Item, error) {
+	result, err := sl.Edges.ItemsOrErr()
+	if IsNotLoaded(err) {
+		result, err = sl.QueryItems().All(ctx)
+	}
+	return result, err
+}
+
 func (t *Tag) Items(ctx context.Context) ([]*Item, error) {
 	result, err := t.Edges.ItemsOrErr()
 	if IsNotLoaded(err) {
 		result, err = t.QueryItems().All(ctx)
+	}
+	return result, err
+}
+
+func (t *Tag) Children(ctx context.Context) ([]*SubLabel, error) {
+	result, err := t.Edges.ChildrenOrErr()
+	if IsNotLoaded(err) {
+		result, err = t.QueryChildren().All(ctx)
 	}
 	return result, err
 }

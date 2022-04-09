@@ -12,6 +12,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 
@@ -31,6 +32,8 @@ type Client struct {
 	Shopping *ShoppingClient
 	// ShoppingItem is the client for interacting with the ShoppingItem builders.
 	ShoppingItem *ShoppingItemClient
+	// SubLabel is the client for interacting with the SubLabel builders.
+	SubLabel *SubLabelClient
 	// Tag is the client for interacting with the Tag builders.
 	Tag *TagClient
 	// Vendor is the client for interacting with the Vendor builders.
@@ -53,6 +56,7 @@ func (c *Client) init() {
 	c.Item = NewItemClient(c.config)
 	c.Shopping = NewShoppingClient(c.config)
 	c.ShoppingItem = NewShoppingItemClient(c.config)
+	c.SubLabel = NewSubLabelClient(c.config)
 	c.Tag = NewTagClient(c.config)
 	c.Vendor = NewVendorClient(c.config)
 }
@@ -91,6 +95,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Item:         NewItemClient(cfg),
 		Shopping:     NewShoppingClient(cfg),
 		ShoppingItem: NewShoppingItemClient(cfg),
+		SubLabel:     NewSubLabelClient(cfg),
 		Tag:          NewTagClient(cfg),
 		Vendor:       NewVendorClient(cfg),
 	}, nil
@@ -114,6 +119,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Item:         NewItemClient(cfg),
 		Shopping:     NewShoppingClient(cfg),
 		ShoppingItem: NewShoppingItemClient(cfg),
+		SubLabel:     NewSubLabelClient(cfg),
 		Tag:          NewTagClient(cfg),
 		Vendor:       NewVendorClient(cfg),
 	}, nil
@@ -148,6 +154,7 @@ func (c *Client) Use(hooks ...Hook) {
 	c.Item.Use(hooks...)
 	c.Shopping.Use(hooks...)
 	c.ShoppingItem.Use(hooks...)
+	c.SubLabel.Use(hooks...)
 	c.Tag.Use(hooks...)
 	c.Vendor.Use(hooks...)
 }
@@ -262,6 +269,22 @@ func (c *ItemClient) QueryTags(i *Item) *TagQuery {
 			sqlgraph.From(item.Table, item.FieldID, id),
 			sqlgraph.To(tag.Table, tag.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, item.TagsTable, item.TagsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySublabel queries the sublabel edge of a Item.
+func (c *ItemClient) QuerySublabel(i *Item) *SubLabelQuery {
+	query := &SubLabelQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := i.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(sublabel.Table, sublabel.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, item.SublabelTable, item.SublabelColumn),
 		)
 		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
 		return fromV, nil
@@ -518,6 +541,128 @@ func (c *ShoppingItemClient) Hooks() []Hook {
 	return c.hooks.ShoppingItem
 }
 
+// SubLabelClient is a client for the SubLabel schema.
+type SubLabelClient struct {
+	config
+}
+
+// NewSubLabelClient returns a client for the SubLabel from the given config.
+func NewSubLabelClient(c config) *SubLabelClient {
+	return &SubLabelClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `sublabel.Hooks(f(g(h())))`.
+func (c *SubLabelClient) Use(hooks ...Hook) {
+	c.hooks.SubLabel = append(c.hooks.SubLabel, hooks...)
+}
+
+// Create returns a create builder for SubLabel.
+func (c *SubLabelClient) Create() *SubLabelCreate {
+	mutation := newSubLabelMutation(c.config, OpCreate)
+	return &SubLabelCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SubLabel entities.
+func (c *SubLabelClient) CreateBulk(builders ...*SubLabelCreate) *SubLabelCreateBulk {
+	return &SubLabelCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SubLabel.
+func (c *SubLabelClient) Update() *SubLabelUpdate {
+	mutation := newSubLabelMutation(c.config, OpUpdate)
+	return &SubLabelUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SubLabelClient) UpdateOne(sl *SubLabel) *SubLabelUpdateOne {
+	mutation := newSubLabelMutation(c.config, OpUpdateOne, withSubLabel(sl))
+	return &SubLabelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SubLabelClient) UpdateOneID(id int) *SubLabelUpdateOne {
+	mutation := newSubLabelMutation(c.config, OpUpdateOne, withSubLabelID(id))
+	return &SubLabelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SubLabel.
+func (c *SubLabelClient) Delete() *SubLabelDelete {
+	mutation := newSubLabelMutation(c.config, OpDelete)
+	return &SubLabelDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *SubLabelClient) DeleteOne(sl *SubLabel) *SubLabelDeleteOne {
+	return c.DeleteOneID(sl.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *SubLabelClient) DeleteOneID(id int) *SubLabelDeleteOne {
+	builder := c.Delete().Where(sublabel.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SubLabelDeleteOne{builder}
+}
+
+// Query returns a query builder for SubLabel.
+func (c *SubLabelClient) Query() *SubLabelQuery {
+	return &SubLabelQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a SubLabel entity by its id.
+func (c *SubLabelClient) Get(ctx context.Context, id int) (*SubLabel, error) {
+	return c.Query().Where(sublabel.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SubLabelClient) GetX(ctx context.Context, id int) *SubLabel {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryParent queries the parent edge of a SubLabel.
+func (c *SubLabelClient) QueryParent(sl *SubLabel) *TagQuery {
+	query := &TagQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(sublabel.Table, sublabel.FieldID, id),
+			sqlgraph.To(tag.Table, tag.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, sublabel.ParentTable, sublabel.ParentColumn),
+		)
+		fromV = sqlgraph.Neighbors(sl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryItems queries the items edge of a SubLabel.
+func (c *SubLabelClient) QueryItems(sl *SubLabel) *ItemQuery {
+	query := &ItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(sublabel.Table, sublabel.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, sublabel.ItemsTable, sublabel.ItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(sl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SubLabelClient) Hooks() []Hook {
+	return c.hooks.SubLabel
+}
+
 // TagClient is a client for the Tag schema.
 type TagClient struct {
 	config
@@ -612,6 +757,22 @@ func (c *TagClient) QueryItems(t *Tag) *ItemQuery {
 			sqlgraph.From(tag.Table, tag.FieldID, id),
 			sqlgraph.To(item.Table, item.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, tag.ItemsTable, tag.ItemsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChildren queries the children edge of a Tag.
+func (c *TagClient) QueryChildren(t *Tag) *SubLabelQuery {
+	query := &SubLabelQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tag.Table, tag.FieldID, id),
+			sqlgraph.To(sublabel.Table, sublabel.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, tag.ChildrenTable, tag.ChildrenColumn),
 		)
 		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
 		return fromV, nil
