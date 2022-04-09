@@ -80,3 +80,12 @@ var mutationCreateSubLabel = gql(r'''
       }
     }
 ''');
+
+var mutationAddItemsToSubLabel = gql(r'''
+    mutation addItemsToSubLabel($subLabelID: Int!, $itemIDs: [Int!]!) {
+      addItemsToSubLabel(subLabelID: $subLabelID, itemIDs: $itemIDs) {
+        id
+        name
+      }
+    }
+''');

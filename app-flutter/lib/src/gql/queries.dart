@@ -92,7 +92,7 @@ var labelItems = gql(r'''
         ... on Tag {
           id
           name
-          children: {
+          children {
             id
             name
             items {

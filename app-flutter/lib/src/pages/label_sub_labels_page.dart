@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 
 import 'package:ms_undraw/ms_undraw.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:shilingi/src/gql/mutations.dart';
 
 import '../models/model.dart';
+import '../gql/gql.dart';
 
 class LabelSubLabelsPages extends StatelessWidget {
   final Tag tag;
@@ -15,12 +15,84 @@ class LabelSubLabelsPages extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Refetch? _refetch;
+
     return Scaffold(
-      appBar: AppBar(title: Text('Sub-labels for ${tag.name}')),
-      body: _EmptyLabelList(
-        tag: tag,
-        addCallback: () {
-          _addLabel(context);
+      appBar: AppBar(title: Text('Sub-labels for ${tag.name}'), actions: [
+        IconButton(
+          onPressed: () {
+            _addLabel(context).then((value) {
+              if (_refetch != null) {
+                _refetch!();
+              }
+            });
+          },
+          icon: const Icon(Icons.new_label),
+        ),
+      ]),
+      body: Query(
+        options: QueryOptions(document: labelItems, variables: {
+          'labelID': tag.id,
+        }),
+        builder: (QueryResult result,
+            {FetchMore? fetchMore, Refetch? refetch}) {
+          _refetch = refetch;
+          if (result.hasException) {
+            return Padding(
+                padding: const EdgeInsets.all(30.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    UnDraw(
+                        height: 150.0,
+                        illustration: UnDrawIllustration.warning,
+                        color: Colors.redAccent),
+                    const Text('Unable to load items'),
+                    if (refetch != null)
+                      TextButton(
+                        onPressed: refetch,
+                        child: const Text('Retry'),
+                      ),
+                  ],
+                ));
+          } else if (result.isLoading && result.data == null) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+          var label = Tag.fromJson(result.data!['node']);
+
+          if ((label.children ?? []).isEmpty) {
+            return _EmptyLabelList(
+              tag: tag,
+              addCallback: () {
+                _addLabel(context);
+              },
+            );
+          }
+
+          return RefreshIndicator(
+              child: ListView(
+                children: [
+                  const SizedBox(height: 20.0),
+                  for (var child in label.children!)
+                    _SubLabelEntry(
+                      label: child,
+                      tag: tag,
+                      callback: () {
+                        if (refetch != null) {
+                          refetch();
+                        }
+                      },
+                    ),
+                ],
+              ),
+              onRefresh: () {
+                if (refetch != null) {
+                  return refetch();
+                }
+                return Future.value(null);
+              });
         },
       ),
     );
@@ -185,6 +257,299 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
                 : null,
             child: Text(_loading ? 'Adding...' : 'Add')),
       ],
+    );
+  }
+}
+
+// _SubLabelEntry displayes all labels under the parent label
+class _SubLabelEntry extends StatefulWidget {
+  final SubLabel label;
+  final Tag tag;
+  final VoidCallback callback;
+
+  const _SubLabelEntry(
+      {Key? key,
+      required this.label,
+      required this.tag,
+      required this.callback})
+      : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() {
+    return _SublabelEntryState();
+  }
+}
+
+class _SublabelEntryState extends State<_SubLabelEntry> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+      child: ListView(
+        shrinkWrap: true,
+        physics: const ClampingScrollPhysics(),
+        children: [
+          Row(
+            children: [
+              const SizedBox(
+                height: 20,
+                width: 20,
+                child: IconButton(
+                  iconSize: 20,
+                  padding: EdgeInsets.all(0),
+                  onPressed: null,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  widget.label.name.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6.0),
+              SizedBox(
+                height: 20,
+                width: 20,
+                child: IconButton(
+                  iconSize: 20,
+                  padding: const EdgeInsets.all(0),
+                  onPressed: () {
+                    showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        isScrollControlled: true,
+                        builder: (context) {
+                          return _ItemListSelect(
+                              tag: widget.tag, label: widget.label);
+                        }).whenComplete(() => widget.callback());
+                  },
+                  icon: const Icon(
+                    Icons.add,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6.0),
+          if (widget.label.items != null)
+            for (var item in widget.label.items!) _ItemEntry(item: item),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemEntry extends StatelessWidget {
+  final Item item;
+
+  const _ItemEntry({Key? key, required this.item}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding:
+          const EdgeInsets.only(left: 30.0, top: 0.0, bottom: 5.0, right: 20.0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(item.name,
+                    style: const TextStyle(color: Colors.black87)),
+              ),
+              const SizedBox(width: 6.0),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+          const Divider(),
+        ],
+      ),
+    );
+  }
+}
+
+/// _ItemListSelect allows the user to select the specific set of items to add to a
+/// sub-label
+class _ItemListSelect extends StatefulWidget {
+  final Tag tag;
+  final SubLabel label;
+
+  const _ItemListSelect({Key? key, required this.tag, required this.label})
+      : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() {
+    return _ItemListSelectState();
+  }
+}
+
+class _ItemListSelectState extends State<_ItemListSelect> {
+  final List<Item> _selectedItems = [];
+  bool _saving = false;
+
+  void _toggleSelected(Item item) {
+    var index = _selectedItems.indexWhere((element) => element.id == item.id);
+    setState(() {
+      if (index == -1) {
+        _selectedItems.add(item);
+      } else {
+        _selectedItems.removeAt(index);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var size = MediaQuery.of(context).size;
+    var height = size.height * 0.75;
+    var width = size.width * 0.50;
+
+    var radius = const Radius.circular(20.0);
+    return Container(
+      margin: const EdgeInsets.all(4.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(topLeft: radius, topRight: radius),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: height, maxWidth: width),
+        child: Query(
+          options: QueryOptions(document: itemsQuery, variables: {
+            "tagID": widget.tag.id!,
+          }),
+          builder: (QueryResult result,
+              {Refetch? refetch, FetchMore? fetchMore}) {
+            if (result.isLoading) {
+              return const Padding(
+                padding: EdgeInsets.all(30.0),
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            } else if (result.hasException) {
+              return Container(
+                padding: const EdgeInsets.all(20.0),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                ),
+                child: const Text('Unable to load items'),
+              );
+            }
+
+            var items = Items.fromJson(result.data!);
+
+            return Stack(
+              fit: StackFit.loose,
+              clipBehavior: Clip.antiAlias,
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius:
+                          BorderRadius.only(topLeft: radius, topRight: radius),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: const [
+                        Icon(
+                          Icons.drag_handle_rounded,
+                          color: Colors.grey,
+                        ),
+                        Center(
+                            child: Text('Select items',
+                                style: TextStyle(fontWeight: FontWeight.w500))),
+                        SizedBox(height: 15.0),
+                        Divider(
+                          height: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                    padding: const EdgeInsets.only(top: 58.0, bottom: 50.0),
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [
+                        for (var i in items.items.where((element) {
+                          return widget.label.items!
+                                  .indexWhere((i) => element.id == i.id) ==
+                              -1;
+                        }))
+                          CheckboxListTile(
+                              value: _selectedItems
+                                  .any((element) => element.id == i.id),
+                              onChanged: (selected) {
+                                _toggleSelected(i);
+                              },
+                              title: Text(i.name),
+                              dense: true),
+                      ],
+                    )),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 50,
+                  child: Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: ElevatedButton(
+                          onPressed: _selectedItems.isEmpty || _saving
+                              ? null
+                              : () {
+                                  var cli = GraphQLProvider.of(context).value;
+                                  setState(() {
+                                    _saving = true;
+                                  });
+                                  var result = cli.mutate(
+                                    MutationOptions(
+                                      document: mutationAddItemsToSubLabel,
+                                      variables: {
+                                        'subLabelID': widget.label.id,
+                                        'itemIDs': _selectedItems
+                                            .map((e) => e.id)
+                                            .toList()
+                                      },
+                                    ),
+                                  );
+                                  result.then((result) {
+                                    if (!result.hasException) {
+                                      var snackBar = const SnackBar(
+                                          content:
+                                              Text('Items added successfully'));
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(snackBar);
+                                    }
+                                  }).whenComplete(() {
+                                    setState(() {
+                                      _saving = false;
+                                    });
+                                    Navigator.of(context).pop();
+                                  });
+                                },
+                          child: const Text('Add'),
+                          style: ElevatedButton.styleFrom(
+                              elevation: 3, shadowColor: Colors.transparent))),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
