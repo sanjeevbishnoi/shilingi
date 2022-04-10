@@ -8,17 +8,26 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import '../models/model.dart';
 import '../gql/gql.dart';
 
-class LabelSubLabelsPages extends StatelessWidget {
+class LabelSubLabelsPages extends StatefulWidget {
   final Tag tag;
-
   const LabelSubLabelsPages({Key? key, required this.tag}) : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() {
+    return _LabelSubLabelsPages();
+  }
+}
+
+class _LabelSubLabelsPages extends State<LabelSubLabelsPages> {
+  final List<int> _expanded = [];
 
   @override
   Widget build(BuildContext context) {
     Refetch? _refetch;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Sub-labels for ${tag.name}'), actions: [
+      appBar:
+          AppBar(title: Text('Sub-labels for ${widget.tag.name}'), actions: [
         IconButton(
           onPressed: () {
             _addLabel(context).then((value) {
@@ -32,7 +41,7 @@ class LabelSubLabelsPages extends StatelessWidget {
       ]),
       body: Query(
         options: QueryOptions(document: labelItems, variables: {
-          'labelID': tag.id,
+          'labelID': widget.tag.id,
         }),
         builder: (QueryResult result,
             {FetchMore? fetchMore, Refetch? refetch}) {
@@ -64,28 +73,56 @@ class LabelSubLabelsPages extends StatelessWidget {
 
           if ((label.children ?? []).isEmpty) {
             return _EmptyLabelList(
-              tag: tag,
+              tag: widget.tag,
               addCallback: () {
                 _addLabel(context);
               },
             );
           }
 
+          var labeledItems = <Item>[];
+          label.children!
+              .forEach((element) => labeledItems.addAll(element.items!));
+
           return RefreshIndicator(
-              child: ListView(
-                children: [
-                  const SizedBox(height: 20.0),
-                  for (var child in label.children!)
-                    _SubLabelEntry(
-                      label: child,
-                      tag: tag,
-                      callback: () {
-                        if (refetch != null) {
-                          refetch();
-                        }
-                      },
-                    ),
-                ],
+              child: SingleChildScrollView(
+                child: ExpansionPanelList(
+                  expansionCallback: (index, isExpanded) {
+                    print('$index, $isExpanded');
+                    setState(() {
+                      if (isExpanded) {
+                        _expanded.remove(label.children![index].id!);
+                      } else {
+                        _expanded.add(label.children![index].id!);
+                      }
+                    });
+                  },
+                  children: [
+                    for (var child in label.children!)
+                      ExpansionPanel(
+                        headerBuilder: (context, isExpanded) {
+                          return _SubLabelEntry(
+                            label: child,
+                            tag: widget.tag,
+                            labeledItems: labeledItems,
+                            callback: () {
+                              if (refetch != null) {
+                                refetch();
+                              }
+                            },
+                          );
+                        },
+                        body: Column(
+                          // shrinkWrap: true,
+                          children: [
+                            for (var item in child.items!)
+                              _ItemEntry(item: item),
+                          ],
+                        ),
+                        isExpanded: _expanded.contains(child.id),
+                      ),
+                  ],
+                ),
               ),
               onRefresh: () {
                 if (refetch != null) {
@@ -101,7 +138,7 @@ class LabelSubLabelsPages extends StatelessWidget {
   Future _addLabel(BuildContext context) {
     return showDialog(
       context: context,
-      builder: (context) => _NewLabelDialog(tag: tag),
+      builder: (context) => _NewLabelDialog(tag: widget.tag),
     );
   }
 }
@@ -266,12 +303,14 @@ class _SubLabelEntry extends StatefulWidget {
   final SubLabel label;
   final Tag tag;
   final VoidCallback callback;
+  final List<Item> labeledItems;
 
   const _SubLabelEntry(
       {Key? key,
       required this.label,
       required this.tag,
-      required this.callback})
+      required this.callback,
+      required this.labeledItems})
       : super(key: key);
 
   @override
@@ -285,64 +324,43 @@ class _SublabelEntryState extends State<_SubLabelEntry> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-      child: ListView(
-        shrinkWrap: true,
-        physics: const ClampingScrollPhysics(),
+      child: Row(
         children: [
-          Row(
-            children: [
-              const SizedBox(
-                height: 20,
-                width: 20,
-                child: IconButton(
-                  iconSize: 20,
-                  padding: EdgeInsets.all(0),
-                  onPressed: null,
-                  icon: Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Colors.grey,
-                  ),
-                ),
+          Expanded(
+            child: Text(
+              widget.label.name.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  widget.label.name.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6.0),
-              SizedBox(
-                height: 20,
-                width: 20,
-                child: IconButton(
-                  iconSize: 20,
-                  padding: const EdgeInsets.all(0),
-                  onPressed: () {
-                    showModalBottomSheet(
-                        context: context,
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        isScrollControlled: true,
-                        builder: (context) {
-                          return _ItemListSelect(
-                              tag: widget.tag, label: widget.label);
-                        }).whenComplete(() => widget.callback());
-                  },
-                  icon: const Icon(
-                    Icons.add,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 6.0),
-          if (widget.label.items != null)
-            for (var item in widget.label.items!) _ItemEntry(item: item),
+          const SizedBox(width: 6.0),
+          SizedBox(
+            height: 20,
+            width: 20,
+            child: IconButton(
+              iconSize: 20,
+              padding: const EdgeInsets.all(0),
+              onPressed: () {
+                showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    isScrollControlled: true,
+                    builder: (context) {
+                      return _ItemListSelect(
+                          tag: widget.tag,
+                          label: widget.label,
+                          labeledItems: widget.labeledItems);
+                    }).whenComplete(() => widget.callback());
+              },
+              icon: const Icon(
+                Icons.add,
+                color: Colors.grey,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -358,11 +376,13 @@ class _ItemEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding:
-          const EdgeInsets.only(left: 30.0, top: 0.0, bottom: 5.0, right: 20.0),
+          const EdgeInsets.only(left: 0.0, top: 0.0, bottom: 0.0, right: 20.0),
       child: Column(
         children: [
+          const SizedBox(height: 10.0),
           Row(
             children: [
+              const SizedBox(width: 30.0),
               Expanded(
                 child: Text(item.name,
                     style: const TextStyle(color: Colors.black87)),
@@ -371,7 +391,8 @@ class _ItemEntry extends StatelessWidget {
               const Icon(Icons.chevron_right),
             ],
           ),
-          const Divider(),
+          const SizedBox(height: 10.0),
+          const Divider(height: 1),
         ],
       ),
     );
@@ -383,8 +404,13 @@ class _ItemEntry extends StatelessWidget {
 class _ItemListSelect extends StatefulWidget {
   final Tag tag;
   final SubLabel label;
+  final List<Item> labeledItems;
 
-  const _ItemListSelect({Key? key, required this.tag, required this.label})
+  const _ItemListSelect(
+      {Key? key,
+      required this.tag,
+      required this.label,
+      required this.labeledItems})
       : super(key: key);
 
   @override
@@ -447,6 +473,11 @@ class _ItemListSelectState extends State<_ItemListSelect> {
             }
 
             var items = Items.fromJson(result.data!);
+            var values = items.items.where((element) {
+              return widget.labeledItems
+                      .indexWhere((i) => element.id == i.id) ==
+                  -1;
+            }).toList();
 
             return Stack(
               fit: StackFit.loose,
@@ -485,11 +516,13 @@ class _ItemListSelectState extends State<_ItemListSelect> {
                     child: ListView(
                       shrinkWrap: true,
                       children: [
-                        for (var i in items.items.where((element) {
-                          return widget.label.items!
-                                  .indexWhere((i) => element.id == i.id) ==
-                              -1;
-                        }))
+                        if (values.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 10.0, vertical: 10.0),
+                            child: Text('All items have been labeled'),
+                          ),
+                        for (var i in values)
                           CheckboxListTile(
                               value: _selectedItems
                                   .any((element) => element.id == i.id),
