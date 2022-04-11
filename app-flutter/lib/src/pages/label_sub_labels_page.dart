@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:ms_undraw/ms_undraw.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../models/model.dart';
 import '../gql/gql.dart';
@@ -86,9 +87,9 @@ class _LabelSubLabelsPages extends State<LabelSubLabelsPages> {
 
           return RefreshIndicator(
               child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: ExpansionPanelList(
                   expansionCallback: (index, isExpanded) {
-                    print('$index, $isExpanded');
                     setState(() {
                       if (isExpanded) {
                         _expanded.remove(label.children![index].id!);
@@ -100,16 +101,118 @@ class _LabelSubLabelsPages extends State<LabelSubLabelsPages> {
                   children: [
                     for (var child in label.children!)
                       ExpansionPanel(
+                        canTapOnHeader: true,
                         headerBuilder: (context, isExpanded) {
-                          return _SubLabelEntry(
-                            label: child,
-                            tag: widget.tag,
-                            labeledItems: labeledItems,
-                            callback: () {
-                              if (refetch != null) {
-                                refetch();
-                              }
-                            },
+                          return Slidable(
+                            key: ValueKey(child.id),
+                            startActionPane: ActionPane(
+                              motion: const DrawerMotion(),
+                              children: [
+                                SlidableAction(
+                                  onPressed: (context) {
+                                    showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                              contentPadding:
+                                                  const EdgeInsets.fromLTRB(
+                                                      24.0, 20.0, 24.0, 0),
+                                              title: const Text('Delete'),
+                                              content: const Text(
+                                                  'Are you sure you want to delete label?'),
+                                              actions: [
+                                                TextButton(
+                                                    child: const Text('No',
+                                                        style: TextStyle(
+                                                            color:
+                                                                Colors.grey)),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop()),
+                                                // Deletes the sublabel and refreshes the list of sublabels
+                                                TextButton(
+                                                  child: const Text('Delete',
+                                                      style: TextStyle(
+                                                          color: Colors
+                                                              .redAccent)),
+                                                  onPressed: () async {
+                                                    var snackBar = const SnackBar(
+                                                        duration: Duration(
+                                                            seconds: 1),
+                                                        content: Text(
+                                                            'Deletion in progress'));
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(snackBar);
+                                                    var cli =
+                                                        GraphQLProvider.of(
+                                                                context)
+                                                            .value;
+                                                    var result = await cli
+                                                        .mutate(MutationOptions(
+                                                            document:
+                                                                mutationDeleteSubLabel,
+                                                            variables: {
+                                                          "subLabelID": child.id
+                                                        }));
+                                                    if (result.hasException) {
+                                                      var snackBar = const SnackBar(
+                                                          content: Text(
+                                                              'Unable to delete label. Kindly try again later'));
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                              snackBar);
+                                                    } else {
+                                                      var snackBar = SnackBar(
+                                                          content: Text(
+                                                              'Label \'${child.name}\' has been deleted'));
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                              snackBar);
+                                                      if (refetch != null) {
+                                                        refetch();
+                                                      }
+                                                    }
+                                                    Navigator.of(context).pop();
+                                                  },
+                                                )
+                                              ],
+                                            ));
+                                  },
+                                  backgroundColor: Colors.redAccent,
+                                  icon: Icons.delete,
+                                  spacing: 10.0,
+                                ),
+                                SlidableAction(
+                                  onPressed: (context) {
+                                    showModalBottomSheet(
+                                        context: context,
+                                        backgroundColor: Colors.transparent,
+                                        elevation: 0,
+                                        isScrollControlled: true,
+                                        builder: (context) {
+                                          return _ItemListSelect(
+                                              tag: widget.tag,
+                                              label: child,
+                                              labeledItems: labeledItems);
+                                        }).whenComplete(() {
+                                      if (refetch != null) {
+                                        refetch();
+                                      }
+                                    });
+                                  },
+                                  backgroundColor: Colors.lightBlue,
+                                  icon: Icons.add,
+                                  spacing: 10.0,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ],
+                            ),
+                            child: _SubLabelEntry(
+                              label: child,
+                              tag: widget.tag,
+                            ),
                           );
                         },
                         body: Column(
@@ -302,16 +405,12 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
 class _SubLabelEntry extends StatefulWidget {
   final SubLabel label;
   final Tag tag;
-  final VoidCallback callback;
-  final List<Item> labeledItems;
 
-  const _SubLabelEntry(
-      {Key? key,
-      required this.label,
-      required this.tag,
-      required this.callback,
-      required this.labeledItems})
-      : super(key: key);
+  const _SubLabelEntry({
+    Key? key,
+    required this.label,
+    required this.tag,
+  }) : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -326,41 +425,13 @@ class _SublabelEntryState extends State<_SubLabelEntry> {
       padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              widget.label.name.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.grey,
-                fontWeight: FontWeight.w600,
-              ),
+          Text(
+            widget.label.name.toUpperCase(),
+            style: const TextStyle(
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
             ),
-          ),
-          const SizedBox(width: 6.0),
-          SizedBox(
-            height: 20,
-            width: 20,
-            child: IconButton(
-              iconSize: 20,
-              padding: const EdgeInsets.all(0),
-              onPressed: () {
-                showModalBottomSheet(
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    isScrollControlled: true,
-                    builder: (context) {
-                      return _ItemListSelect(
-                          tag: widget.tag,
-                          label: widget.label,
-                          labeledItems: widget.labeledItems);
-                    }).whenComplete(() => widget.callback());
-              },
-              icon: const Icon(
-                Icons.add,
-                color: Colors.grey,
-              ),
-            ),
-          ),
+          )
         ],
       ),
     );

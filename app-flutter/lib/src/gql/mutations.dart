@@ -89,3 +89,9 @@ var mutationAddItemsToSubLabel = gql(r'''
       }
     }
 ''');
+
+var mutationDeleteSubLabel = gql(r'''
+    mutation deleteSubLabel($subLabelID: Int!) {
+      deleteSubLabel(subLabelID: $subLabelID)
+    }
+''');
