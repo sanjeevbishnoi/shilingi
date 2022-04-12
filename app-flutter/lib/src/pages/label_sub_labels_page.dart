@@ -8,6 +8,8 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../models/model.dart';
 import '../gql/gql.dart';
+import './shopping_item.dart';
+import './settings/settings.dart';
 
 class LabelSubLabelsPages extends StatefulWidget {
   final Tag tag;
@@ -25,6 +27,13 @@ class _LabelSubLabelsPages extends State<LabelSubLabelsPages> {
   @override
   Widget build(BuildContext context) {
     Refetch? _refetch;
+
+    Future _refresh() {
+      if (_refetch != null) {
+        return _refetch!();
+      }
+      return Future.value();
+    }
 
     return Scaffold(
       appBar:
@@ -103,123 +112,19 @@ class _LabelSubLabelsPages extends State<LabelSubLabelsPages> {
                       ExpansionPanel(
                         canTapOnHeader: true,
                         headerBuilder: (context, isExpanded) {
-                          return Slidable(
-                            key: ValueKey(child.id),
-                            startActionPane: ActionPane(
-                              motion: const DrawerMotion(),
-                              children: [
-                                SlidableAction(
-                                  onPressed: (context) {
-                                    showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                              contentPadding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      24.0, 20.0, 24.0, 0),
-                                              title: const Text('Delete'),
-                                              content: const Text(
-                                                  'Are you sure you want to delete label?'),
-                                              actions: [
-                                                TextButton(
-                                                    child: const Text('No',
-                                                        style: TextStyle(
-                                                            color:
-                                                                Colors.grey)),
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop()),
-                                                // Deletes the sublabel and refreshes the list of sublabels
-                                                TextButton(
-                                                  child: const Text('Delete',
-                                                      style: TextStyle(
-                                                          color: Colors
-                                                              .redAccent)),
-                                                  onPressed: () async {
-                                                    var snackBar = const SnackBar(
-                                                        duration: Duration(
-                                                            seconds: 1),
-                                                        content: Text(
-                                                            'Deletion in progress'));
-                                                    ScaffoldMessenger.of(
-                                                            context)
-                                                        .showSnackBar(snackBar);
-                                                    var cli =
-                                                        GraphQLProvider.of(
-                                                                context)
-                                                            .value;
-                                                    var result = await cli
-                                                        .mutate(MutationOptions(
-                                                            document:
-                                                                mutationDeleteSubLabel,
-                                                            variables: {
-                                                          "subLabelID": child.id
-                                                        }));
-                                                    if (result.hasException) {
-                                                      var snackBar = const SnackBar(
-                                                          content: Text(
-                                                              'Unable to delete label. Kindly try again later'));
-                                                      ScaffoldMessenger.of(
-                                                              context)
-                                                          .showSnackBar(
-                                                              snackBar);
-                                                    } else {
-                                                      var snackBar = SnackBar(
-                                                          content: Text(
-                                                              'Label \'${child.name}\' has been deleted'));
-                                                      ScaffoldMessenger.of(
-                                                              context)
-                                                          .showSnackBar(
-                                                              snackBar);
-                                                      if (refetch != null) {
-                                                        refetch();
-                                                      }
-                                                    }
-                                                    Navigator.of(context).pop();
-                                                  },
-                                                )
-                                              ],
-                                            ));
-                                  },
-                                  backgroundColor: Colors.redAccent,
-                                  icon: Icons.delete,
-                                  spacing: 10.0,
-                                ),
-                                SlidableAction(
-                                  onPressed: (context) {
-                                    showModalBottomSheet(
-                                        context: context,
-                                        backgroundColor: Colors.transparent,
-                                        elevation: 0,
-                                        isScrollControlled: true,
-                                        builder: (context) {
-                                          return _ItemListSelect(
-                                              tag: widget.tag,
-                                              label: child,
-                                              labeledItems: labeledItems);
-                                        }).whenComplete(() {
-                                      if (refetch != null) {
-                                        refetch();
-                                      }
-                                    });
-                                  },
-                                  backgroundColor: Colors.lightBlue,
-                                  icon: Icons.add,
-                                  spacing: 10.0,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ],
-                            ),
-                            child: _SubLabelEntry(
-                              label: child,
-                              tag: widget.tag,
-                            ),
+                          return _SubLabelEntry(
+                            label: child,
+                            tag: widget.tag,
+                            labeledItems: labeledItems,
+                            onItemAdded: _refresh,
                           );
                         },
                         body: Column(
                           // shrinkWrap: true,
                           children: [
                             for (var item in child.items!)
-                              _ItemEntry(item: item),
+                              _ItemEntry(
+                                  item: item, label: child, onDelete: _refresh),
                           ],
                         ),
                         isExpanded: _expanded.contains(child.id),
@@ -401,15 +306,247 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
   }
 }
 
+enum _SubLabelActions {
+  delete,
+  add,
+  rename,
+}
+
+/// _SubLabelEntryPopupButton provides the popup menu button with contextual actions for a SubLabel as
+/// defined by _SubLabelActions
+class _SubLabelEntryPopupButton extends StatefulWidget {
+  final SubLabel label;
+  final Tag tag;
+  final List<Item> labeledItems;
+  final VoidCallback callback;
+  const _SubLabelEntryPopupButton(
+      {Key? key,
+      required this.label,
+      required this.tag,
+      required this.labeledItems,
+      required this.callback})
+      : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() {
+    return _SubLabelEntryPopupButtonState();
+  }
+}
+
+class _SubLabelEntryPopupButtonState extends State<_SubLabelEntryPopupButton> {
+  final TextEditingController _controller = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey();
+  bool _loading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    super.dispose();
+    _controller.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.text = widget.label.name;
+    // _controller.addListener(() {
+    // setState(() {
+    // _name = _controller.text;
+    // });
+    // });
+  }
+
+  void _onSelected(BuildContext context, _SubLabelActions value) async {
+    switch (value) {
+      case _SubLabelActions.add:
+        showModalBottomSheet(
+            context: context,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            isScrollControlled: true,
+            builder: (context) {
+              return _ItemListSelect(
+                  tag: widget.tag,
+                  label: widget.label,
+                  labeledItems: widget.labeledItems);
+            }).whenComplete(() => widget.callback());
+        break;
+      case _SubLabelActions.delete:
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  contentPadding:
+                      const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 0),
+                  title: const Text('Delete'),
+                  content: const Text('Are you sure you want to delete label?'),
+                  actions: [
+                    TextButton(
+                        child: const Text('No',
+                            style: TextStyle(color: Colors.grey)),
+                        onPressed: () => Navigator.of(context).pop()),
+                    // Deletes the sublabel and refreshes the list of sublabels
+                    TextButton(
+                      child: const Text('Delete',
+                          style: TextStyle(color: Colors.redAccent)),
+                      onPressed: () async {
+                        var snackBar = const SnackBar(
+                            duration: Duration(seconds: 1),
+                            content: Text('Deletion in progress'));
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        var cli = GraphQLProvider.of(context).value;
+                        var result = await cli.mutate(MutationOptions(
+                            document: mutationDeleteSubLabel,
+                            variables: {"subLabelID": widget.label.id}));
+                        if (result.hasException) {
+                          var snackBar = const SnackBar(
+                              content: Text(
+                                  'Unable to delete label. Kindly try again later'));
+                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        } else {
+                          var snackBar = SnackBar(
+                              content: Text(
+                                  'Label \'${widget.label.name}\' has been deleted'));
+                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                          widget.callback();
+                        }
+                        Navigator.of(context).pop();
+                      },
+                    )
+                  ],
+                ));
+        break;
+      case _SubLabelActions.rename:
+        await showDialog(
+          context: context,
+          builder: (context) {
+            return StatefulBuilder(builder: (context, setState) {
+              return AlertDialog(
+                title: Row(
+                  children: const [
+                    Icon(Icons.edit),
+                    Text('Edit label name', style: TextStyle(fontSize: 16.0)),
+                  ],
+                ),
+                contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                content: Form(
+                  key: _formKey,
+                  child: TextFormField(
+                      enabled: !_loading,
+                      controller: _controller,
+                      onChanged: (val) {
+                        setState(() {});
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Label name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        errorText: _errorMessage,
+                        errorMaxLines: 3,
+                      )),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            Navigator.of(context).pop();
+                            _controller.text = widget.label.name;
+                          },
+                    child: const Text('Cancel',
+                        style: TextStyle(color: Colors.grey)),
+                  ),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                        backgroundColor: const Color(0XFFEFF5FB),
+                        primary: const Color(0XFF296FA8)),
+                    onPressed: _loading || _controller.text.isEmpty
+                        ? null
+                        : () async {
+                            setState((() {
+                              _loading = true;
+                            }));
+                            var cli = GraphQLProvider.of(context).value;
+                            var result = await cli.mutate(MutationOptions(
+                                document: mutationEditSubLabel,
+                                variables: {
+                                  'subLabelID': widget.label.id,
+                                  'input': {
+                                    'name': _controller.text,
+                                  }
+                                }));
+                            setState((() {
+                              _loading = false;
+                            }));
+                            if (result.hasException) {
+                              setState(() {
+                                _errorMessage =
+                                    result.exception!.graphqlErrors[0].message;
+                              });
+                            } else {
+                              var snackBar = const SnackBar(
+                                  content:
+                                      Text('Label name updated successfully'));
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(snackBar);
+                              Navigator.of(context).pop();
+                            }
+                          },
+                    child: const Text('Save'),
+                  ),
+                ],
+              );
+            });
+          },
+          barrierDismissible: false,
+        );
+        setState(() {
+          _errorMessage = null;
+        });
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_SubLabelActions>(
+      onSelected: (value) => _onSelected(context, value),
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+            child: _ItemEntryItemWidget(
+                text: 'Add items', icon: Icons.add, color: Colors.orangeAccent),
+            value: _SubLabelActions.add),
+        PopupMenuItem(
+            child: _ItemEntryItemWidget(
+              text: 'Edit name',
+              icon: Icons.edit,
+            ),
+            value: _SubLabelActions.rename),
+        PopupMenuItem(
+            child: _ItemEntryItemWidget(
+                text: 'Delete',
+                icon: Icons.delete_sweep,
+                color: Colors.redAccent),
+            value: _SubLabelActions.delete),
+      ],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    );
+  }
+}
+
 // _SubLabelEntry displayes all labels under the parent label
 class _SubLabelEntry extends StatefulWidget {
   final SubLabel label;
   final Tag tag;
+  final List<Item> labeledItems;
+  final VoidCallback onItemAdded;
 
   const _SubLabelEntry({
     Key? key,
     required this.label,
     required this.tag,
+    required this.labeledItems,
+    required this.onItemAdded,
   }) : super(key: key);
 
   @override
@@ -425,29 +562,199 @@ class _SublabelEntryState extends State<_SubLabelEntry> {
       padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
       child: Row(
         children: [
-          Text(
-            widget.label.name.toUpperCase(),
-            style: const TextStyle(
-              color: Colors.grey,
-              fontWeight: FontWeight.w600,
+          Expanded(
+            child: Text(
+              widget.label.name.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          )
+          ),
+          const SizedBox(width: 10),
+          _SubLabelEntryPopupButton(
+              label: widget.label,
+              labeledItems: widget.labeledItems,
+              tag: widget.tag,
+              callback: widget.onItemAdded),
         ],
       ),
     );
   }
 }
 
+enum _itemEntryPopupMenu {
+  view,
+  remove,
+}
+
+// _ItemEntryItemWidget is an encapsulation of a single popup menu item entry child
+class _ItemEntryItemWidget extends StatelessWidget {
+  final String text;
+  final IconData icon;
+  final Color color;
+
+  const _ItemEntryItemWidget(
+      {Key? key,
+      required this.text,
+      required this.icon,
+      this.color = Colors.black})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisAlignment: MainAxisAlignment.start, children: [
+      Expanded(child: Text(text)),
+      Icon(icon, color: color),
+    ]);
+  }
+}
+
+// _ItemEntryPopupButton is a PopupMenuButton widget that shows the options available
+// to an Item under a specific sub-label
+class _ItemEntryPopupButton extends StatelessWidget {
+  final Item item;
+  final SubLabel label;
+  final VoidCallback onDelete;
+
+  const _ItemEntryPopupButton(
+      {Key? key,
+      required this.item,
+      required this.label,
+      required this.onDelete})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_itemEntryPopupMenu>(
+      onSelected: (value) {
+        switch (value) {
+          case _itemEntryPopupMenu.view:
+            var settings =
+                ShoppingItemRouteSettings(itemId: item.id!, name: item.name);
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const ShoppingItemDetailPage(),
+                settings: RouteSettings(arguments: settings)));
+            break;
+          case _itemEntryPopupMenu.remove:
+            var removing = false;
+            showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Row(
+                      children: const [
+                        Icon(Icons.delete_outlined, color: Color(0xFFcc0f35)),
+                        Text('Remove',
+                            style: TextStyle(
+                                fontSize: 16.0, color: Color(0xFFcc0f35))),
+                      ],
+                    ),
+                    content: const Text(
+                        'Are you sure you want to remove this item from the label?'),
+                    contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                    actions: [
+                      StatefulBuilder(builder: (context, setState) {
+                        return Row(mainAxisSize: MainAxisSize.min, children: [
+                          TextButton(
+                            onPressed: removing
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            child: const Text('No, cancel',
+                                style: TextStyle(color: Colors.grey)),
+                          ),
+                          const SizedBox(width: 10.0),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                                backgroundColor: const Color(0xFFfeecf0),
+                                primary: const Color(0Xffcc0f35)),
+                            onPressed: removing
+                                ? null
+                                : () async {
+                                    setState(() {
+                                      removing = true;
+                                    });
+                                    var successful = await _remove(context);
+                                    if (successful) {
+                                      var snackBar = const SnackBar(
+                                          content: Text(
+                                              'Item has been successfully remove'));
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(snackBar);
+                                    } else {
+                                      var snackBar = const SnackBar(
+                                          content: Text(
+                                              'Unable to remove item from label'),
+                                          backgroundColor: Color(0xFFfeecf0));
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(snackBar);
+                                    }
+                                    setState(() {
+                                      removing = false;
+                                    });
+                                    onDelete();
+                                    Navigator.of(context).pop();
+                                  },
+                            child: Text(
+                              removing ? 'Removing...' : 'Yes, remove',
+                            ),
+                          )
+                        ]);
+                      }),
+                    ],
+                  );
+                });
+            break;
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+            child: _ItemEntryItemWidget(
+                text: 'Item details', icon: Icons.chevron_right),
+            value: _itemEntryPopupMenu.view),
+        PopupMenuItem(
+            child: _ItemEntryItemWidget(
+                text: 'Remove from label',
+                icon: Icons.delete,
+                color: Colors.redAccent),
+            value: _itemEntryPopupMenu.remove),
+      ],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    );
+  }
+
+  Future<bool> _remove(BuildContext context) async {
+    var cli = GraphQLProvider.of(context).value;
+    var result = await cli.mutate(
+        MutationOptions(document: mutationRemoveItemsFromSubLabel, variables: {
+      'subLabelID': label.id,
+      'itemIDs': [item.id],
+    }));
+
+    if (result.hasException) return false;
+    return true;
+  }
+}
+
+/// _ItemEntry is a single item widget that is displayed under a specific sub-label
 class _ItemEntry extends StatelessWidget {
   final Item item;
+  final SubLabel label;
+  final VoidCallback onDelete;
 
-  const _ItemEntry({Key? key, required this.item}) : super(key: key);
+  const _ItemEntry(
+      {Key? key,
+      required this.item,
+      required this.label,
+      required this.onDelete})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding:
-          const EdgeInsets.only(left: 0.0, top: 0.0, bottom: 0.0, right: 20.0),
+          const EdgeInsets.only(left: 0.0, top: 0.0, bottom: 0.0, right: 0.0),
       child: Column(
         children: [
           const SizedBox(height: 10.0),
@@ -459,7 +766,9 @@ class _ItemEntry extends StatelessWidget {
                     style: const TextStyle(color: Colors.black87)),
               ),
               const SizedBox(width: 6.0),
-              const Icon(Icons.chevron_right),
+              _ItemEntryPopupButton(
+                  item: item, label: label, onDelete: onDelete),
+              const SizedBox(width: 20.0),
             ],
           ),
           const SizedBox(height: 10.0),

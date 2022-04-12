@@ -95,3 +95,21 @@ var mutationDeleteSubLabel = gql(r'''
       deleteSubLabel(subLabelID: $subLabelID)
     }
 ''');
+
+var mutationRemoveItemsFromSubLabel = gql(r'''
+    mutation removeItemsFromSubLabel($subLabelID: Int!, $itemIDs: [Int!]!) {
+      removeItemsFromSubLabel(subLabelID: $subLabelID, itemIDs: $itemIDs) {
+        id
+        name
+      }
+    }
+''');
+
+var mutationEditSubLabel = gql(r'''
+    mutation editSubLabel($subLabelID: Int!, $input: SubLabelInput!) {
+      editSubLabel(subLabelID: $subLabelID, input: $input) {
+        id
+        name
+      }
+    }
+''');
