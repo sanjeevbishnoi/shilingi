@@ -75,12 +75,13 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Items         func(childComplexity int, tagID *int, negate *bool) int
-		Node          func(childComplexity int, id int) int
-		Purchases     func(childComplexity int, before time.Time, after time.Time) int
-		ShoppingItems func(childComplexity int, after time.Time, before time.Time, itemID int) int
-		Tags          func(childComplexity int) int
-		Vendors       func(childComplexity int) int
+		Items              func(childComplexity int, tagID *int, negate *bool) int
+		Node               func(childComplexity int, id int) int
+		Purchases          func(childComplexity int, before time.Time, after time.Time) int
+		ShoppingItems      func(childComplexity int, after time.Time, before time.Time, itemID int) int
+		ShoppingItemsByTag func(childComplexity int, after time.Time, before time.Time, tagID int) int
+		Tags               func(childComplexity int) int
+		Vendors            func(childComplexity int) int
 	}
 
 	Shopping struct {
@@ -141,6 +142,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error)
 	ShoppingItems(ctx context.Context, after time.Time, before time.Time, itemID int) ([]*ent.ShoppingItem, error)
+	ShoppingItemsByTag(ctx context.Context, after time.Time, before time.Time, tagID int) ([]*ent.ShoppingItem, error)
 	Purchases(ctx context.Context, before time.Time, after time.Time) ([]*ent.Shopping, error)
 	Vendors(ctx context.Context) ([]*ent.Vendor, error)
 	Node(ctx context.Context, id int) (ent.Noder, error)
@@ -406,6 +408,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.ShoppingItems(childComplexity, args["after"].(time.Time), args["before"].(time.Time), args["itemID"].(int)), true
+
+	case "Query.shoppingItemsByTag":
+		if e.complexity.Query.ShoppingItemsByTag == nil {
+			break
+		}
+
+		args, err := ec.field_Query_shoppingItemsByTag_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ShoppingItemsByTag(childComplexity, args["after"].(time.Time), args["before"].(time.Time), args["tagID"].(int)), true
 
 	case "Query.tags":
 		if e.complexity.Query.Tags == nil {
@@ -746,6 +760,7 @@ type Query {
   # Providing negate without a tagID doesn't have any effect
   items(tagID: Int, negate: Boolean): [Item!]!
   shoppingItems(after: Time!, before: Time!, itemID: Int!): [ShoppingItem!]!
+  shoppingItemsByTag(after: Time!, before: Time!, tagID: Int!): [ShoppingItem!]!
   purchases(before: Time!, after: Time!): [Shopping!]!
   vendors: [Vendor!]!
   node(id: Int!): Node!
@@ -1117,6 +1132,39 @@ func (ec *executionContext) field_Query_purchases_args(ctx context.Context, rawA
 		}
 	}
 	args["after"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_shoppingItemsByTag_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 time.Time
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg0, err = ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg0
+	var arg1 time.Time
+	if tmp, ok := rawArgs["before"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+		arg1, err = ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg1
+	var arg2 int
+	if tmp, ok := rawArgs["tagID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tagID"))
+		arg2, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["tagID"] = arg2
 	return args, nil
 }
 
@@ -1971,6 +2019,48 @@ func (ec *executionContext) _Query_shoppingItems(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().ShoppingItems(rctx, args["after"].(time.Time), args["before"].(time.Time), args["itemID"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.ShoppingItem)
+	fc.Result = res
+	return ec.marshalNShoppingItem2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItemᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_shoppingItemsByTag(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_shoppingItemsByTag_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ShoppingItemsByTag(rctx, args["after"].(time.Time), args["before"].(time.Time), args["tagID"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4595,6 +4685,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_shoppingItems(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "shoppingItemsByTag":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_shoppingItemsByTag(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

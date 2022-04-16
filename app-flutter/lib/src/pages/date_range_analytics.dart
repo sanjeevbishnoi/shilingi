@@ -175,7 +175,7 @@ class DateRangeAnalytics extends StatelessWidget {
           }
 
           var purchases = Purchases.fromJson(result.data!);
-          var byLabel = _filterByTag(purchases);
+          var byLabel = _filterByTag(purchases, analyticsFor);
           var byVendor = _filterByVendor(purchases);
           var byItem = _filterByItem(purchases);
 
@@ -257,7 +257,8 @@ class DateRangeAnalytics extends StatelessWidget {
     );
   }
 
-  SortedList<SimpleBarEntry<PurchaseItem>> _filterByTag(Purchases purchases) {
+  SortedList<SimpleBarEntry<PurchaseItem>> _filterByTag(
+      Purchases purchases, AnalyticsForSettings analyticsFor) {
     var result =
         SortedList<SimpleBarEntry<PurchaseItem>>((a, b) => a.compareTo(b));
     var map = <String, SimpleBarEntry<PurchaseItem>>{};
@@ -268,14 +269,16 @@ class DateRangeAnalytics extends StatelessWidget {
             labelId: 0,
             label: 'uncategorized',
             value: purchaseItem.total,
-            items: [purchaseItem]);
+            items: [purchaseItem],
+            analyticsFor: analyticsFor);
         // Retrieve the tag for the item
         if (purchaseItem.item?.tags?.isNotEmpty ?? false) {
           entry = LabelsSimpleBarEntry(
               labelId: purchaseItem.item!.tags![0].id!,
               label: purchaseItem.item!.tags![0].name,
               value: purchaseItem.total,
-              items: [purchaseItem]);
+              items: [purchaseItem],
+              analyticsFor: analyticsFor);
         }
         map.update(entry.label, (value) => value + entry,
             ifAbsent: () => entry);

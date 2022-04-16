@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sorted_list/sorted_list.dart';
 import 'package:intl/intl.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:ms_undraw/ms_undraw.dart';
 
 import '../../constants/constants.dart';
 import '../../components/analytics/simple_bar.dart';
@@ -18,6 +19,7 @@ enum _Popup {
   add,
 }
 
+// PurchaseItemEntries shows a list of items analytics break by a specific label
 class PurchaseItemEntries extends StatefulWidget {
   final LabelsSimpleBarEntry entry;
 
@@ -31,7 +33,8 @@ class PurchaseItemEntries extends StatefulWidget {
 
 class _PurchaseItemEntries extends State<PurchaseItemEntries> {
   bool _showPercentage = false;
-  List<int> _selected = <int>[];
+  final List<int> _selected = <int>[];
+  Refetch? _refetch;
 
   String get _label {
     return widget.entry.label;
@@ -45,11 +48,11 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
     _selected.add(id);
   }
 
-  SortedList<TagTotal> _processItems() {
+  SortedList<TagTotal> _processItems(List<PurchaseItem> items) {
     var sortedList = SortedList<TagTotal>((a, b) => a.compareTo(b));
     var map = <String, TagTotal>{};
 
-    for (var item in widget.entry.items) {
+    for (var item in items) {
       var entry =
           TagTotal(name: item.item!.name, value: item.total, id: item.item!.id);
       map.update(entry.name, (value) => value + entry, ifAbsent: () => entry);
@@ -59,10 +62,15 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
     return sortedList;
   }
 
+  Future _refresh() {
+    if (_refetch != null) {
+      return _refetch!();
+    }
+    return Future.value();
+  }
+
   @override
   Widget build(BuildContext context) {
-    var items = _processItems().reversed;
-    var max = items.first.value;
     var appBar = AppBar(title: Text('$_label expenditure'));
     if (_selected.isNotEmpty) {
       appBar = AppBar(
@@ -84,12 +92,16 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
                   var args = SelectLabelSettings(
                       genericPop: true,
                       itemIds: _selected.map<int>((e) => e).toList());
-                  Navigator.of(context).push(
+                  Navigator.of(context)
+                      .push(
                     MaterialPageRoute(
                       builder: (context) => const SelectLabelPage(),
                       settings: RouteSettings(arguments: args),
                     ),
-                  );
+                  )
+                      .then((value) {
+                    _refresh();
+                  });
                   break;
                 case _Popup.remove:
                   var payload = <String, dynamic>{
@@ -102,11 +114,13 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
                   showDialog(
                       context: context,
                       builder: (context) {
+                        // TODO(jack): Use a StatefulBuilder widget instead
                         return FutureBuilder<QueryResult>(
                           future: result,
                           builder: (context, snapshot) {
                             switch (snapshot.connectionState) {
                               case ConnectionState.done:
+                                _refresh();
                                 return AlertDialog(
                                   content: const Text(
                                     'Done, items removed from label',
@@ -159,87 +173,291 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: mainScaffoldBg,
-      appBar: appBar,
-      body: ListView(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(30.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Kes ${_format.format(widget.entry.value)}',
-                          style: const TextStyle(
-                            fontSize: 22,
-                          )),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Text('Total spend on ',
-                              style: TextStyle(color: Colors.grey)),
-                          Text(widget.entry.label),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+    var analyticsFor = widget.entry.analyticsFor;
+
+    Widget body;
+
+    if (widget.entry.label != "uncategorized") {
+      body = Query(
+        options: QueryOptions(
+          document: purchaseItemsByLabelQuery,
+          variables: {
+            'after': DateTimeToJson(analyticsFor.start),
+            'before': DateTimeToJson(analyticsFor.end),
+            'tagID': widget.entry.labelId,
+          },
+        ),
+        builder: (QueryResult result,
+            {Refetch? refetch, FetchMore? fetchMore}) {
+          _refetch = refetch;
+          if (result.isLoading && result.data == null) {
+            return const Padding(
+              padding: EdgeInsets.all(30.0),
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          } else if (result.hasException) {
+            return Padding(
+              padding: const EdgeInsets.all(30.0),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    CircleAvatar(
-                      radius: 15,
-                      child: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _showPercentage = !_showPercentage;
-                          });
-                        },
-                        icon: const Icon(Icons.percent),
-                        iconSize: 14.0,
+                    UnDraw(
+                        height: 150.0,
+                        illustration: UnDrawIllustration.warning,
+                        color: Colors.redAccent),
+                    Text('Unable to load analytics for ${widget.entry.label}',
+                        style: const TextStyle(
+                            fontSize: 16.0, color: Colors.grey)),
+                    TextButton(
+                      onPressed: () {
+                        if (refetch != null) refetch();
+                      },
+                      child: const Text('Try again'),
+                      style: ButtonStyle(
+                        shape:
+                            MaterialStateProperty.all<RoundedRectangleBorder>(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(50.0),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                for (var item in items)
-                  SelectableWidget(
-                    tapCallback: () {
-                      if (_selected.isNotEmpty) {
-                        setState(() {
-                          _toggleItem(item.id!);
-                        });
-                      } else {
-                        Navigator.of(context).pushNamed(shoppingItemPage,
-                            arguments: ShoppingItemRouteSettings(
-                                itemId: item.id!, name: item.name));
-                      }
-                    },
-                    onLongPress: () {
-                      setState(() {
-                        _toggleItem(item.id!);
-                      });
-                    },
-                    child: _PurchaseItemEntry(
-                      entry: item,
-                      total: widget.entry.value,
-                      max: max,
-                      showPercentage: _showPercentage,
-                      selected: _selected.contains(item.id),
+              ),
+            );
+          }
+
+          var purchaseItems = PurchaseItems.fromJson(
+              {'shoppingItems': result.data!['shoppingItemsByTag']});
+          var items = _processItems(purchaseItems.shoppingItems).reversed;
+          var total = 0.0;
+          var max = 0.0;
+          if (items.isNotEmpty) {
+            max = items.first.value;
+          }
+          purchaseItems.shoppingItems.forEach(((element) {
+            total += element.total;
+          }));
+
+          return RefreshIndicator(
+              child: ListView(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(30.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Kes ${_format.format(total)}',
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                  )),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  const Text('Total spend on ',
+                                      style: TextStyle(color: Colors.grey)),
+                                  Text(widget.entry.label),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            CircleAvatar(
+                              radius: 15,
+                              child: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _showPercentage = !_showPercentage;
+                                  });
+                                },
+                                icon: const Icon(Icons.percent),
+                                iconSize: 14.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        for (var item in items)
+                          SelectableWidget(
+                            tapCallback: () {
+                              if (_selected.isNotEmpty) {
+                                setState(() {
+                                  _toggleItem(item.id!);
+                                });
+                              } else {
+                                Navigator.of(context).pushNamed(
+                                    shoppingItemPage,
+                                    arguments: ShoppingItemRouteSettings(
+                                        itemId: item.id!, name: item.name));
+                              }
+                            },
+                            onLongPress: () {
+                              setState(() {
+                                _toggleItem(item.id!);
+                              });
+                            },
+                            child: _PurchaseItemEntry(
+                              entry: item,
+                              total: widget.entry.value,
+                              max: max,
+                              showPercentage: _showPercentage,
+                              selected: _selected.contains(item.id),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-              ],
-            ),
+                ],
+              ),
+              onRefresh: () {
+                if (refetch != null) {
+                  return refetch();
+                }
+                return Future.value();
+              });
+        },
+      );
+    } else {
+      var items = _processItems(widget.entry.items).reversed;
+      body = _Uncategorized(
+          entry: widget.entry,
+          togglePercentage: () {
+            setState(() {
+              _showPercentage = !_showPercentage;
+            });
+          },
+          items: items.toList(),
+          toggleItem: (i) {
+            setState(() {
+              _toggleItem(i);
+            });
+          },
+          selected: _selected,
+          showPercentage: _showPercentage);
+    }
+
+    return Scaffold(
+      backgroundColor: mainScaffoldBg,
+      appBar: appBar,
+      body: body,
+    );
+  }
+}
+
+// _Uncategorized is used to show items that are uncategorized
+class _Uncategorized extends StatelessWidget {
+  final LabelsSimpleBarEntry entry;
+  final VoidCallback togglePercentage;
+  final Function(int) toggleItem;
+  final List<TagTotal> items;
+  final List<int> selected;
+  final bool showPercentage;
+
+  const _Uncategorized(
+      {Key? key,
+      required this.entry,
+      required this.togglePercentage,
+      required this.items,
+      required this.toggleItem,
+      required this.selected,
+      required this.showPercentage})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    var total = 0.0;
+    entry.items.forEach(((element) {
+      total += element.total;
+    }));
+    var max = 0.0;
+    if (items.isNotEmpty) {
+      max = items.first.value;
+    }
+
+    return ListView(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(30.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Kes ${_format.format(total)}',
+                        style: const TextStyle(
+                          fontSize: 22,
+                        )),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Text('Total spend on ',
+                            style: TextStyle(color: Colors.grey)),
+                        Text(entry.label),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  CircleAvatar(
+                    radius: 15,
+                    child: IconButton(
+                      onPressed: togglePercentage,
+                      icon: const Icon(Icons.percent),
+                      iconSize: 14.0,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              for (var item in items)
+                SelectableWidget(
+                  tapCallback: () {
+                    if (selected.isNotEmpty) {
+                      toggleItem(item.id!);
+                    } else {
+                      Navigator.of(context).pushNamed(shoppingItemPage,
+                          arguments: ShoppingItemRouteSettings(
+                              itemId: item.id!, name: item.name));
+                    }
+                  },
+                  onLongPress: () {
+                    toggleItem(item.id!);
+                  },
+                  child: _PurchaseItemEntry(
+                    entry: item,
+                    total: entry.value,
+                    max: max,
+                    showPercentage: showPercentage,
+                    selected: selected.contains(item.id),
+                  ),
+                ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -273,12 +491,14 @@ class SelectableWidget extends StatelessWidget {
 class LabelsSimpleBarEntry extends SimpleBarEntry<PurchaseItem>
     implements NavigatableBarEntry {
   final int labelId;
+  final AnalyticsForSettings analyticsFor;
 
   const LabelsSimpleBarEntry(
       {required String label,
       required double value,
       required List<PurchaseItem> items,
-      required this.labelId})
+      required this.labelId,
+      required this.analyticsFor})
       : super(label: label, value: value, items: items);
 
   @override
@@ -293,7 +513,8 @@ class LabelsSimpleBarEntry extends SimpleBarEntry<PurchaseItem>
         labelId: labelId,
         label: label,
         value: value + other.value,
-        items: [...items, ...other.items]);
+        items: [...items, ...other.items],
+        analyticsFor: analyticsFor);
   }
 }
 

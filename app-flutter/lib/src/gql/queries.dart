@@ -136,3 +136,18 @@ var labelsQuery = gql(r'''
       }
     }
 ''');
+
+var purchaseItemsByLabelQuery = gql(r'''
+    query purchaseItemsByLabel ($after: Time!, $before: Time!, $tagID: Int!) {
+      shoppingItemsByTag(after: $after, before: $before, tagID: $tagID) {
+        id
+        item {
+          id
+          name
+        }
+        pricePerUnit
+        units
+        total
+      }
+    }
+''');

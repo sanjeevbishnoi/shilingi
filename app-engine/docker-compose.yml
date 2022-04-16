@@ -3,6 +3,7 @@ networks:
   shilingi:
 services:
   app-engine:
+    container_name: app-engine
     image: localhost:5000/app-engine:${APP_ENGINE_VERSION:-v0.0.1}
     build:
       context: .
