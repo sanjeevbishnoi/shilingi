@@ -151,3 +151,18 @@ var purchaseItemsByLabelQuery = gql(r'''
       }
     }
 ''');
+
+var unlabeledPurchaseItemsQuery = gql(r'''
+    query unlabeledPurchaseItems ($after: Time!, $before: Time!) {
+      untaggedShoppingItems(after: $after, before: $before) {
+        id
+        item {
+          id
+          name
+        }
+        pricePerUnit
+        units
+        total
+      }
+    }
+''');

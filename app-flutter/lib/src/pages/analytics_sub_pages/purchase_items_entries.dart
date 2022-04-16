@@ -175,181 +175,164 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
 
     var analyticsFor = widget.entry.analyticsFor;
 
-    Widget body;
+    var queryName = 'shoppingItemsByTag';
+    if (widget.entry.label == 'uncategorized') {
+      queryName = 'untaggedShoppingItems';
+    }
 
-    if (widget.entry.label != "uncategorized") {
-      body = Query(
-        options: QueryOptions(
-          document: purchaseItemsByLabelQuery,
-          variables: {
-            'after': DateTimeToJson(analyticsFor.start),
-            'before': DateTimeToJson(analyticsFor.end),
-            'tagID': widget.entry.labelId,
-          },
-        ),
-        builder: (QueryResult result,
-            {Refetch? refetch, FetchMore? fetchMore}) {
-          _refetch = refetch;
-          if (result.isLoading && result.data == null) {
-            return const Padding(
-              padding: EdgeInsets.all(30.0),
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
-          } else if (result.hasException) {
-            return Padding(
-              padding: const EdgeInsets.all(30.0),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    UnDraw(
-                        height: 150.0,
-                        illustration: UnDrawIllustration.warning,
-                        color: Colors.redAccent),
-                    Text('Unable to load analytics for ${widget.entry.label}',
-                        style: const TextStyle(
-                            fontSize: 16.0, color: Colors.grey)),
-                    TextButton(
-                      onPressed: () {
-                        if (refetch != null) refetch();
-                      },
-                      child: const Text('Try again'),
-                      style: ButtonStyle(
-                        shape:
-                            MaterialStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50.0),
-                          ),
+    var body = Query(
+      options: QueryOptions(
+        document: widget.entry.label == 'uncategorized'
+            ? unlabeledPurchaseItemsQuery
+            : purchaseItemsByLabelQuery,
+        variables: {
+          'after': DateTimeToJson(analyticsFor.start),
+          'before': DateTimeToJson(analyticsFor.end),
+          'tagID': widget.entry.labelId,
+        },
+      ),
+      builder: (QueryResult result, {Refetch? refetch, FetchMore? fetchMore}) {
+        _refetch = refetch;
+        if (result.isLoading && result.data == null) {
+          return const Padding(
+            padding: EdgeInsets.all(30.0),
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        } else if (result.hasException) {
+          return Padding(
+            padding: const EdgeInsets.all(30.0),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  UnDraw(
+                      height: 150.0,
+                      illustration: UnDrawIllustration.warning,
+                      color: Colors.redAccent),
+                  Text('Unable to load analytics for ${widget.entry.label}',
+                      style:
+                          const TextStyle(fontSize: 16.0, color: Colors.grey)),
+                  TextButton(
+                    onPressed: () {
+                      if (refetch != null) refetch();
+                    },
+                    child: const Text('Try again'),
+                    style: ButtonStyle(
+                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50.0),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          var purchaseItems = PurchaseItems.fromJson(
-              {'shoppingItems': result.data!['shoppingItemsByTag']});
-          var items = _processItems(purchaseItems.shoppingItems).reversed;
-          var total = 0.0;
-          var max = 0.0;
-          if (items.isNotEmpty) {
-            max = items.first.value;
-          }
-          purchaseItems.shoppingItems.forEach(((element) {
-            total += element.total;
-          }));
-
-          return RefreshIndicator(
-              child: ListView(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(30.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Kes ${_format.format(total)}',
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                  )),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Text('Total spend on ',
-                                      style: TextStyle(color: Colors.grey)),
-                                  Text(widget.entry.label),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            CircleAvatar(
-                              radius: 15,
-                              child: IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _showPercentage = !_showPercentage;
-                                  });
-                                },
-                                icon: const Icon(Icons.percent),
-                                iconSize: 14.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        for (var item in items)
-                          SelectableWidget(
-                            tapCallback: () {
-                              if (_selected.isNotEmpty) {
-                                setState(() {
-                                  _toggleItem(item.id!);
-                                });
-                              } else {
-                                Navigator.of(context).pushNamed(
-                                    shoppingItemPage,
-                                    arguments: ShoppingItemRouteSettings(
-                                        itemId: item.id!, name: item.name));
-                              }
-                            },
-                            onLongPress: () {
-                              setState(() {
-                                _toggleItem(item.id!);
-                              });
-                            },
-                            child: _PurchaseItemEntry(
-                              entry: item,
-                              total: widget.entry.value,
-                              max: max,
-                              showPercentage: _showPercentage,
-                              selected: _selected.contains(item.id),
-                            ),
-                          ),
-                      ],
                     ),
                   ),
                 ],
               ),
-              onRefresh: () {
-                if (refetch != null) {
-                  return refetch();
-                }
-                return Future.value();
-              });
-        },
-      );
-    } else {
-      var items = _processItems(widget.entry.items).reversed;
-      body = _Uncategorized(
-          entry: widget.entry,
-          togglePercentage: () {
-            setState(() {
-              _showPercentage = !_showPercentage;
+            ),
+          );
+        }
+
+        var purchaseItems =
+            PurchaseItems.fromJson({'shoppingItems': result.data![queryName]});
+        var items = _processItems(purchaseItems.shoppingItems).reversed;
+        var total = 0.0;
+        var max = 0.0;
+        if (items.isNotEmpty) {
+          max = items.first.value;
+        }
+        purchaseItems.shoppingItems.forEach(((element) {
+          total += element.total;
+        }));
+
+        return RefreshIndicator(
+            child: ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(30.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Kes ${_format.format(total)}',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                )),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Text('Total spend on ',
+                                    style: TextStyle(color: Colors.grey)),
+                                Text(widget.entry.label),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          CircleAvatar(
+                            radius: 15,
+                            child: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _showPercentage = !_showPercentage;
+                                });
+                              },
+                              icon: const Icon(Icons.percent),
+                              iconSize: 14.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      for (var item in items)
+                        SelectableWidget(
+                          tapCallback: () {
+                            if (_selected.isNotEmpty) {
+                              setState(() {
+                                _toggleItem(item.id!);
+                              });
+                            } else {
+                              Navigator.of(context).pushNamed(shoppingItemPage,
+                                  arguments: ShoppingItemRouteSettings(
+                                      itemId: item.id!, name: item.name));
+                            }
+                          },
+                          onLongPress: () {
+                            setState(() {
+                              _toggleItem(item.id!);
+                            });
+                          },
+                          child: _PurchaseItemEntry(
+                            entry: item,
+                            total: widget.entry.value,
+                            max: max,
+                            showPercentage: _showPercentage,
+                            selected: _selected.contains(item.id),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            onRefresh: () {
+              if (refetch != null) {
+                return refetch();
+              }
+              return Future.value();
             });
-          },
-          items: items.toList(),
-          toggleItem: (i) {
-            setState(() {
-              _toggleItem(i);
-            });
-          },
-          selected: _selected,
-          showPercentage: _showPercentage);
-    }
+      },
+    );
 
     return Scaffold(
       backgroundColor: mainScaffoldBg,

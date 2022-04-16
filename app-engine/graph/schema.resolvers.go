@@ -198,6 +198,22 @@ func (r *queryResolver) ShoppingItemsByTag(ctx context.Context, after time.Time,
 		All(ctx)
 }
 
+func (r *queryResolver) UntaggedShoppingItems(ctx context.Context, after time.Time, before time.Time) ([]*ent.ShoppingItem, error) {
+	return r.cli.ShoppingItem.Query().
+		Where(
+			shoppingitem.HasItemWith(
+				item.Not(
+					item.HasTags(),
+				),
+			),
+			shoppingitem.HasShoppingWith(
+				shopping.DateGTE(after),
+				shopping.DateLT(before),
+			),
+		).
+		All(ctx)
+}
+
 func (r *queryResolver) Purchases(ctx context.Context, before time.Time, after time.Time) ([]*ent.Shopping, error) {
 	return r.cli.Shopping.Query().
 		Where(

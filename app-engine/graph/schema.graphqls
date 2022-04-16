@@ -12,7 +12,10 @@ type Query {
   # Providing negate without a tagID doesn't have any effect
   items(tagID: Int, negate: Boolean): [Item!]!
   shoppingItems(after: Time!, before: Time!, itemID: Int!): [ShoppingItem!]!
+  # Returns shopping items acquired between the date range that are tagged by 
+  # tagID
   shoppingItemsByTag(after: Time!, before: Time!, tagID: Int!): [ShoppingItem!]!
+  untaggedShoppingItems(after: Time!, before: Time!): [ShoppingItem!]
   purchases(before: Time!, after: Time!): [Shopping!]!
   vendors: [Vendor!]!
   node(id: Int!): Node!
