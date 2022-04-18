@@ -101,6 +101,12 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
                   )
                       .then((value) {
                     _refresh();
+                    // Unselect selected elements
+                    if (value is bool && value) {
+                      setState(() {
+                        _selected.clear();
+                      });
+                    }
                   });
                   break;
                 case _Popup.remove:
@@ -152,7 +158,13 @@ class _PurchaseItemEntries extends State<PurchaseItemEntries> {
                             }
                           },
                         );
+                      }).then(
+                    (value) {
+                      setState(() {
+                        _selected.clear();
                       });
+                    },
+                  );
                   break;
               }
             },

@@ -16,6 +16,7 @@ class SimpleBar extends StatefulWidget {
   final double total;
   final SimpleBarEntry? entry;
   final bool showPercentage;
+  final VoidCallback? onRoutePop;
 
   const SimpleBar(
       {Key? key,
@@ -24,7 +25,8 @@ class SimpleBar extends StatefulWidget {
       required this.max,
       required this.total,
       this.showPercentage = false,
-      this.entry})
+      this.entry,
+      this.onRoutePop})
       : super(key: key);
 
   @override
@@ -66,8 +68,9 @@ class SimpleBarState extends State<SimpleBar> {
           child: InkWell(
             splashColor: Colors.black12,
             onTap: entry != null
-                ? () {
-                    entry?.goTo(context);
+                ? () async {
+                    await entry?.goTo(context);
+                    widget.onRoutePop?.call();
                   }
                 : null,
             child: Padding(
@@ -308,13 +311,18 @@ class StatSectionWrapper<E> extends StatefulWidget {
   final int initialCount;
   final bool canGoBack;
 
+  /// Should be called when one of the children causes a navigation to a differentroute
+  /// which causes a change in state that would necessitate an update on the current route which StatSectionWrapper finds itself.
+  final VoidCallback? onRoutePop;
+
   const StatSectionWrapper(
       {Key? key,
       required this.title,
       required this.entries,
       this.truncate = false,
       this.initialCount = 10,
-      this.canGoBack = false})
+      this.canGoBack = false,
+      this.onRoutePop})
       : super(key: key);
 
   @override
@@ -322,7 +330,7 @@ class StatSectionWrapper<E> extends StatefulWidget {
 }
 
 class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
-  bool _truncated = true;
+  final bool _truncated = true;
   late final bool _showToggleButton;
   bool _showPercentage = false;
   int _count = 0;
@@ -398,6 +406,7 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
                     max: max,
                     showPercentage: _showPercentage,
                     total: total,
+                    onRoutePop: widget.onRoutePop,
                   ),
                   data: entry,
                 ),

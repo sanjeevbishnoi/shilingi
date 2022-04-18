@@ -221,12 +221,13 @@ class DateRangeAnalytics extends StatelessWidget {
                             AnimatedSize(
                               alignment: Alignment.topCenter,
                               duration: const Duration(milliseconds: 400),
-                              child: InheritedSwitcherWrapper(
-                                child: const CustomAnimatedSwitcher(),
-                                switchable: StatSectionWrapper(
-                                    title: 'Expenditure by label',
-                                    entries: byLabel,
-                                    truncate: true),
+                              child: StatSectionWrapper(
+                                title: 'Expenditure by label',
+                                entries: byLabel,
+                                truncate: true,
+                                onRoutePop: () {
+                                  refetch?.call();
+                                },
                               ),
                             ),
                             StatSectionWrapper(

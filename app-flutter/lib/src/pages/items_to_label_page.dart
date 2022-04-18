@@ -88,6 +88,8 @@ class SelectLabelPage extends StatelessWidget {
                                   );
                                   ScaffoldMessenger.of(context)
                                       .showSnackBar(snackBar);
+                                  // Go back to the calling route
+                                  Navigator.of(context).pop(true);
                                 } else {
                                   if (args.genericPop) {
                                     Navigator.of(context).pop();
