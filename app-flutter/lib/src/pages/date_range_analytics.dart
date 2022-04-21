@@ -17,45 +17,24 @@ var _format = NumberFormat('#,##0', 'en_US');
 
 class AnalyticsHeader extends StatelessWidget {
   final AnalyticsForSettings analyticsFor;
-  final List<Purchase> purchases;
 
-  const AnalyticsHeader(
-      {Key? key, required this.analyticsFor, required this.purchases})
+  const AnalyticsHeader({Key? key, required this.analyticsFor})
       : super(key: key);
-
-  double get _totalSpend {
-    var total = 0.0;
-    for (var purchase in purchases) {
-      total += purchase.total!;
-    }
-    return total;
-  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.analytics),
-          const SizedBox(width: 10),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (analyticsFor.analyticsFor == AnalyticsFor.month)
-              _AnalyticsHeaderMonth(month: analyticsFor.month!),
-            if (analyticsFor.analyticsFor == AnalyticsFor.dateRange)
-              _AnalyticsHeaderDateRange(
-                  start: analyticsFor.start, end: analyticsFor.end),
-            const SizedBox(height: 12),
-            Text('Kes ${_format.format(_totalSpend)}',
-                style: const TextStyle(
-                  fontSize: 22,
-                )),
-            const Text('Total spend', style: TextStyle(color: Colors.grey)),
-          ]),
-        ],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (analyticsFor.analyticsFor == AnalyticsFor.month)
+            _AnalyticsHeaderMonth(month: analyticsFor.month!),
+          if (analyticsFor.analyticsFor == AnalyticsFor.dateRange)
+            _AnalyticsHeaderDateRange(
+                start: analyticsFor.start, end: analyticsFor.end),
+        ]),
+      ],
     );
   }
 }
@@ -71,8 +50,7 @@ class _AnalyticsHeaderMonth extends StatelessWidget {
     var date = DateTime(DateTime.now().year, month, 1);
     var text = DateFormat('MMMM').format(date);
     return Text('Analytics for $text',
-        style: const TextStyle(
-            fontWeight: FontWeight.w500, color: Colors.grey, fontSize: 20));
+        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 20));
   }
 }
 
@@ -90,15 +68,14 @@ class _AnalyticsHeaderDateRange extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Analytics for',
-            style: TextStyle(
-                fontWeight: FontWeight.w500, color: Colors.grey, fontSize: 20)),
+            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20)),
         Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Text(DateFormat('EEE, MMM d').format(start),
                 style: const TextStyle(
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey,
+                    color: Colors.black54,
                     fontSize: 14)),
             const SizedBox(width: 5.0),
             const Icon(Icons.arrow_right),
@@ -106,7 +83,7 @@ class _AnalyticsHeaderDateRange extends StatelessWidget {
             Text(DateFormat('EEE, MMM d').format(end),
                 style: const TextStyle(
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey,
+                    color: Colors.black54,
                     fontSize: 14)),
           ],
         )
@@ -123,137 +100,179 @@ class DateRangeAnalytics extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: mainScaffoldBg,
-      appBar: AppBar(title: const Text('Analytics')),
-      body: Query(
-        options: QueryOptions(
-          document: purchasesExpandedQuery,
-          variables: {
-            'after': DateTimeToJson(analyticsFor.start),
-            'before': DateTimeToJson(analyticsFor.end),
-          },
-        ),
-        builder: (QueryResult result,
-            {FetchMore? fetchMore, Refetch? refetch}) {
-          if (result.isLoading && result.data == null) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          } else if (result.hasException) {
-            return Padding(
-              padding: const EdgeInsets.all(30.0),
-              child: Align(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    UnDraw(
-                        height: 150.0,
-                        illustration: UnDrawIllustration.warning,
-                        color: Colors.redAccent),
-                    const Text('Unable to load items',
-                        style: TextStyle(fontSize: 18.0)),
-                    TextButton(
-                      onPressed: () {
-                        if (refetch != null) refetch();
-                      },
-                      child: const Text('Try again'),
-                      style: ButtonStyle(
-                        shape:
-                            MaterialStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50.0),
-                          ),
+    var body = Query(
+      options: QueryOptions(
+        document: purchasesExpandedQuery,
+        variables: {
+          'after': DateTimeToJson(analyticsFor.start),
+          'before': DateTimeToJson(analyticsFor.end),
+        },
+      ),
+      builder: (QueryResult result, {FetchMore? fetchMore, Refetch? refetch}) {
+        if (result.isLoading && result.data == null) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        } else if (result.hasException) {
+          return Padding(
+            padding: const EdgeInsets.all(30.0),
+            child: Align(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  UnDraw(
+                      height: 150.0,
+                      illustration: UnDrawIllustration.warning,
+                      color: Colors.redAccent),
+                  const Text('Unable to load items',
+                      style: TextStyle(fontSize: 18.0)),
+                  TextButton(
+                    onPressed: () {
+                      if (refetch != null) refetch();
+                    },
+                    child: const Text('Try again'),
+                    style: ButtonStyle(
+                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50.0),
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          var purchases = Purchases.fromJson(result.data!);
-          var byLabel = _filterByTag(purchases, analyticsFor);
-          var byVendor = _filterByVendor(purchases);
-          var byItem = _filterByItem(purchases);
-
-          if (purchases.purchases.isEmpty) {
-            return Padding(
-              padding: const EdgeInsets.all(30.0),
-              child: Align(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    UnDraw(
-                        height: 150.0,
-                        illustration: UnDrawIllustration.warning,
-                        color: Colors.redAccent),
-                    const Text('No data to show',
-                        style: TextStyle(fontSize: 18.0)),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            child: ListView(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 30.0, horizontal: 30.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnalyticsHeader(
-                        analyticsFor: analyticsFor,
-                        purchases: purchases.purchases,
-                      ),
-                      Flexible(
-                        flex: 1,
-                        fit: FlexFit.loose,
-                        child: AnalyticsPageView(
-                          pages: [
-                            AnimatedSize(
-                              alignment: Alignment.topCenter,
-                              duration: const Duration(milliseconds: 400),
-                              child: StatSectionWrapper(
-                                title: 'Expenditure by label',
-                                entries: byLabel,
-                                truncate: true,
-                                onRoutePop: () {
-                                  refetch?.call();
-                                },
-                              ),
-                            ),
-                            StatSectionWrapper(
-                                title: 'Expenditure by vendor/store',
-                                entries: byVendor,
-                                truncate: true),
-                            StatSectionWrapper(
-                                title: 'Itemized expenditure',
-                                entries: byItem,
-                                truncate: true),
-                          ],
-                        ),
-                      ),
-                    ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            onRefresh: () {
-              if (refetch != null) {
-                return refetch();
-              }
-              return Future.value(null);
-            },
           );
-        },
+        }
+
+        var purchases = Purchases.fromJson(result.data!);
+        var byLabel = _filterByTag(purchases, analyticsFor);
+        var byVendor = _filterByVendor(purchases);
+        var byItem = _filterByItem(purchases);
+
+        if (purchases.purchases.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(30.0),
+            child: Align(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  UnDraw(
+                      height: 150.0,
+                      illustration: UnDrawIllustration.warning,
+                      color: Colors.redAccent),
+                  const Text('No data to show',
+                      style: TextStyle(fontSize: 18.0)),
+                ],
+              ),
+            ),
+          );
+        }
+        var total = 0.0;
+        for (var purchase in purchases.purchases) {
+          total += purchase.total!;
+        }
+
+        return CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              leading: const Icon(Icons.analytics),
+              title: AnalyticsHeader(analyticsFor: analyticsFor),
+              floating: true,
+              titleSpacing: 0.0,
+              backgroundColor: Colors.lightGreen,
+              expandedHeight: 70.0,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  color: mainScaffoldBg,
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 54.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Kes ${_format.format(total)}',
+                        style: const TextStyle(
+                          fontSize: 22,
+                        )),
+                    const Text('Total spend',
+                        style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
+              ),
+            ),
+            SliverFillRemaining(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20.0),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 40.0),
+                    child: TabBar(
+                      indicator: BoxDecoration(
+                        color: Colors.black12,
+                        borderRadius: BorderRadius.circular(50.0),
+                      ),
+                      isScrollable: true,
+                      tabs: const [
+                        Tab(text: 'Categories'),
+                        Tab(text: 'Vendors'),
+                        Tab(text: 'Items'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        SingleChildScrollView(
+                          physics: const ClampingScrollPhysics(),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 10, right: 10),
+                            child: StatSectionWrapper(
+                              entries: byLabel,
+                              truncate: true,
+                              onRoutePop: () {
+                                refetch?.call();
+                              },
+                            ),
+                          ),
+                        ),
+                        SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 10, right: 10),
+                            child: StatSectionWrapper(
+                                entries: byVendor, truncate: true),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 10, right: 10),
+                          child: SingleChildScrollView(
+                            child: StatSectionWrapper(
+                                entries: byItem, truncate: true),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: mainScaffoldBg,
+        body: body,
       ),
     );
   }
