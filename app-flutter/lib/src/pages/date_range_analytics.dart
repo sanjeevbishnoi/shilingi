@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:ms_undraw/ms_undraw.dart';
 import 'package:sorted_list/sorted_list.dart';
-import 'package:expandable_page_view/expandable_page_view.dart';
 
 import './settings/settings.dart';
 import '../constants/constants.dart';
@@ -175,95 +174,87 @@ class DateRangeAnalytics extends StatelessWidget {
           total += purchase.total!;
         }
 
-        return CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              leading: const Icon(Icons.analytics),
-              title: AnalyticsHeader(analyticsFor: analyticsFor),
-              floating: true,
-              titleSpacing: 0.0,
-              backgroundColor: Colors.lightGreen,
-              expandedHeight: 70.0,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  color: mainScaffoldBg,
+        RefreshCallback onRefresh = () async {
+          await refetch?.call();
+          return;
+        };
+
+        return NestedScrollView(
+          floatHeaderSlivers: true,
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverAppBar(
+                leading: const Icon(Icons.analytics),
+                title: AnalyticsHeader(analyticsFor: analyticsFor),
+                floating: true,
+                titleSpacing: 0.0,
+                backgroundColor: Colors.lightGreen,
+                expandedHeight: 70.0,
+                forceElevated: innerBoxIsScrolled,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    color: mainScaffoldBg,
+                  ),
                 ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 54.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Kes ${_format.format(total)}',
-                        style: const TextStyle(
-                          fontSize: 22,
-                        )),
-                    const Text('Total spend',
-                        style: TextStyle(color: Colors.grey)),
-                  ],
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 54.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Kes ${_format.format(total)}',
+                          style: const TextStyle(
+                            fontSize: 22,
+                          )),
+                      const Text('Total spend',
+                          style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            SliverFillRemaining(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20.0),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 40.0),
-                    child: TabBar(
-                      indicator: BoxDecoration(
-                        color: Colors.black12,
-                        borderRadius: BorderRadius.circular(50.0),
-                      ),
-                      isScrollable: true,
-                      tabs: const [
-                        Tab(text: 'Categories'),
-                        Tab(text: 'Vendors'),
-                        Tab(text: 'Items'),
-                      ],
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                      left: 40.0, top: 20.0, bottom: 30.0),
+                  child: TabBar(
+                    indicator: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(50.0),
                     ),
+                    isScrollable: true,
+                    tabs: const [
+                      Tab(text: 'Categories'),
+                      Tab(text: 'Vendors'),
+                      Tab(text: 'Items'),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        SingleChildScrollView(
-                          physics: const ClampingScrollPhysics(),
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 10, right: 10),
-                            child: StatSectionWrapper(
-                              entries: byLabel,
-                              truncate: true,
-                              onRoutePop: () {
-                                refetch?.call();
-                              },
-                            ),
-                          ),
-                        ),
-                        SingleChildScrollView(
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 10, right: 10),
-                            child: StatSectionWrapper(
-                                entries: byVendor, truncate: true),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 10, right: 10),
-                          child: SingleChildScrollView(
-                            child: StatSectionWrapper(
-                                entries: byItem, truncate: true),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ];
+          },
+          body: TabBarView(
+            children: [
+              TabBarChild(
+                child: StatSectionWrapper(
+                  entries: byLabel,
+                  truncate: true,
+                  onRoutePop: () {
+                    refetch?.call();
+                  },
+                ),
+                onRefresh: onRefresh,
+              ),
+              TabBarChild(
+                child: StatSectionWrapper(entries: byVendor, truncate: true),
+                onRefresh: onRefresh,
+              ),
+              TabBarChild(
+                child: StatSectionWrapper(entries: byItem, truncate: true),
+                onRefresh: onRefresh,
+              ),
+            ],
+          ),
         );
       },
     );
@@ -348,41 +339,6 @@ class DateRangeAnalytics extends StatelessWidget {
   }
 }
 
-class AnalyticsPageView extends StatefulWidget {
-  final List<Widget> pages;
-
-  const AnalyticsPageView({Key? key, required this.pages}) : super(key: key);
-
-  @override
-  State<StatefulWidget> createState() {
-    return _AnalyticsPageViewState();
-  }
-}
-
-class _AnalyticsPageViewState extends State<AnalyticsPageView> {
-  late final PageController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = PageController(initialPage: 0, viewportFraction: .9);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ExpandablePageView(
-      controller: _controller,
-      children: [
-        for (var page in widget.pages)
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            child: page,
-          ),
-      ],
-    );
-  }
-}
-
 class TagTotal {
   final String name;
   final int? id;
@@ -392,5 +348,35 @@ class TagTotal {
 
   TagTotal operator +(TagTotal other) {
     return TagTotal(name: name, total: total + other.total);
+  }
+}
+
+class TabBarChild extends StatelessWidget {
+  final Widget child;
+  final RefreshCallback onRefresh;
+
+  const TabBarChild({Key? key, required this.child, required this.onRefresh})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return RefreshIndicator(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: constraints.maxHeight,
+                minHeight: constraints.minHeight),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 10, right: 10),
+                child: child,
+              ),
+            ),
+          ),
+          onRefresh: onRefresh,
+        );
+      },
+    );
   }
 }
