@@ -249,17 +249,12 @@ class SimpleBarEntry<E> {
 }
 
 class StatSection extends StatelessWidget {
-  final String title;
+  final String? title;
   final Widget child;
-  final bool canGoBack;
   final List<Widget> actions;
 
   const StatSection(
-      {Key? key,
-      required this.title,
-      required this.child,
-      this.canGoBack = false,
-      this.actions = const []})
+      {Key? key, this.title, required this.child, this.actions = const []})
       : super(key: key);
 
   @override
@@ -271,28 +266,20 @@ class StatSection extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(10.0),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 20.0),
+      padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              if (canGoBack) ...[
-                IconButton(
-                  onPressed: () {
-                    var inherited = InheritedWidgetSwitcher.of(context);
-                    inherited?.goBack();
-                  },
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                const SizedBox(width: 10),
-              ],
               Expanded(
-                child: Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16.0,
-                        color: Colors.grey)),
+                child: title != null
+                    ? Text(title!,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16.0,
+                            color: Colors.grey))
+                    : const SizedBox(width: 1),
               ),
               for (var action in actions) action,
             ],
@@ -305,11 +292,10 @@ class StatSection extends StatelessWidget {
 }
 
 class StatSectionWrapper<E> extends StatefulWidget {
-  final String title;
+  final String? title;
   final SortedList<SimpleBarEntry<E>> entries;
   final bool truncate;
   final int initialCount;
-  final bool canGoBack;
 
   /// Should be called when one of the children causes a navigation to a differentroute
   /// which causes a change in state that would necessitate an update on the current route which StatSectionWrapper finds itself.
@@ -317,11 +303,10 @@ class StatSectionWrapper<E> extends StatefulWidget {
 
   const StatSectionWrapper(
       {Key? key,
-      required this.title,
+      this.title,
       required this.entries,
       this.truncate = false,
       this.initialCount = 10,
-      this.canGoBack = false,
       this.onRoutePop})
       : super(key: key);
 
@@ -390,7 +375,6 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
       duration: const Duration(milliseconds: 400),
       child: StatSection(
         title: widget.title,
-        canGoBack: widget.canGoBack,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
