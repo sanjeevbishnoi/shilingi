@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import 'package:ms_undraw/ms_undraw.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../models/model.dart';
 import '../gql/gql.dart';
