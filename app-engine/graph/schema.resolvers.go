@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -269,7 +268,8 @@ func (r *queryResolver) Tags(ctx context.Context) ([]*ent.Tag, error) {
 }
 
 func (r *queryResolver) ShoppingList(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int) (*ent.ShoppingListConnection, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.cli.ShoppingList.Query().
+		Paginate(ctx, after, first, before, last)
 }
 
 // Mutation returns generated.MutationResolver implementation.
