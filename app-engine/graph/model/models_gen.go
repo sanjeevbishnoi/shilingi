@@ -27,6 +27,15 @@ type ShoppingItemInput struct {
 	Item         string          `json:"item"`
 }
 
+type ShoppingListInput struct {
+	Name  string                   `json:"name"`
+	Items []*ShoppingListItemInput `json:"items"`
+}
+
+type ShoppingListItemInput struct {
+	Item int `json:"item"`
+}
+
 type SubLabelInput struct {
 	Name string `json:"name"`
 }

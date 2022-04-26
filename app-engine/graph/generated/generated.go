@@ -105,6 +105,18 @@ type ComplexityRoot struct {
 		Units        func(childComplexity int) int
 	}
 
+	ShoppingList struct {
+		ID    func(childComplexity int) int
+		Items func(childComplexity int) int
+		Name  func(childComplexity int) int
+	}
+
+	ShoppingListItem struct {
+		ID       func(childComplexity int) int
+		Item     func(childComplexity int) int
+		Purchase func(childComplexity int) int
+	}
+
 	SubLabel struct {
 		ID    func(childComplexity int) int
 		Items func(childComplexity int) int
@@ -547,6 +559,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ShoppingItem.Units(childComplexity), true
 
+	case "ShoppingList.id":
+		if e.complexity.ShoppingList.ID == nil {
+			break
+		}
+
+		return e.complexity.ShoppingList.ID(childComplexity), true
+
+	case "ShoppingList.items":
+		if e.complexity.ShoppingList.Items == nil {
+			break
+		}
+
+		return e.complexity.ShoppingList.Items(childComplexity), true
+
+	case "ShoppingList.name":
+		if e.complexity.ShoppingList.Name == nil {
+			break
+		}
+
+		return e.complexity.ShoppingList.Name(childComplexity), true
+
+	case "ShoppingListItem.id":
+		if e.complexity.ShoppingListItem.ID == nil {
+			break
+		}
+
+		return e.complexity.ShoppingListItem.ID(childComplexity), true
+
+	case "ShoppingListItem.item":
+		if e.complexity.ShoppingListItem.Item == nil {
+			break
+		}
+
+		return e.complexity.ShoppingListItem.Item(childComplexity), true
+
+	case "ShoppingListItem.purchase":
+		if e.complexity.ShoppingListItem.Purchase == nil {
+			break
+		}
+
+		return e.complexity.ShoppingListItem.Purchase(childComplexity), true
+
 	case "SubLabel.id":
 		if e.complexity.SubLabel.ID == nil {
 			break
@@ -758,6 +812,27 @@ type SubLabel implements Node {
 
 input SubLabelInput {
   name: String!
+}
+
+type ShoppingList implements Node {
+  id: ID!
+  name: String!
+  items: [ShoppingListItem!]!
+}
+
+type ShoppingListItem implements Node {
+  id: ID!
+  item: Item!
+  purchase: ShoppingItem
+}
+
+input ShoppingListInput {
+  name: String!
+  items: [ShoppingListItemInput!]!
+}
+
+input ShoppingListItemInput {
+  item: Int!
 }
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `scalar Time
@@ -2863,6 +2938,213 @@ func (ec *executionContext) _ShoppingItem_total(ctx context.Context, field graph
 	return ec.marshalNDecimal2ᚖgithubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _ShoppingList_id(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNID2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingList_name(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingList_items(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Items(ctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.ShoppingListItem)
+	fc.Result = res
+	return ec.marshalNShoppingListItem2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListItemᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingListItem_id(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingListItem) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingListItem",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNID2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingListItem_item(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingListItem) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingListItem",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Item(ctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Item)
+	fc.Result = res
+	return ec.marshalNItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItem(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingListItem_purchase(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingListItem) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingListItem",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Purchase(ctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.ShoppingItem)
+	fc.Result = res
+	return ec.marshalOShoppingItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItem(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _SubLabel_id(ctx context.Context, field graphql.CollectedField, obj *ent.SubLabel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4464,6 +4746,60 @@ func (ec *executionContext) unmarshalInputShoppingItemInput(ctx context.Context,
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputShoppingListInput(ctx context.Context, obj interface{}) (model.ShoppingListInput, error) {
+	var it model.ShoppingListInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "items":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("items"))
+			it.Items, err = ec.unmarshalNShoppingListItemInput2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐShoppingListItemInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputShoppingListItemInput(ctx context.Context, obj interface{}) (model.ShoppingListItemInput, error) {
+	var it model.ShoppingListItemInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "item":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("item"))
+			it.Item, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSubLabelInput(ctx context.Context, obj interface{}) (model.SubLabelInput, error) {
 	var it model.SubLabelInput
 	asMap := map[string]interface{}{}
@@ -4571,6 +4907,16 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._SubLabel(ctx, sel, obj)
+	case *ent.ShoppingList:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ShoppingList(ctx, sel, obj)
+	case *ent.ShoppingListItem:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ShoppingListItem(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -5012,6 +5358,104 @@ func (ec *executionContext) _ShoppingItem(ctx context.Context, sel ast.Selection
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var shoppingListImplementors = []string{"ShoppingList", "Node"}
+
+func (ec *executionContext) _ShoppingList(ctx context.Context, sel ast.SelectionSet, obj *ent.ShoppingList) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, shoppingListImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ShoppingList")
+		case "id":
+			out.Values[i] = ec._ShoppingList_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "name":
+			out.Values[i] = ec._ShoppingList_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "items":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ShoppingList_items(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var shoppingListItemImplementors = []string{"ShoppingListItem", "Node"}
+
+func (ec *executionContext) _ShoppingListItem(ctx context.Context, sel ast.SelectionSet, obj *ent.ShoppingListItem) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, shoppingListItemImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ShoppingListItem")
+		case "id":
+			out.Values[i] = ec._ShoppingListItem_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "item":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ShoppingListItem_item(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "purchase":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ShoppingListItem_purchase(ctx, field, obj)
 				return res
 			})
 		default:
@@ -5747,6 +6191,86 @@ func (ec *executionContext) unmarshalNShoppingItemInput2ᚖgithubᚗcomᚋkingzb
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNShoppingListItem2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListItemᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.ShoppingListItem) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNShoppingListItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListItem(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNShoppingListItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListItem(ctx context.Context, sel ast.SelectionSet, v *ent.ShoppingListItem) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ShoppingListItem(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNShoppingListItemInput2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐShoppingListItemInputᚄ(ctx context.Context, v interface{}) ([]*model.ShoppingListItemInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.ShoppingListItemInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNShoppingListItemInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐShoppingListItemInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNShoppingListItemInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐShoppingListItemInput(ctx context.Context, v interface{}) (*model.ShoppingListItemInput, error) {
+	res, err := ec.unmarshalInputShoppingListItemInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -6341,6 +6865,13 @@ func (ec *executionContext) marshalOShoppingItem2ᚕᚖgithubᚗcomᚋkingzbauer
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalOShoppingItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItem(ctx context.Context, sel ast.SelectionSet, v *ent.ShoppingItem) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ShoppingItem(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
