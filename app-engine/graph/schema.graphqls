@@ -36,4 +36,5 @@ type Mutation {
   removeItemsFromSubLabel(subLabelID: Int!, itemIDs: [Int!]!): SubLabel!
   editSubLabel(subLabelID: Int!, input: SubLabelInput!): SubLabel!
   deleteSubLabel(subLabelID: Int!): Boolean!
+  createShoppingList(input: ShoppingListInput!): ShoppingList!
 }
