@@ -100,7 +100,7 @@ input ShoppingListItemInput {
 
 type ShoppingListConnection {
   totalCount: Int!
-  pageInfo: pageInfo!
+  pageInfo: PageInfo!
   edges: [ShoppingListEdge]
 }
 

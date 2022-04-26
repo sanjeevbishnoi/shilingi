@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -265,6 +266,10 @@ func (r *queryResolver) Tags(ctx context.Context) ([]*ent.Tag, error) {
 	return r.cli.Tag.Query().
 		Order(ent.Asc(tag.FieldName)).
 		All(ctx)
+}
+
+func (r *queryResolver) ShoppingList(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int) (*ent.ShoppingListConnection, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.

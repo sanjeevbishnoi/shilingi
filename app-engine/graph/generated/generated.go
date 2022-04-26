@@ -75,12 +75,20 @@ type ComplexityRoot struct {
 		UntagItems              func(childComplexity int, itemIDs []int, tagID int) int
 	}
 
+	PageInfo struct {
+		EndCursor       func(childComplexity int) int
+		HasNextPage     func(childComplexity int) int
+		HasPreviousPage func(childComplexity int) int
+		StartCursor     func(childComplexity int) int
+	}
+
 	Query struct {
 		Items                 func(childComplexity int, tagID *int, negate *bool) int
 		Node                  func(childComplexity int, id int) int
 		Purchases             func(childComplexity int, before time.Time, after time.Time) int
 		ShoppingItems         func(childComplexity int, after time.Time, before time.Time, itemID int) int
 		ShoppingItemsByTag    func(childComplexity int, after time.Time, before time.Time, tagID int) int
+		ShoppingList          func(childComplexity int, after *ent.Cursor, first *int, before *ent.Cursor, last *int) int
 		Tags                  func(childComplexity int) int
 		UntaggedShoppingItems func(childComplexity int, after time.Time, before time.Time) int
 		Vendors               func(childComplexity int) int
@@ -110,6 +118,17 @@ type ComplexityRoot struct {
 		ID    func(childComplexity int) int
 		Items func(childComplexity int) int
 		Name  func(childComplexity int) int
+	}
+
+	ShoppingListConnection struct {
+		Edges      func(childComplexity int) int
+		PageInfo   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	ShoppingListEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
 	}
 
 	ShoppingListItem struct {
@@ -163,6 +182,7 @@ type QueryResolver interface {
 	Vendors(ctx context.Context) ([]*ent.Vendor, error)
 	Node(ctx context.Context, id int) (ent.Noder, error)
 	Tags(ctx context.Context) ([]*ent.Tag, error)
+	ShoppingList(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int) (*ent.ShoppingListConnection, error)
 }
 type ShoppingResolver interface {
 	Total(ctx context.Context, obj *ent.Shopping) (*decimal.Decimal, error)
@@ -389,6 +409,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UntagItems(childComplexity, args["itemIDs"].([]int), args["tagID"].(int)), true
 
+	case "PageInfo.endCursor":
+		if e.complexity.PageInfo.EndCursor == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.EndCursor(childComplexity), true
+
+	case "PageInfo.hasNextPage":
+		if e.complexity.PageInfo.HasNextPage == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.HasNextPage(childComplexity), true
+
+	case "PageInfo.hasPreviousPage":
+		if e.complexity.PageInfo.HasPreviousPage == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.HasPreviousPage(childComplexity), true
+
+	case "PageInfo.startCursor":
+		if e.complexity.PageInfo.StartCursor == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.StartCursor(childComplexity), true
+
 	case "Query.items":
 		if e.complexity.Query.Items == nil {
 			break
@@ -448,6 +496,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.ShoppingItemsByTag(childComplexity, args["after"].(time.Time), args["before"].(time.Time), args["tagID"].(int)), true
+
+	case "Query.shoppingList":
+		if e.complexity.Query.ShoppingList == nil {
+			break
+		}
+
+		args, err := ec.field_Query_shoppingList_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ShoppingList(childComplexity, args["after"].(*ent.Cursor), args["first"].(*int), args["before"].(*ent.Cursor), args["last"].(*int)), true
 
 	case "Query.tags":
 		if e.complexity.Query.Tags == nil {
@@ -593,6 +653,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ShoppingList.Name(childComplexity), true
+
+	case "ShoppingListConnection.edges":
+		if e.complexity.ShoppingListConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.ShoppingListConnection.Edges(childComplexity), true
+
+	case "ShoppingListConnection.pageInfo":
+		if e.complexity.ShoppingListConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.ShoppingListConnection.PageInfo(childComplexity), true
+
+	case "ShoppingListConnection.totalCount":
+		if e.complexity.ShoppingListConnection.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.ShoppingListConnection.TotalCount(childComplexity), true
+
+	case "ShoppingListEdge.cursor":
+		if e.complexity.ShoppingListEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.ShoppingListEdge.Cursor(childComplexity), true
+
+	case "ShoppingListEdge.node":
+		if e.complexity.ShoppingListEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.ShoppingListEdge.Node(childComplexity), true
 
 	case "ShoppingListItem.id":
 		if e.complexity.ShoppingListItem.ID == nil {
@@ -848,6 +943,26 @@ input ShoppingListInput {
 input ShoppingListItemInput {
   item: Int!
 }
+
+type ShoppingListConnection {
+  totalCount: Int!
+  pageInfo: PageInfo!
+  edges: [ShoppingListEdge]
+}
+
+type ShoppingListEdge {
+  node: ShoppingList
+  cursor: Cursor!
+}
+`, BuiltIn: false},
+	{Name: "graph/relay.graphqls", Input: `scalar Cursor
+
+type PageInfo {
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: Cursor
+    endCursor: Cursor
+}
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `scalar Time
 scalar Decimal
@@ -871,6 +986,12 @@ type Query {
   vendors: [Vendor!]!
   node(id: Int!): Node!
   tags: [Tag!]!
+  shoppingList(
+    after: Cursor
+    first: Int
+    before: Cursor
+    last: Int
+  ): ShoppingListConnection
 }
 
 type Mutation {
@@ -1320,6 +1441,48 @@ func (ec *executionContext) field_Query_shoppingItems_args(ctx context.Context, 
 		}
 	}
 	args["itemID"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_shoppingList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *ent.Cursor
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg0, err = ec.unmarshalOCursor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *ent.Cursor
+	if tmp, ok := rawArgs["before"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+		arg2, err = ec.unmarshalOCursor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg2
+	var arg3 *int
+	if tmp, ok := rawArgs["last"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
+		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["last"] = arg3
 	return args, nil
 }
 
@@ -2139,6 +2302,140 @@ func (ec *executionContext) _Mutation_createShoppingList(ctx context.Context, fi
 	return ec.marshalNShoppingList2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingList(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *ent.PageInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.HasNextPage, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PageInfo_hasPreviousPage(ctx context.Context, field graphql.CollectedField, obj *ent.PageInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.HasPreviousPage, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *ent.PageInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StartCursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graphql.CollectedField, obj *ent.PageInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EndCursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_items(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2456,6 +2753,45 @@ func (ec *executionContext) _Query_tags(ctx context.Context, field graphql.Colle
 	res := resTmp.([]*ent.Tag)
 	fc.Result = res
 	return ec.marshalNTag2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐTagᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_shoppingList(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_shoppingList_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ShoppingList(rctx, args["after"].(*ent.Cursor), args["first"].(*int), args["before"].(*ent.Cursor), args["last"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.ShoppingListConnection)
+	fc.Result = res
+	return ec.marshalOShoppingListConnection2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3113,6 +3449,175 @@ func (ec *executionContext) _ShoppingList_items(ctx context.Context, field graph
 	res := resTmp.([]*ent.ShoppingListItem)
 	fc.Result = res
 	return ec.marshalNShoppingListItem2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListItemᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingListConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingListConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingListConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TotalCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingListConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingListConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingListConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(ent.PageInfo)
+	fc.Result = res
+	return ec.marshalNPageInfo2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingListConnection_edges(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingListConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingListConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.ShoppingListEdge)
+	fc.Result = res
+	return ec.marshalOShoppingListEdge2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListEdge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingListEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingListEdge) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingListEdge",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.ShoppingList)
+	fc.Result = res
+	return ec.marshalOShoppingList2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingList(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingListEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingListEdge) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingListEdge",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(ent.Cursor)
+	fc.Result = res
+	return ec.marshalNCursor2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ShoppingListItem_id(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingListItem) (ret graphql.Marshaler) {
@@ -5150,6 +5655,42 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
+var pageInfoImplementors = []string{"PageInfo"}
+
+func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *ent.PageInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pageInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PageInfo")
+		case "hasNextPage":
+			out.Values[i] = ec._PageInfo_hasNextPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "hasPreviousPage":
+			out.Values[i] = ec._PageInfo_hasPreviousPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "startCursor":
+			out.Values[i] = ec._PageInfo_startCursor(ctx, field, obj)
+		case "endCursor":
+			out.Values[i] = ec._PageInfo_endCursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -5272,6 +5813,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		case "shoppingList":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_shoppingList(ctx, field)
 				return res
 			})
 		case "__type":
@@ -5483,6 +6035,69 @@ func (ec *executionContext) _ShoppingList(ctx context.Context, sel ast.Selection
 				}
 				return res
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var shoppingListConnectionImplementors = []string{"ShoppingListConnection"}
+
+func (ec *executionContext) _ShoppingListConnection(ctx context.Context, sel ast.SelectionSet, obj *ent.ShoppingListConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, shoppingListConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ShoppingListConnection")
+		case "totalCount":
+			out.Values[i] = ec._ShoppingListConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._ShoppingListConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "edges":
+			out.Values[i] = ec._ShoppingListConnection_edges(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var shoppingListEdgeImplementors = []string{"ShoppingListEdge"}
+
+func (ec *executionContext) _ShoppingListEdge(ctx context.Context, sel ast.SelectionSet, obj *ent.ShoppingListEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, shoppingListEdgeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ShoppingListEdge")
+		case "node":
+			out.Values[i] = ec._ShoppingListEdge_node(ctx, field, obj)
+		case "cursor":
+			out.Values[i] = ec._ShoppingListEdge_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5954,6 +6569,16 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNCursor2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx context.Context, v interface{}) (ent.Cursor, error) {
+	var res ent.Cursor
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCursor2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx context.Context, sel ast.SelectionSet, v ent.Cursor) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNDecimal2githubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx context.Context, v interface{}) (decimal.Decimal, error) {
 	res, err := customtypes.UnmarshalDecimal(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -6127,6 +6752,10 @@ func (ec *executionContext) marshalNNode2githubᚗcomᚋkingzbauerᚋshilingiᚋ
 		return graphql.Null
 	}
 	return ec._Node(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v ent.PageInfo) graphql.Marshaler {
+	return ec._PageInfo(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNShopping2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.Shopping) graphql.Marshaler {
@@ -6863,6 +7492,22 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
+func (ec *executionContext) unmarshalOCursor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx context.Context, v interface{}) (*ent.Cursor, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(ent.Cursor)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOCursor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx context.Context, sel ast.SelectionSet, v *ent.Cursor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
 func (ec *executionContext) unmarshalOFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	res, err := graphql.UnmarshalFloat(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -6968,6 +7613,68 @@ func (ec *executionContext) marshalOShoppingItem2ᚖgithubᚗcomᚋkingzbauerᚋ
 		return graphql.Null
 	}
 	return ec._ShoppingItem(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOShoppingList2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingList(ctx context.Context, sel ast.SelectionSet, v *ent.ShoppingList) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ShoppingList(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOShoppingListConnection2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListConnection(ctx context.Context, sel ast.SelectionSet, v *ent.ShoppingListConnection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ShoppingListConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOShoppingListEdge2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListEdge(ctx context.Context, sel ast.SelectionSet, v []*ent.ShoppingListEdge) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOShoppingListEdge2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListEdge(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOShoppingListEdge2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingListEdge(ctx context.Context, sel ast.SelectionSet, v *ent.ShoppingListEdge) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ShoppingListEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
