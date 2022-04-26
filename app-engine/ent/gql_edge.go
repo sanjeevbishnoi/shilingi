@@ -28,6 +28,14 @@ func (i *Item) Sublabel(ctx context.Context) (*SubLabel, error) {
 	return result, MaskNotFound(err)
 }
 
+func (i *Item) ShoppingList(ctx context.Context) ([]*ShoppingListItem, error) {
+	result, err := i.Edges.ShoppingListOrErr()
+	if IsNotLoaded(err) {
+		result, err = i.QueryShoppingList().All(ctx)
+	}
+	return result, err
+}
+
 func (s *Shopping) Items(ctx context.Context) ([]*ShoppingItem, error) {
 	result, err := s.Edges.ItemsOrErr()
 	if IsNotLoaded(err) {
@@ -44,6 +52,14 @@ func (s *Shopping) Vendor(ctx context.Context) (*Vendor, error) {
 	return result, MaskNotFound(err)
 }
 
+func (s *Shopping) ShoppingList(ctx context.Context) ([]*ShoppingList, error) {
+	result, err := s.Edges.ShoppingListOrErr()
+	if IsNotLoaded(err) {
+		result, err = s.QueryShoppingList().All(ctx)
+	}
+	return result, err
+}
+
 func (si *ShoppingItem) Item(ctx context.Context) (*Item, error) {
 	result, err := si.Edges.ItemOrErr()
 	if IsNotLoaded(err) {
@@ -58,6 +74,54 @@ func (si *ShoppingItem) Shopping(ctx context.Context) (*Shopping, error) {
 		result, err = si.QueryShopping().Only(ctx)
 	}
 	return result, err
+}
+
+func (si *ShoppingItem) ShoppingList(ctx context.Context) ([]*ShoppingListItem, error) {
+	result, err := si.Edges.ShoppingListOrErr()
+	if IsNotLoaded(err) {
+		result, err = si.QueryShoppingList().All(ctx)
+	}
+	return result, err
+}
+
+func (sl *ShoppingList) Items(ctx context.Context) ([]*ShoppingListItem, error) {
+	result, err := sl.Edges.ItemsOrErr()
+	if IsNotLoaded(err) {
+		result, err = sl.QueryItems().All(ctx)
+	}
+	return result, err
+}
+
+func (sl *ShoppingList) Purchases(ctx context.Context) (*Shopping, error) {
+	result, err := sl.Edges.PurchasesOrErr()
+	if IsNotLoaded(err) {
+		result, err = sl.QueryPurchases().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (sli *ShoppingListItem) ShoppingList(ctx context.Context) (*ShoppingList, error) {
+	result, err := sli.Edges.ShoppingListOrErr()
+	if IsNotLoaded(err) {
+		result, err = sli.QueryShoppingList().Only(ctx)
+	}
+	return result, err
+}
+
+func (sli *ShoppingListItem) Item(ctx context.Context) (*Item, error) {
+	result, err := sli.Edges.ItemOrErr()
+	if IsNotLoaded(err) {
+		result, err = sli.QueryItem().Only(ctx)
+	}
+	return result, err
+}
+
+func (sli *ShoppingListItem) Purchase(ctx context.Context) (*ShoppingItem, error) {
+	result, err := sli.Edges.PurchaseOrErr()
+	if IsNotLoaded(err) {
+		result, err = sli.QueryPurchase().Only(ctx)
+	}
+	return result, MaskNotFound(err)
 }
 
 func (sl *SubLabel) Parent(ctx context.Context) (*Tag, error) {

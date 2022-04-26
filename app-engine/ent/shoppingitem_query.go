@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -15,6 +16,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 )
 
 // ShoppingItemQuery is the builder for querying ShoppingItem entities.
@@ -27,9 +29,10 @@ type ShoppingItemQuery struct {
 	fields     []string
 	predicates []predicate.ShoppingItem
 	// eager-loading edges.
-	withItem     *ItemQuery
-	withShopping *ShoppingQuery
-	withFKs      bool
+	withItem         *ItemQuery
+	withShopping     *ShoppingQuery
+	withShoppingList *ShoppingListItemQuery
+	withFKs          bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -103,6 +106,28 @@ func (siq *ShoppingItemQuery) QueryShopping() *ShoppingQuery {
 			sqlgraph.From(shoppingitem.Table, shoppingitem.FieldID, selector),
 			sqlgraph.To(shopping.Table, shopping.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, shoppingitem.ShoppingTable, shoppingitem.ShoppingColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(siq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryShoppingList chains the current query on the "shoppingList" edge.
+func (siq *ShoppingItemQuery) QueryShoppingList() *ShoppingListItemQuery {
+	query := &ShoppingListItemQuery{config: siq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := siq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := siq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppingitem.Table, shoppingitem.FieldID, selector),
+			sqlgraph.To(shoppinglistitem.Table, shoppinglistitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, shoppingitem.ShoppingListTable, shoppingitem.ShoppingListColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(siq.driver.Dialect(), step)
 		return fromU, nil
@@ -286,13 +311,14 @@ func (siq *ShoppingItemQuery) Clone() *ShoppingItemQuery {
 		return nil
 	}
 	return &ShoppingItemQuery{
-		config:       siq.config,
-		limit:        siq.limit,
-		offset:       siq.offset,
-		order:        append([]OrderFunc{}, siq.order...),
-		predicates:   append([]predicate.ShoppingItem{}, siq.predicates...),
-		withItem:     siq.withItem.Clone(),
-		withShopping: siq.withShopping.Clone(),
+		config:           siq.config,
+		limit:            siq.limit,
+		offset:           siq.offset,
+		order:            append([]OrderFunc{}, siq.order...),
+		predicates:       append([]predicate.ShoppingItem{}, siq.predicates...),
+		withItem:         siq.withItem.Clone(),
+		withShopping:     siq.withShopping.Clone(),
+		withShoppingList: siq.withShoppingList.Clone(),
 		// clone intermediate query.
 		sql:  siq.sql.Clone(),
 		path: siq.path,
@@ -318,6 +344,17 @@ func (siq *ShoppingItemQuery) WithShopping(opts ...func(*ShoppingQuery)) *Shoppi
 		opt(query)
 	}
 	siq.withShopping = query
+	return siq
+}
+
+// WithShoppingList tells the query-builder to eager-load the nodes that are connected to
+// the "shoppingList" edge. The optional arguments are used to configure the query builder of the edge.
+func (siq *ShoppingItemQuery) WithShoppingList(opts ...func(*ShoppingListItemQuery)) *ShoppingItemQuery {
+	query := &ShoppingListItemQuery{config: siq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	siq.withShoppingList = query
 	return siq
 }
 
@@ -387,9 +424,10 @@ func (siq *ShoppingItemQuery) sqlAll(ctx context.Context) ([]*ShoppingItem, erro
 		nodes       = []*ShoppingItem{}
 		withFKs     = siq.withFKs
 		_spec       = siq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			siq.withItem != nil,
 			siq.withShopping != nil,
+			siq.withShoppingList != nil,
 		}
 	)
 	if siq.withItem != nil || siq.withShopping != nil {
@@ -473,6 +511,35 @@ func (siq *ShoppingItemQuery) sqlAll(ctx context.Context) ([]*ShoppingItem, erro
 			for i := range nodes {
 				nodes[i].Edges.Shopping = n
 			}
+		}
+	}
+
+	if query := siq.withShoppingList; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*ShoppingItem)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.ShoppingList = []*ShoppingListItem{}
+		}
+		query.withFKs = true
+		query.Where(predicate.ShoppingListItem(func(s *sql.Selector) {
+			s.Where(sql.InValues(shoppingitem.ShoppingListColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.shopping_item_shopping_list
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "shopping_item_shopping_list" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "shopping_item_shopping_list" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.ShoppingList = append(node.Edges.ShoppingList, n)
 		}
 	}
 

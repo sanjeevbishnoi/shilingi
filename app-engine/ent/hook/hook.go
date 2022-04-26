@@ -48,6 +48,32 @@ func (f ShoppingItemFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return f(ctx, mv)
 }
 
+// The ShoppingListFunc type is an adapter to allow the use of ordinary
+// function as ShoppingList mutator.
+type ShoppingListFunc func(context.Context, *ent.ShoppingListMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ShoppingListFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.ShoppingListMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ShoppingListMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The ShoppingListItemFunc type is an adapter to allow the use of ordinary
+// function as ShoppingListItem mutator.
+type ShoppingListItemFunc func(context.Context, *ent.ShoppingListItemMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ShoppingListItemFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.ShoppingListItemMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ShoppingListItemMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The SubLabelFunc type is an adapter to allow the use of ordinary
 // function as SubLabel mutator.
 type SubLabelFunc func(context.Context, *ent.SubLabelMutation) (ent.Value, error)

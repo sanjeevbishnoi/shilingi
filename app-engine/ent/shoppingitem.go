@@ -50,9 +50,11 @@ type ShoppingItemEdges struct {
 	Item *Item `json:"item,omitempty"`
 	// Shopping holds the value of the shopping edge.
 	Shopping *Shopping `json:"shopping,omitempty"`
+	// ShoppingList holds the value of the shoppingList edge.
+	ShoppingList []*ShoppingListItem `json:"shoppingList,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // ItemOrErr returns the Item value or an error if the edge
@@ -81,6 +83,15 @@ func (e ShoppingItemEdges) ShoppingOrErr() (*Shopping, error) {
 		return e.Shopping, nil
 	}
 	return nil, &NotLoadedError{edge: "shopping"}
+}
+
+// ShoppingListOrErr returns the ShoppingList value or an error if the edge
+// was not loaded in eager-loading.
+func (e ShoppingItemEdges) ShoppingListOrErr() ([]*ShoppingListItem, error) {
+	if e.loadedTypes[2] {
+		return e.ShoppingList, nil
+	}
+	return nil, &NotLoadedError{edge: "shoppingList"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -192,6 +203,11 @@ func (si *ShoppingItem) QueryItem() *ItemQuery {
 // QueryShopping queries the "shopping" edge of the ShoppingItem entity.
 func (si *ShoppingItem) QueryShopping() *ShoppingQuery {
 	return (&ShoppingItemClient{config: si.config}).QueryShopping(si)
+}
+
+// QueryShoppingList queries the "shoppingList" edge of the ShoppingItem entity.
+func (si *ShoppingItem) QueryShoppingList() *ShoppingListItemQuery {
+	return (&ShoppingItemClient{config: si.config}).QueryShoppingList(si)
 }
 
 // Update returns a builder for updating this ShoppingItem.

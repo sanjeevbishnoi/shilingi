@@ -9,6 +9,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/schema"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
@@ -75,6 +76,21 @@ func init() {
 	shoppingitemDescUnits := shoppingitemFields[2].Descriptor()
 	// shoppingitem.DefaultUnits holds the default value on creation for the units field.
 	shoppingitem.DefaultUnits = shoppingitemDescUnits.Default.(int)
+	shoppinglistMixin := schema.ShoppingList{}.Mixin()
+	shoppinglistMixinFields0 := shoppinglistMixin[0].Fields()
+	_ = shoppinglistMixinFields0
+	shoppinglistFields := schema.ShoppingList{}.Fields()
+	_ = shoppinglistFields
+	// shoppinglistDescCreateTime is the schema descriptor for create_time field.
+	shoppinglistDescCreateTime := shoppinglistMixinFields0[0].Descriptor()
+	// shoppinglist.DefaultCreateTime holds the default value on creation for the create_time field.
+	shoppinglist.DefaultCreateTime = shoppinglistDescCreateTime.Default.(func() time.Time)
+	// shoppinglistDescUpdateTime is the schema descriptor for update_time field.
+	shoppinglistDescUpdateTime := shoppinglistMixinFields0[1].Descriptor()
+	// shoppinglist.DefaultUpdateTime holds the default value on creation for the update_time field.
+	shoppinglist.DefaultUpdateTime = shoppinglistDescUpdateTime.Default.(func() time.Time)
+	// shoppinglist.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	shoppinglist.UpdateDefaultUpdateTime = shoppinglistDescUpdateTime.UpdateDefault.(func() time.Time)
 	sublabelMixin := schema.SubLabel{}.Mixin()
 	sublabelMixinFields0 := sublabelMixin[0].Fields()
 	_ = sublabelMixinFields0

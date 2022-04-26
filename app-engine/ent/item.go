@@ -41,9 +41,11 @@ type ItemEdges struct {
 	Tags []*Tag `json:"tags,omitempty"`
 	// Sublabel holds the value of the sublabel edge.
 	Sublabel *SubLabel `json:"sublabel,omitempty"`
+	// ShoppingList holds the value of the shoppingList edge.
+	ShoppingList []*ShoppingListItem `json:"shoppingList,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // PurchasesOrErr returns the Purchases value or an error if the edge
@@ -76,6 +78,15 @@ func (e ItemEdges) SublabelOrErr() (*SubLabel, error) {
 		return e.Sublabel, nil
 	}
 	return nil, &NotLoadedError{edge: "sublabel"}
+}
+
+// ShoppingListOrErr returns the ShoppingList value or an error if the edge
+// was not loaded in eager-loading.
+func (e ItemEdges) ShoppingListOrErr() ([]*ShoppingListItem, error) {
+	if e.loadedTypes[3] {
+		return e.ShoppingList, nil
+	}
+	return nil, &NotLoadedError{edge: "shoppingList"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -161,6 +172,11 @@ func (i *Item) QueryTags() *TagQuery {
 // QuerySublabel queries the "sublabel" edge of the Item entity.
 func (i *Item) QuerySublabel() *SubLabelQuery {
 	return (&ItemClient{config: i.config}).QuerySublabel(i)
+}
+
+// QueryShoppingList queries the "shoppingList" edge of the Item entity.
+func (i *Item) QueryShoppingList() *ShoppingListItemQuery {
+	return (&ItemClient{config: i.config}).QueryShoppingList(i)
 }
 
 // Update returns a builder for updating this Item.
