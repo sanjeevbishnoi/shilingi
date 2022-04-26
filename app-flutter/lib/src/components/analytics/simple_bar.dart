@@ -56,12 +56,14 @@ class SimpleBarState extends State<SimpleBar> {
       builder: (context, constraints) {
         var w = constraints.maxWidth;
         Future.delayed(Duration.zero, () {
-          setState(() {
-            var result = per * w;
-            if (width != result) {
-              width = result;
-            }
-          });
+          if (mounted) {
+            setState(() {
+              var result = per * w;
+              if (width != result) {
+                width = result;
+              }
+            });
+          }
         });
         return Material(
           color: Colors.transparent,
@@ -214,13 +216,26 @@ class TargetSimpleBar<E extends Object> extends StatelessWidget {
 // }
 // }
 
+enum SimpleBarEntryType {
+  label,
+  group,
+}
+
 class SimpleBarEntry<E> {
   final String label;
   final double value;
   final List<E> items;
+  final SimpleBarEntryType type;
+
+  /// Used when the simple label entry is a group of other entries
+  final List<String> children;
 
   const SimpleBarEntry(
-      {required this.label, required this.value, required this.items});
+      {required this.label,
+      required this.value,
+      required this.items,
+      this.type = SimpleBarEntryType.label,
+      this.children = const []});
 
   factory SimpleBarEntry.empty(String label) =>
       SimpleBarEntry(label: label, value: 0, items: []);
@@ -235,10 +250,25 @@ class SimpleBarEntry<E> {
       newLabel = '$label + ${other.label}';
     }
 
+    var children = <String>[];
+    for (var entry in <SimpleBarEntry<E>>[this, other]) {
+      switch (entry.type) {
+        case SimpleBarEntryType.label:
+          children.add(entry.label);
+          break;
+        case SimpleBarEntryType.group:
+          children.addAll(entry.children);
+          break;
+      }
+    }
+
     return SimpleBarEntry(
-        label: newLabel,
-        value: value + other.value,
-        items: [...items, ...other.items]);
+      label: newLabel,
+      value: value + other.value,
+      items: [...items, ...other.items],
+      children: children,
+      type: SimpleBarEntryType.group,
+    );
   }
 
   int compareTo(SimpleBarEntry<E> other) => value > other.value
@@ -291,15 +321,21 @@ class StatSection extends StatelessWidget {
   }
 }
 
-class StatSectionWrapper<E> extends StatefulWidget {
+class StatSectionWrapper<E> extends StatelessWidget {
   final String? title;
   final SortedList<SimpleBarEntry<E>> entries;
   final bool truncate;
   final int initialCount;
 
+  /// groups are created when entries are drag-n-dropped
+  final ValueNotifier<Map<String, List<String>>>? groups;
+
   /// Should be called when one of the children causes a navigation to a differentroute
   /// which causes a change in state that would necessitate an update on the current route which StatSectionWrapper finds itself.
   final VoidCallback? onRoutePop;
+
+  /// Call when a drag-n-drop is performed
+  final Function(SimpleBarEntry<E>, SimpleBarEntry<E>)? onMerge;
 
   const StatSectionWrapper(
       {Key? key,
@@ -307,80 +343,44 @@ class StatSectionWrapper<E> extends StatefulWidget {
       required this.entries,
       this.truncate = false,
       this.initialCount = 10,
-      this.onRoutePop})
+      this.onRoutePop,
+      this.groups,
+      this.onMerge})
       : super(key: key);
 
-  @override
-  State createState() => _StatSectionWrapper<E>();
-}
-
-class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
-  final bool _truncated = true;
-  late final bool _showToggleButton;
-  bool _showPercentage = false;
-  int _count = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _showToggleButton =
-        widget.initialCount < widget.entries.length && widget.truncate;
-    _count = widget.initialCount;
-  }
-
-  bool _isUpwardEnabled() {
-    return _count > widget.initialCount;
-  }
-
-  bool _isDownloadEnabled() {
-    return _count < widget.entries.length;
-  }
-
-  void _merge(SimpleBarEntry<E> item, SimpleBarEntry<E> into) {
-    if (item.label == into.label) {
+  void _merge(SimpleBarEntry<E> item1, SimpleBarEntry<E> item2) {
+    if (item1.label == item2.label) {
       return;
     }
 
-    var indexInto = widget.entries.indexWhere((i) => i.label == into.label);
-    if (indexInto == -1) {
-      return;
+    if (onMerge != null) {
+      onMerge!(item1, item2);
     }
-
-    widget.entries.removeAt(indexInto);
-    var indexItem = widget.entries.indexWhere((i) => i.label == item.label);
-    if (indexInto == -1) {
-      return;
-    }
-    widget.entries.removeAt(indexItem);
-    var newEntry = into.add(item);
-    setState(() {
-      widget.entries.add(newEntry);
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     var max = 0.0;
-    if (widget.entries.isNotEmpty) {
-      max = widget.entries.last.value;
+    if (entries.isNotEmpty) {
+      max = entries.last.value;
     }
-    var result = widget.entries.reduce((value, element) => value + element);
+    var result = entries.reduce((value, element) => value + element);
     var total = result.value;
 
-    var initialCount =
-        _count > widget.entries.length ? widget.entries.length : _count;
+    // TODO: Implement this
+    // var initialCount = _count > entries.length ? entries.length : _count;
 
     return AnimatedSize(
       alignment: Alignment.topCenter,
       duration: const Duration(milliseconds: 400),
       child: StatSection(
-        title: widget.title,
+        title: title,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (var entry in _truncated
-                ? widget.entries.reversed.toList().sublist(0, initialCount)
-                : widget.entries.reversed)
+            for (var entry in false // TODO: Implement this
+                ? entries.reversed.toList().sublist(0, 5)
+                : entries.reversed)
               TargetSimpleBar<SimpleBarEntry<E>>(
                 child: DraggableSimpleBar<SimpleBarEntry<E>>(
                   child: SimpleBar(
@@ -388,9 +388,10 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
                     value: entry.value,
                     entry: entry,
                     max: max,
-                    showPercentage: _showPercentage,
+                    // TODO: implement this
+                    showPercentage: false,
                     total: total,
-                    onRoutePop: widget.onRoutePop,
+                    onRoutePop: onRoutePop,
                   ),
                   data: entry,
                 ),
@@ -398,56 +399,201 @@ class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
                   _merge(item, entry);
                 },
               ),
-            if (widget.entries.isEmpty) const Text('No data'),
-            if (_showToggleButton)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircleAvatar(
-                      child: IconButton(
-                          iconSize: 16,
-                          onPressed: _isUpwardEnabled()
-                              ? () {
-                                  setState(() {
-                                    _count = widget.initialCount;
-                                  });
-                                }
-                              : null,
-                          icon: const Icon(Icons.arrow_upward))),
-                  const SizedBox(width: 5),
-                  CircleAvatar(
-                      child: IconButton(
-                          iconSize: 16,
-                          onPressed: _isDownloadEnabled()
-                              ? () {
-                                  setState(() {
-                                    _count = initialCount + widget.initialCount;
-                                  });
-                                }
-                              : null,
-                          icon: const Icon(Icons.arrow_downward))),
-                ],
-              ),
+            if (entries.isEmpty) const Text('No data'),
+            // TODO: Implement this
+            // if (_showToggleButton)
+            // Row(
+            // mainAxisAlignment: MainAxisAlignment.center,
+            // children: [
+            // CircleAvatar(
+            // child: IconButton(
+            // iconSize: 16,
+            // onPressed: _isUpwardEnabled()
+            // ? () {
+            // setState(() {
+            // _count = initialCount;
+            // });
+            // }
+            // : null,
+            // icon: const Icon(Icons.arrow_upward))),
+            // const SizedBox(width: 5),
+            // CircleAvatar(
+            // child: IconButton(
+            // iconSize: 16,
+            // onPressed: _isDownloadEnabled()
+            // ? () {
+            // setState(() {
+            // _count = initialCount + initialCount;
+            // });
+            // }
+            // : null,
+            // icon: const Icon(Icons.arrow_downward))),
+            // ],
+            // ),
           ],
         ),
         actions: [
-          CircleAvatar(
-            radius: 15,
-            child: IconButton(
-              onPressed: () {
-                setState(() {
-                  _showPercentage = !_showPercentage;
-                });
-              },
-              icon: const Icon(Icons.percent),
-              iconSize: 14.0,
-            ),
-          ),
+          // TODO: implement this
+          // CircleAvatar(
+          // radius: 15,
+          // child: IconButton(
+          // onPressed: () {
+          // setState(() {
+          // _showPercentage = !_showPercentage;
+          // });
+          // },
+          // icon: const Icon(Icons.percent),
+          // iconSize: 14.0,
+          // ),
+          // ),
         ],
       ),
     );
   }
 }
+
+// class _StatSectionWrapper<E> extends State<StatSectionWrapper<E>> {
+// final bool _truncated = true;
+// late final bool _showToggleButton;
+// bool _showPercentage = false;
+// int _count = 0;
+//
+// @override
+// void initState() {
+// super.initState();
+// _showToggleButton =
+// widget.initialCount < widget.entries.length && widget.truncate;
+// _count = widget.initialCount;
+// }
+//
+// bool _isUpwardEnabled() {
+// return _count > widget.initialCount;
+// }
+//
+// bool _isDownloadEnabled() {
+// return _count < widget.entries.length;
+// }
+//
+// void _updateGroup(SimpleBarEntry<E> item1, SimpleBarEntry<E> item2) {
+// if (widget.onMerge != null) {
+// widget.onMerge!(item1, item2);
+// }
+// }
+//
+// void _merge(SimpleBarEntry<E> item, SimpleBarEntry<E> into) {
+// if (item.label == into.label) {
+// return;
+// }
+//
+// _updateGroup(item, into);
+//
+// // var indexInto = widget.entries.indexWhere((i) => i.label == into.label);
+// // if (indexInto == -1) {
+// // return;
+// // }
+// //
+// // widget.entries.removeAt(indexInto);
+// // var indexItem = widget.entries.indexWhere((i) => i.label == item.label);
+// // if (indexInto == -1) {
+// // return;
+// // }
+// // widget.entries.removeAt(indexItem);
+// // var newEntry = into.add(item);
+// // setState(() {
+// // widget.entries.add(newEntry);
+// // });
+// }
+//
+// @override
+// Widget build(BuildContext context) {
+// var max = 0.0;
+// if (widget.entries.isNotEmpty) {
+// max = widget.entries.last.value;
+// }
+// var result = widget.entries.reduce((value, element) => value + element);
+// var total = result.value;
+//
+// var initialCount =
+// _count > widget.entries.length ? widget.entries.length : _count;
+//
+// return AnimatedSize(
+// alignment: Alignment.topCenter,
+// duration: const Duration(milliseconds: 400),
+// child: StatSection(
+// title: widget.title ?? '' '${widget.groups?.value.toString()}',
+// child: Column(
+// mainAxisSize: MainAxisSize.min,
+// children: [
+// for (var entry in _truncated
+// ? widget.entries.reversed.toList().sublist(0, initialCount)
+// : widget.entries.reversed)
+// TargetSimpleBar<SimpleBarEntry<E>>(
+// child: DraggableSimpleBar<SimpleBarEntry<E>>(
+// child: SimpleBar(
+// title: entry.label,
+// value: entry.value,
+// entry: entry,
+// max: max,
+// showPercentage: _showPercentage,
+// total: total,
+// onRoutePop: widget.onRoutePop,
+// ),
+// data: entry,
+// ),
+// onAccept: (item) {
+// _merge(item, entry);
+// },
+// ),
+// if (widget.entries.isEmpty) const Text('No data'),
+// if (_showToggleButton)
+// Row(
+// mainAxisAlignment: MainAxisAlignment.center,
+// children: [
+// CircleAvatar(
+// child: IconButton(
+// iconSize: 16,
+// onPressed: _isUpwardEnabled()
+// ? () {
+// setState(() {
+// _count = widget.initialCount;
+// });
+// }
+// : null,
+// icon: const Icon(Icons.arrow_upward))),
+// const SizedBox(width: 5),
+// CircleAvatar(
+// child: IconButton(
+// iconSize: 16,
+// onPressed: _isDownloadEnabled()
+// ? () {
+// setState(() {
+// _count = initialCount + widget.initialCount;
+// });
+// }
+// : null,
+// icon: const Icon(Icons.arrow_downward))),
+// ],
+// ),
+// ],
+// ),
+// actions: [
+// CircleAvatar(
+// radius: 15,
+// child: IconButton(
+// onPressed: () {
+// setState(() {
+// _showPercentage = !_showPercentage;
+// });
+// },
+// icon: const Icon(Icons.percent),
+// iconSize: 14.0,
+// ),
+// ),
+// ],
+// ),
+// );
+// }
+// }
 
 class InheritedSwitcherWrapper extends StatefulWidget {
   final Widget switchable;
