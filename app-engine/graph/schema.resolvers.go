@@ -146,28 +146,7 @@ func (r *mutationResolver) DeleteSubLabel(ctx context.Context, subLabelID int) (
 }
 
 func (r *mutationResolver) CreateShoppingList(ctx context.Context, input model.ShoppingListInput) (*ent.ShoppingList, error) {
-	cli := ent.FromContext(ctx)
-	shoppingList, err := cli.ShoppingList.Create().
-		SetName(input.Name).
-		Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	shoppingListItemCreate := []*ent.ShoppingListItemCreate{}
-	for _, input := range input.Items {
-		shoppingListItemCreate = append(shoppingListItemCreate,
-			cli.ShoppingListItem.Create().
-				SetItemID(input.Item).
-				SetShoppingList(shoppingList),
-		)
-	}
-
-	if err := cli.ShoppingListItem.CreateBulk(shoppingListItemCreate...).Exec(ctx); err != nil {
-		return nil, err
-	}
-
-	return shoppingList, nil
+	return entops.CreateShoppingList(ctx, input)
 }
 
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {
