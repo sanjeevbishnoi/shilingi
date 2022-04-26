@@ -34,6 +34,7 @@ func (Item) Edges() []ent.Edge {
 		edge.From("sublabel", SubLabel.Type).
 			Ref("items").
 			Unique(),
+		edge.To("shoppingList", ShoppingListItem.Type),
 	}
 }
 

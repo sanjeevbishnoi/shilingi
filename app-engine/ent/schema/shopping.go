@@ -33,6 +33,7 @@ func (Shopping) Edges() []ent.Edge {
 			Ref("purchases").
 			Annotations(entgql.Bind()).
 			Unique(),
+		edge.To("shoppingList", ShoppingList.Type),
 	}
 }
 
