@@ -97,3 +97,14 @@ input ShoppingListInput {
 input ShoppingListItemInput {
   item: Int!
 }
+
+type ShoppingListConnection {
+  totalCount: Int!
+  pageInfo: pageInfo!
+  edges: [ShoppingListEdge]
+}
+
+type ShoppingListEdge {
+  node: ShoppingList
+  cursor: Cursor!
+}

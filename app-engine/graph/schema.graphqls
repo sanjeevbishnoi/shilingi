@@ -20,6 +20,12 @@ type Query {
   vendors: [Vendor!]!
   node(id: Int!): Node!
   tags: [Tag!]!
+  shoppingList(
+    after: Cursor
+    first: Int
+    before: Cursor
+    last: Int
+  ): ShoppingListConnection
 }
 
 type Mutation {

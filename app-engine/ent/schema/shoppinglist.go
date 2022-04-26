@@ -34,6 +34,9 @@ func (ShoppingList) Edges() []ent.Edge {
 
 // Mixin of the Item
 func (ShoppingList) Mixin() []ent.Mixin {
+	// timeMixin := mixin.Time{}
+	// timeMixin = mixin.AnnotateFields()
+
 	return []ent.Mixin{
 		mixin.Time{},
 	}
