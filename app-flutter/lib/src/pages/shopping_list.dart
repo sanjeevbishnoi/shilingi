@@ -1,24 +1,29 @@
+/// Shopping list shows all shopping list created. A user can interact with them individually
+/// in the shopping list detail page
 import 'package:flutter/material.dart';
 
 import 'package:ms_undraw/ms_undraw.dart';
 
 import '../components/components.dart';
 import '../constants/constants.dart';
+import './select_items.dart' show SelectItemsPage;
 
 class ShoppingListPage extends StatelessWidget {
   const ShoppingListPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Shopping lists'),
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Shopping lists'),
+          backgroundColor: mainScaffoldBg,
+          centerTitle: true,
+        ),
         backgroundColor: mainScaffoldBg,
-        centerTitle: true,
+        body: const _Body(),
+        bottomNavigationBar: const ClassicBottomNavigation(),
       ),
-      backgroundColor: mainScaffoldBg,
-      body: const _Body(),
-      bottomNavigationBar: const ClassicBottomNavigation(),
     );
   }
 }
@@ -58,7 +63,11 @@ class _EmptyList extends StatelessWidget {
             ),
             const SizedBox(height: 10.0),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => const SelectItemsPage(
+                        title: 'Create new shopping list')));
+              },
               child: const Text('Create first list'),
               style: ButtonStyle(
                   shape: MaterialStateProperty.all<RoundedRectangleBorder>(

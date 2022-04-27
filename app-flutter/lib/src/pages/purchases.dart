@@ -115,111 +115,114 @@ class _PurchasesPageState extends State<PurchasesPage> {
       ];
     }
 
-    return Scaffold(
-      backgroundColor: mainScaffoldBg,
-      body: VisibilityDetector(
-        key: visibilityKey,
-        onVisibilityChanged: (visibilityInfo) {
-          if (visibilityInfo.visibleFraction == 1.0) {
-            _fetchPurchases(context, focusedDay);
-          }
-        },
-        child: RefreshIndicator(
-          onRefresh: () {
-            return _fetchPurchases(context, focusedDay);
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: mainScaffoldBg,
+        body: VisibilityDetector(
+          key: visibilityKey,
+          onVisibilityChanged: (visibilityInfo) {
+            if (visibilityInfo.visibleFraction == 1.0) {
+              _fetchPurchases(context, focusedDay);
+            }
           },
-          child: ListView(
-            children: [
-              TableCalendar<model.Purchase>(
-                headerStyle: const HeaderStyle(
-                  decoration: BoxDecoration(
-                    color: Colors.lightGreen,
+          child: RefreshIndicator(
+            onRefresh: () {
+              return _fetchPurchases(context, focusedDay);
+            },
+            child: ListView(
+              children: [
+                TableCalendar<model.Purchase>(
+                  headerStyle: const HeaderStyle(
+                    decoration: BoxDecoration(
+                      color: mainScaffoldBg,
+                    ),
+                    headerMargin: EdgeInsets.only(bottom: 15.0),
                   ),
-                  headerMargin: EdgeInsets.only(bottom: 15.0),
-                ),
-                calendarStyle: customCalendarStyle,
-                rangeSelectionMode: _rangeSelectionMode,
-                rangeStartDay: _rangeStart,
-                rangeEndDay: _rangeEnd,
-                focusedDay: focusedDay,
-                firstDay:
-                    DateTime.now().subtract(const Duration(days: 365 * 3)),
-                lastDay: DateTime.now(),
-                onDaySelected: (selectedDay, focused) {
-                  if (!isSameDay(selectedDay, _selectedDay)) {
+                  calendarStyle: customCalendarStyle,
+                  rangeSelectionMode: _rangeSelectionMode,
+                  rangeStartDay: _rangeStart,
+                  rangeEndDay: _rangeEnd,
+                  focusedDay: focusedDay,
+                  firstDay:
+                      DateTime.now().subtract(const Duration(days: 365 * 3)),
+                  lastDay: DateTime.now(),
+                  onDaySelected: (selectedDay, focused) {
+                    if (!isSameDay(selectedDay, _selectedDay)) {
+                      setState(() {
+                        focusedDay = focused;
+                        _selectedDay = focused;
+                        _rangeStart = null;
+                        _rangeEnd = null;
+                        _rangeSelectionMode = RangeSelectionMode.toggledOff;
+                      });
+                    }
+                  },
+                  selectedDayPredicate: (day) {
+                    return isSameDay(day, _selectedDay);
+                  },
+                  onFormatChanged: (format) {
+                    setState(() {
+                      calendarFormat = format;
+                    });
+                  },
+                  calendarFormat: calendarFormat,
+                  onPageChanged: (focused) {
                     setState(() {
                       focusedDay = focused;
                       _selectedDay = focused;
-                      _rangeStart = null;
-                      _rangeEnd = null;
-                      _rangeSelectionMode = RangeSelectionMode.toggledOff;
                     });
-                  }
-                },
-                selectedDayPredicate: (day) {
-                  return isSameDay(day, _selectedDay);
-                },
-                onFormatChanged: (format) {
-                  setState(() {
-                    calendarFormat = format;
-                  });
-                },
-                calendarFormat: calendarFormat,
-                onPageChanged: (focused) {
-                  setState(() {
-                    focusedDay = focused;
-                    _selectedDay = focused;
-                  });
-                  _fetchPurchases(context, focused);
-                },
-                onCalendarCreated: (_) {
-                  _fetchPurchases(context, startDate);
-                },
-                onRangeSelected: (start, end, focused) {
-                  setState(() {
-                    _selectedDay = focused;
-                    focusedDay = focused;
-                    _rangeStart = start;
-                    _rangeEnd = end;
-                    _rangeSelectionMode = RangeSelectionMode.toggledOn;
-                    if (start != null && end != null) {
-                      end = DateTime(end!.year, end!.month, end!.day)
-                          .add(const Duration(days: 1));
-                      _fetchRangePurchases(context, start, end!);
-                    }
-                  });
-                },
-                eventLoader: (day) {
-                  return _getPurchasesOnDay(day);
-                },
-                calendarBuilders: CalendarBuilders(
-                  markerBuilder: (context, day, purchases) {
-                    if (purchases.isEmpty) {
-                      return null;
-                    }
-                    var total = 0.0;
-                    purchases.forEach((element) => total += element.total!);
-                    return Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Text('${formatAmtWithoutDecimal.format(total)}/=',
-                          style: const TextStyle(
-                              fontSize: 10.0, fontWeight: FontWeight.w700)),
-                    );
+                    _fetchPurchases(context, focused);
                   },
+                  onCalendarCreated: (_) {
+                    _fetchPurchases(context, startDate);
+                  },
+                  onRangeSelected: (start, end, focused) {
+                    setState(() {
+                      _selectedDay = focused;
+                      focusedDay = focused;
+                      _rangeStart = start;
+                      _rangeEnd = end;
+                      _rangeSelectionMode = RangeSelectionMode.toggledOn;
+                      if (start != null && end != null) {
+                        end = DateTime(end!.year, end!.month, end!.day)
+                            .add(const Duration(days: 1));
+                        _fetchRangePurchases(context, start, end!);
+                      }
+                    });
+                  },
+                  eventLoader: (day) {
+                    return _getPurchasesOnDay(day);
+                  },
+                  calendarBuilders: CalendarBuilders(
+                    markerBuilder: (context, day, purchases) {
+                      if (purchases.isEmpty) {
+                        return null;
+                      }
+                      var total = 0.0;
+                      purchases.forEach((element) => total += element.total!);
+                      return Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Text(
+                            '${formatAmtWithoutDecimal.format(total)}/=',
+                            style: const TextStyle(
+                                fontSize: 10.0, fontWeight: FontWeight.w700)),
+                      );
+                    },
+                  ),
                 ),
-              ),
-              ..._widgets,
-            ],
+                ..._widgets,
+              ],
+            ),
           ),
         ),
+        floatingActionButton: FloatingActionButton(
+          child: const Icon(Icons.add_shopping_cart_outlined),
+          onPressed: () {
+            Navigator.pushNamed(context, '/new-purchase');
+          },
+        ),
+        bottomNavigationBar: const ClassicBottomNavigation(),
       ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add_shopping_cart_outlined),
-        onPressed: () {
-          Navigator.pushNamed(context, '/new-purchase');
-        },
-      ),
-      bottomNavigationBar: const ClassicBottomNavigation(),
     );
   }
 

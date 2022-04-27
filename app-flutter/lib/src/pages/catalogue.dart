@@ -63,7 +63,8 @@ class _CataloguePageState extends State<CataloguePage> {
 
   @override
   Widget build(BuildContext context) {
-    var appBar = AppBar(title: const Text('Catalogue'));
+    var appBar =
+        AppBar(title: const Text('Catalogue'), backgroundColor: mainScaffoldBg);
     if (_selectedItems.isNotEmpty) {
       appBar = AppBar(
         leading: IconButton(
