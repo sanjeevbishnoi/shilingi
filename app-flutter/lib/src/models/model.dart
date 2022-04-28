@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import '../components/azlistview_component.dart' show Nameable;
+
 part 'model.g.dart';
 
 @JsonSerializable()
@@ -43,7 +45,8 @@ class PurchaseItems {
 }
 
 @JsonSerializable()
-class Item {
+class Item implements Nameable {
+  @override
   final String name;
   @JsonKey(includeIfNull: false)
   final int? id;

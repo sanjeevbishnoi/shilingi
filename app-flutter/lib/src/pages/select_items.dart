@@ -8,6 +8,7 @@ import 'package:ms_undraw/ms_undraw.dart';
 import '../gql/gql.dart';
 import '../constants/constants.dart';
 import '../models/model.dart';
+import '../components/components.dart';
 
 class SelectItemsPage extends HookWidget {
   final String title;
@@ -138,22 +139,22 @@ class SelectItemsPage extends HookWidget {
               child: Stack(
                 children: [
                   if (itemsResult.value.isNotEmpty)
-                    ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 50.0),
-                      itemBuilder: (context, index) {
-                        final item = itemsResult.value[index];
-                        return _Item(
-                          item: item,
-                          onTap: () {
-                            selectedItems.value.contains(item.id)
-                                ? selectedItems.value.remove(item.id)
-                                : selectedItems.value.add(item.id!);
-                            selectedItems.notifyListeners();
-                          },
-                          selected: selectedItems.value.contains(item.id),
-                        );
-                      },
-                      itemCount: itemsResult.value.length,
+                    CustomAZListView(
+                      padding: const EdgeInsets.only(bottom: 50.0, right: 20.0),
+                      data: itemsResult.value,
+                      hash: selectedItems.value.length,
+                      children: [
+                        for (var item in itemsResult.value)
+                          _Item(
+                              item: item,
+                              onTap: () {
+                                selectedItems.value.contains(item.id)
+                                    ? selectedItems.value.remove(item.id)
+                                    : selectedItems.value.add(item.id!);
+                                selectedItems.notifyListeners();
+                              },
+                              selected: selectedItems.value.contains(item.id)),
+                      ],
                     ),
                   if (itemsResult.value.isEmpty && showSelected.value)
                     const Positioned(
