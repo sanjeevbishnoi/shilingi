@@ -115,9 +115,11 @@ type ComplexityRoot struct {
 	}
 
 	ShoppingList struct {
-		ID    func(childComplexity int) int
-		Items func(childComplexity int) int
-		Name  func(childComplexity int) int
+		CreateTime func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Items      func(childComplexity int) int
+		Name       func(childComplexity int) int
+		UpdateTime func(childComplexity int) int
 	}
 
 	ShoppingListConnection struct {
@@ -633,6 +635,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ShoppingItem.Units(childComplexity), true
 
+	case "ShoppingList.createTime":
+		if e.complexity.ShoppingList.CreateTime == nil {
+			break
+		}
+
+		return e.complexity.ShoppingList.CreateTime(childComplexity), true
+
 	case "ShoppingList.id":
 		if e.complexity.ShoppingList.ID == nil {
 			break
@@ -653,6 +662,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ShoppingList.Name(childComplexity), true
+
+	case "ShoppingList.updateTime":
+		if e.complexity.ShoppingList.UpdateTime == nil {
+			break
+		}
+
+		return e.complexity.ShoppingList.UpdateTime(childComplexity), true
 
 	case "ShoppingListConnection.edges":
 		if e.complexity.ShoppingListConnection.Edges == nil {
@@ -926,6 +942,8 @@ input SubLabelInput {
 type ShoppingList implements Node {
   id: ID!
   name: String!
+  createTime: Time!
+  updateTime: Time!
   items: [ShoppingListItem!]!
 }
 
@@ -3414,6 +3432,76 @@ func (ec *executionContext) _ShoppingList_name(ctx context.Context, field graphq
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingList_createTime(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreateTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingList_updateTime(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdateTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ShoppingList_items(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingList) (ret graphql.Marshaler) {
@@ -6018,6 +6106,16 @@ func (ec *executionContext) _ShoppingList(ctx context.Context, sel ast.Selection
 			}
 		case "name":
 			out.Values[i] = ec._ShoppingList_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "createTime":
+			out.Values[i] = ec._ShoppingList_createTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "updateTime":
+			out.Values[i] = ec._ShoppingList_updateTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
