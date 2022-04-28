@@ -122,3 +122,12 @@ var mutationCreateItem = gql(r'''
       }
     }
 ''');
+
+var mutationCreateShoppingList = gql(r'''
+    mutation createShoppingList($input: ShoppingListInput!) {
+      createShoppingList(input: $input) {
+        id
+        name
+      }
+    }
+''');

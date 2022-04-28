@@ -198,17 +198,32 @@ class SelectItemsPage extends HookWidget {
                       bottom: createButtonPosition.value,
                       left: 0,
                       right: 0,
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        child: Text(
-                            'Create new list (${selectedItems.value.length})'),
-                        style: ButtonStyle(
-                          shape:
-                              MaterialStateProperty.all<RoundedRectangleBorder>(
-                            RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20.0)),
-                          ),
-                        ),
+                      child: Builder(
+                        builder: (context) {
+                          return ElevatedButton(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  isDismissible: false,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (context) {
+                                    return _SetTitleModal(
+                                      selectedItems: selectedItems.value,
+                                    );
+                                  });
+                            },
+                            child: Text(
+                                'Create new list (${selectedItems.value.length})'),
+                            style: ButtonStyle(
+                              shape: MaterialStateProperty.all<
+                                  RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20.0)),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     )
                 ],
@@ -219,13 +234,15 @@ class SelectItemsPage extends HookWidget {
       );
     }
 
-    return Scaffold(
-      backgroundColor: mainScaffoldBg,
-      appBar: AppBar(
-          title: Text(title),
-          backgroundColor: mainScaffoldBg,
-          centerTitle: true),
-      body: body,
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: mainScaffoldBg,
+        appBar: AppBar(
+            title: Text(title),
+            backgroundColor: mainScaffoldBg,
+            centerTitle: true),
+        body: body,
+      ),
     );
   }
 
@@ -495,5 +512,134 @@ class _SearchCategorySelect extends HookWidget {
         ],
       ),
     );
+  }
+}
+
+class _SetTitleModal extends HookWidget {
+  final List<int> selectedItems;
+
+  const _SetTitleModal({Key? key, required this.selectedItems})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    var text = useState<String>('');
+    var loading = useState<bool>(false);
+
+    return Padding(
+      padding: MediaQuery.of(context).viewInsets,
+      child: Padding(
+        padding: const EdgeInsets.all(6.0),
+        child: Container(
+          padding: const EdgeInsets.all(10.0),
+          decoration: BoxDecoration(
+            color: mainScaffoldBg,
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(bottom: 10.0),
+                width: 30.0,
+                height: 4.0,
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+              ),
+              Material(
+                elevation: 2,
+                borderRadius: BorderRadius.circular(20.0),
+                child: TextField(
+                  onChanged: (val) {
+                    text.value = val;
+                  },
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide
+                          .none, // const BorderSide(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(
+                          color: Colors
+                              .grey), // const BorderSide(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    isDense: true,
+                    hintText: 'e.g Monthly shopping',
+                    labelText: 'Type a title',
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 14.0),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  enabled: !loading.value,
+                ),
+              ),
+              const SizedBox(height: 10.0),
+              ElevatedButton(
+                onPressed: text.value.isNotEmpty && !loading.value
+                    ? () async {
+                        loading.value = true;
+                        var result = await _createList(context, text.value);
+                        if (result.hasException) {
+                          var snackBar = const SnackBar(
+                              content: Text(
+                                  'Unable to create shopping list. Retry later'));
+                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                          return;
+                        }
+                        var snackBar = const SnackBar(
+                            content:
+                                Text('Shopping list created successfully'));
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        Navigator.of(context)
+                            .popUntil(ModalRoute.withName('/shopping-list'));
+                      }
+                    : null,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.add),
+                    const SizedBox(width: 5.0),
+                    Text(loading.value ? 'Creating...' : 'Create new list'),
+                  ],
+                ),
+                style: ButtonStyle(
+                  elevation: MaterialStateProperty.all<double?>(0),
+                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<QueryResult> _createList(BuildContext context, String title) async {
+    final cli = GraphQLProvider.of(context).value;
+    var result = await cli.mutate(
+      MutationOptions(
+        document: mutationCreateShoppingList,
+        variables: {
+          'input': {
+            'name': title,
+            'items': [
+              for (var id in selectedItems) {'item': id}
+            ]
+          },
+        },
+      ),
+    );
+    return result;
   }
 }

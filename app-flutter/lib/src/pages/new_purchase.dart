@@ -195,11 +195,14 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
                 context: context,
                 isScrollControlled: true,
                 builder: (context) {
-                  return NewItemModalSheet(
-                    addItem: (item) {
-                      addItem(context, item);
-                    },
-                    itemNames: _itemNames,
+                  return Padding(
+                    padding: MediaQuery.of(context).viewInsets,
+                    child: NewItemModalSheet(
+                      addItem: (item) {
+                        addItem(context, item);
+                      },
+                      itemNames: _itemNames,
+                    ),
                   );
                 });
           }),
