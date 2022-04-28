@@ -86,6 +86,19 @@ var itemsQuery = gql(r'''
     }
 ''');
 
+var itemsQueryWithLabels = gql(r'''
+    query items($tagID: Int, $negate: Boolean) {
+      items(tagID: $tagID, negate: $negate) {
+        id
+        name
+        tags {
+          id
+          name
+        }
+      }
+    }
+''');
+
 var labelItems = gql(r'''
     query itemsUnderSubLabel($labelID: Int!) {
       node(id: $labelID) {

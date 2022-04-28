@@ -60,8 +60,10 @@ class Item {
 @JsonSerializable()
 class Items {
   final List<Item> items;
+  @JsonKey(includeIfNull: false)
+  final List<Tag>? tags;
 
-  const Items({required this.items});
+  const Items({required this.items, this.tags});
 
   factory Items.fromJson(Map<String, dynamic> json) => _$ItemsFromJson(json);
   Map<String, dynamic> toJson() => _$ItemsToJson(this);
@@ -151,6 +153,21 @@ class Tag {
 
   factory Tag.fromJson(Map<String, dynamic> json) => _$TagFromJson(json);
   Map<String, dynamic> toJson() => _$TagToJson(this);
+
+  @override
+  int get hashCode => id ?? 0;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! Tag) {
+      return false;
+    }
+
+    if (id != null) {
+      return id == other.id;
+    }
+    return name == other.name;
+  }
 }
 
 @JsonSerializable()

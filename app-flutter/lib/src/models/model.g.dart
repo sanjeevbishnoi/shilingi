@@ -80,11 +80,25 @@ Items _$ItemsFromJson(Map<String, dynamic> json) => Items(
       items: (json['items'] as List<dynamic>)
           .map((e) => Item.fromJson(e as Map<String, dynamic>))
           .toList(),
+      tags: (json['tags'] as List<dynamic>?)
+          ?.map((e) => Tag.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
-Map<String, dynamic> _$ItemsToJson(Items instance) => <String, dynamic>{
-      'items': instance.items,
-    };
+Map<String, dynamic> _$ItemsToJson(Items instance) {
+  final val = <String, dynamic>{
+    'items': instance.items,
+  };
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('tags', instance.tags);
+  return val;
+}
 
 Catalogue _$CatalogueFromJson(Map<String, dynamic> json) => Catalogue(
       items: (json['items'] as List<dynamic>)

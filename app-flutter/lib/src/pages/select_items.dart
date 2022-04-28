@@ -16,12 +16,15 @@ class SelectItemsPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     var itemsResult = useState<List<Item>>([]);
-    var queryResult = useQuery(QueryOptions(document: itemsQuery));
+    var tags = useState<List<Tag>>([]);
+    var selectedTag = useState<Tag?>(null);
+    var queryResult = useQuery(QueryOptions(document: itemsQueryWithLabels));
     var selectedItems = useState<List<int>>([]);
     var result = queryResult.result;
     var createButtonPosition = useState<double>(-50.0);
     var showButton = useState<bool>(false);
     final searchString = useState<String>('');
+    var showSelected = useState<bool>(false);
 
     if (selectedItems.value.isNotEmpty) {
       Future.delayed(const Duration(milliseconds: 0), () {
@@ -66,45 +69,65 @@ class SelectItemsPage extends HookWidget {
       );
     } else {
       var items = Items.fromJson(result.data!);
-      itemsResult.value = items.items
-          .where((item) => item.name
-              .toLowerCase()
-              .contains(searchString.value.toLowerCase()))
-          .toList();
+      itemsResult.value = _filterItems(
+          items: items.items,
+          selected: selectedItems.value,
+          showSelected: showSelected.value,
+          searchString: searchString.value,
+          tag: selectedTag.value);
+      Set<Tag> _tags = {};
+      items.items.forEach((item) {
+        _tags.addAll(item.tags!);
+      });
+      tags.value = _tags.toList(growable: false);
 
       body = Padding(
         padding: const EdgeInsets.only(left: 30.0, right: 30.0, top: 30.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
+            _SearchCategorySelect(
+              text: searchString.value,
+              categories: tags.value,
               onChanged: (value) {
                 searchString.value = value;
               },
-              decoration: InputDecoration(
-                suffixIconConstraints:
-                    const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
-                suffixIcon: const Icon(Icons.search),
-                hintText: 'Search',
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(50.0),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(50.0),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-              ),
-              style: const TextStyle(color: Colors.black54),
+              onTagSelected: (tag) {
+                selectedTag.value = tag;
+              },
             ),
             const SizedBox(height: 20.0),
-            if (itemsResult.value.isNotEmpty)
-              Expanded(
-                child: Stack(
-                  children: [
+            Row(
+              children: [
+                _SelectButton(
+                    onPressed: () {
+                      showSelected.value = false;
+                    },
+                    text: 'All',
+                    selected: !showSelected.value),
+                const SizedBox(width: 5.0),
+                _SelectButton(
+                    onPressed: () {
+                      showSelected.value = true;
+                    },
+                    text: 'Selected',
+                    selected: showSelected.value),
+              ],
+            ),
+            if (selectedTag.value != null) ...[
+              const SizedBox(height: 10.0),
+              Chip(
+                label: Text(selectedTag.value!.name),
+                onDeleted: () {
+                  selectedTag.value = null;
+                },
+              ),
+            ],
+            const SizedBox(height: 20.0),
+            Expanded(
+              child: Stack(
+                children: [
+                  if (itemsResult.value.isNotEmpty)
                     ListView.builder(
                       padding: const EdgeInsets.only(bottom: 50.0),
                       itemBuilder: (context, index) {
@@ -122,50 +145,64 @@ class SelectItemsPage extends HookWidget {
                       },
                       itemCount: itemsResult.value.length,
                     ),
-                    if (showButton.value)
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeIn,
-                        bottom: createButtonPosition.value,
-                        left: 0,
-                        right: 0,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          child: Text(
-                              'Create list (${selectedItems.value.length})'),
-                          style: ButtonStyle(
-                            shape: MaterialStateProperty.all<
-                                RoundedRectangleBorder>(
-                              RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20.0)),
-                            ),
+                  if (itemsResult.value.isEmpty && showSelected.value)
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Text('No items match',
+                          style: TextStyle(color: Colors.black54)),
+                    ),
+                  if (itemsResult.value.isEmpty && !showSelected.value)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: _EmptySearchResult(
+                        searchString: searchString.value,
+                        onCreate: () async {
+                          final result = await queryResult.refetch();
+                          if (result != null && result.data != null) {
+                            var items = Items.fromJson(result.data!);
+                            itemsResult.value = _filterItems(
+                                items: items.items,
+                                selected: selectedItems.value,
+                                showSelected: showSelected.value,
+                                searchString: searchString.value,
+                                tag: selectedTag.value);
+                            // Only one item will be visible at this point, so we can
+                            // safely add it to the selected list
+                            if (itemsResult.value.length == 1) {
+                              selectedItems.value.add(itemsResult.value[0].id!);
+                              selectedItems.notifyListeners();
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  if (showButton.value)
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeIn,
+                      bottom: createButtonPosition.value,
+                      left: 0,
+                      right: 0,
+                      child: ElevatedButton(
+                        onPressed: () {},
+                        child: Text(
+                            'Create new list (${selectedItems.value.length})'),
+                        style: ButtonStyle(
+                          shape:
+                              MaterialStateProperty.all<RoundedRectangleBorder>(
+                            RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20.0)),
                           ),
                         ),
-                      )
-                  ],
-                ),
+                      ),
+                    )
+                ],
               ),
-            if (itemsResult.value.isEmpty)
-              _EmptySearchResult(
-                searchString: searchString.value,
-                onCreate: () async {
-                  final result = await queryResult.refetch();
-                  if (result != null && result.data != null) {
-                    var items = Items.fromJson(result.data!);
-                    itemsResult.value = items.items
-                        .where((item) => item.name
-                            .toLowerCase()
-                            .contains(searchString.value.toLowerCase()))
-                        .toList();
-                    // Only one item will be visible at this point, so we can
-                    // safely add it to the selected list
-                    if (itemsResult.value.length == 1) {
-                      selectedItems.value.add(itemsResult.value[0].id!);
-                      selectedItems.notifyListeners();
-                    }
-                  }
-                },
-              ),
+            ),
           ],
         ),
       );
@@ -179,6 +216,32 @@ class SelectItemsPage extends HookWidget {
           centerTitle: true),
       body: body,
     );
+  }
+
+  List<Item> _filterItems(
+      {required List<Item> items,
+      required List<int> selected,
+      required bool showSelected,
+      required String searchString,
+      Tag? tag}) {
+    Iterable<Item> results = items;
+
+    if (tag != null) {
+      results = results.where((item) => item.tags!.contains(tag));
+    }
+
+    if (showSelected) {
+      results = results.where((item) => selected.contains(item.id));
+    }
+
+    if (searchString.isEmpty) {
+      return results.toList();
+    }
+
+    return results
+        .where((item) =>
+            item.name.toLowerCase().contains(searchString.toLowerCase()))
+        .toList();
   }
 }
 
@@ -300,5 +363,123 @@ class _EmptySearchResult extends HookWidget {
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
     });
+  }
+}
+
+class _SelectButton extends StatelessWidget {
+  final bool selected;
+  final String text;
+  final VoidCallback onPressed;
+
+  const _SelectButton(
+      {Key? key,
+      required this.selected,
+      required this.text,
+      required this.onPressed})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: onPressed,
+      child: Text(text),
+      style: ButtonStyle(
+        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+          RoundedRectangleBorder(
+            side: selected
+                ? const BorderSide(color: Colors.lightGreen)
+                : BorderSide.none,
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+        ),
+        padding: MaterialStateProperty.all<EdgeInsets>(
+          const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
+        ),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        // minimumSize:
+        // MaterialStateProperty.all<Size?>(const Size.fromHeight(20.0)),
+      ),
+    );
+  }
+}
+
+// class _LabelPopup extends StatelessWidget {
+// final List<String> categories;
+//
+// }
+
+class _SearchCategorySelect extends HookWidget {
+  final String text;
+  final List<Tag> categories;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<Tag> onTagSelected;
+
+  const _SearchCategorySelect(
+      {Key? key,
+      required this.text,
+      required this.categories,
+      required this.onChanged,
+      required this.onTagSelected})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = useTextEditingController();
+
+    return Container(
+      height: 40.0,
+      padding: const EdgeInsets.only(right: 5.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(50.0),
+        border: Border.all(color: Colors.grey),
+      ),
+      child: Row(
+        children: [
+          if (text.isNotEmpty)
+            SizedBox(
+              width: 40.0,
+              height: 40.0,
+              child: Center(
+                child: IconButton(
+                  iconSize: 14.0,
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    controller.text = "";
+                    onChanged("");
+                  },
+                ),
+              ),
+            ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              decoration: InputDecoration(
+                hintText: 'Search',
+                focusedBorder: InputBorder.none,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(
+                    vertical: 8, horizontal: text.isEmpty ? 14 : 0),
+              ),
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ),
+          PopupMenuButton<Tag>(
+            onSelected: onTagSelected,
+            itemBuilder: (context) => [
+              for (var c in categories)
+                PopupMenuItem<Tag>(
+                  child: Text(c.name),
+                  value: c,
+                ),
+            ],
+            child: const Icon(Icons.arrow_drop_down),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0)),
+          )
+        ],
+      ),
+    );
   }
 }
