@@ -80,8 +80,8 @@ input SubLabelInput {
 type ShoppingList implements Node {
   id: ID!
   name: String!
-  createdAt: Time!
-  updatedAt: Time!
+  createTime: Time!
+  updateTime: Time!
   items: [ShoppingListItem!]!
 }
 
