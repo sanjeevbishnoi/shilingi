@@ -198,3 +198,63 @@ class SubLabel {
 
   Map<String, dynamic> toJson() => _$SubLabelToJson(this);
 }
+
+@JsonSerializable()
+class PageInfo {
+  final bool? hasNextPage;
+  final bool? hasPreviousPage;
+  final String? startCursor;
+  final String? endCursor;
+
+  const PageInfo(
+      {this.hasNextPage,
+      this.hasPreviousPage,
+      this.startCursor,
+      this.endCursor});
+
+  factory PageInfo.fromJson(Json json) => _$PageInfoFromJson(json);
+
+  Json toJson() => _$PageInfoToJson(this);
+}
+
+typedef Json = Map<String, dynamic>;
+
+@JsonSerializable()
+class ShoppingList {
+  final int id;
+  final String name;
+
+  const ShoppingList({required this.id, required this.name});
+
+  factory ShoppingList.fromJson(Json json) => _$ShoppingListFromJson(json);
+
+  Json toJson() => _$ShoppingListToJson(this);
+}
+
+@JsonSerializable()
+class ShoppingListEdge {
+  final String? cursor;
+  final ShoppingList node;
+
+  const ShoppingListEdge({this.cursor, required this.node});
+
+  factory ShoppingListEdge.fromJson(Json json) =>
+      _$ShoppingListEdgeFromJson(json);
+
+  Json toJson() => _$ShoppingListEdgeToJson(this);
+}
+
+@JsonSerializable()
+class ShoppingListConnection {
+  final int? totalCount;
+  final PageInfo? pageInfo;
+  final List<ShoppingListEdge> edges;
+
+  const ShoppingListConnection(
+      {this.totalCount, this.pageInfo, required this.edges});
+
+  factory ShoppingListConnection.fromJson(Json json) =>
+      _$ShoppingListConnectionFromJson(json);
+
+  Json toJson() => _$ShoppingListConnectionToJson(this);
+}

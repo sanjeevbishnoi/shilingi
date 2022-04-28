@@ -225,3 +225,60 @@ Map<String, dynamic> _$SubLabelToJson(SubLabel instance) {
   writeNotNull('items', instance.items);
   return val;
 }
+
+PageInfo _$PageInfoFromJson(Map<String, dynamic> json) => PageInfo(
+      hasNextPage: json['hasNextPage'] as bool?,
+      hasPreviousPage: json['hasPreviousPage'] as bool?,
+      startCursor: json['startCursor'] as String?,
+      endCursor: json['endCursor'] as String?,
+    );
+
+Map<String, dynamic> _$PageInfoToJson(PageInfo instance) => <String, dynamic>{
+      'hasNextPage': instance.hasNextPage,
+      'hasPreviousPage': instance.hasPreviousPage,
+      'startCursor': instance.startCursor,
+      'endCursor': instance.endCursor,
+    };
+
+ShoppingList _$ShoppingListFromJson(Map<String, dynamic> json) => ShoppingList(
+      id: json['id'] as int,
+      name: json['name'] as String,
+    );
+
+Map<String, dynamic> _$ShoppingListToJson(ShoppingList instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+    };
+
+ShoppingListEdge _$ShoppingListEdgeFromJson(Map<String, dynamic> json) =>
+    ShoppingListEdge(
+      cursor: json['cursor'] as String?,
+      node: ShoppingList.fromJson(json['node'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$ShoppingListEdgeToJson(ShoppingListEdge instance) =>
+    <String, dynamic>{
+      'cursor': instance.cursor,
+      'node': instance.node,
+    };
+
+ShoppingListConnection _$ShoppingListConnectionFromJson(
+        Map<String, dynamic> json) =>
+    ShoppingListConnection(
+      totalCount: json['totalCount'] as int?,
+      pageInfo: json['pageInfo'] == null
+          ? null
+          : PageInfo.fromJson(json['pageInfo'] as Map<String, dynamic>),
+      edges: (json['edges'] as List<dynamic>)
+          .map((e) => ShoppingListEdge.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$ShoppingListConnectionToJson(
+        ShoppingListConnection instance) =>
+    <String, dynamic>{
+      'totalCount': instance.totalCount,
+      'pageInfo': instance.pageInfo,
+      'edges': instance.edges,
+    };
