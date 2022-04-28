@@ -17,7 +17,7 @@ class SelectItemsPage extends HookWidget {
   Widget build(BuildContext context) {
     var itemsResult = useState<List<Item>>([]);
     var tags = useState<List<Tag>>([]);
-    var selectedTag = useState<Tag?>(null);
+    var selectedTags = useState<Set<Tag>>({});
     var queryResult = useQuery(QueryOptions(document: itemsQueryWithLabels));
     var selectedItems = useState<List<int>>([]);
     var result = queryResult.result;
@@ -74,7 +74,7 @@ class SelectItemsPage extends HookWidget {
           selected: selectedItems.value,
           showSelected: showSelected.value,
           searchString: searchString.value,
-          tag: selectedTag.value);
+          tags: selectedTags.value);
       Set<Tag> _tags = {};
       items.items.forEach((item) {
         _tags.addAll(item.tags!);
@@ -87,15 +87,16 @@ class SelectItemsPage extends HookWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _SearchCategorySelect(
-              text: searchString.value,
-              categories: tags.value,
-              onChanged: (value) {
-                searchString.value = value;
-              },
-              onTagSelected: (tag) {
-                selectedTag.value = tag;
-              },
-            ),
+                text: searchString.value,
+                categories: tags.value,
+                onChanged: (value) {
+                  searchString.value = value;
+                },
+                onTagSelected: (tag) {
+                  final tags = selectedTags.value.toSet();
+                  tags.add(tag);
+                  selectedTags.value = tags;
+                }),
             const SizedBox(height: 20.0),
             Row(
               children: [
@@ -114,16 +115,25 @@ class SelectItemsPage extends HookWidget {
                     selected: showSelected.value),
               ],
             ),
-            if (selectedTag.value != null) ...[
+            if (selectedTags.value.isNotEmpty) ...[
               const SizedBox(height: 10.0),
-              Chip(
-                label: Text(selectedTag.value!.name),
-                onDeleted: () {
-                  selectedTag.value = null;
-                },
+              Wrap(
+                spacing: 2.0,
+                runSpacing: 0.0,
+                children: [
+                  for (var tag in selectedTags.value)
+                    Chip(
+                      label: Text(tag.name),
+                      onDeleted: () {
+                        final tags = selectedTags.value.toSet();
+                        tags.remove(tag);
+                        selectedTags.value = tags;
+                      },
+                    ),
+                ],
               ),
             ],
-            const SizedBox(height: 20.0),
+            const SizedBox(height: 10.0),
             Expanded(
               child: Stack(
                 children: [
@@ -169,7 +179,7 @@ class SelectItemsPage extends HookWidget {
                                 selected: selectedItems.value,
                                 showSelected: showSelected.value,
                                 searchString: searchString.value,
-                                tag: selectedTag.value);
+                                tags: selectedTags.value);
                             // Only one item will be visible at this point, so we can
                             // safely add it to the selected list
                             if (itemsResult.value.length == 1) {
@@ -223,11 +233,13 @@ class SelectItemsPage extends HookWidget {
       required List<int> selected,
       required bool showSelected,
       required String searchString,
-      Tag? tag}) {
+      Set<Tag>? tags}) {
     Iterable<Item> results = items;
 
-    if (tag != null) {
-      results = results.where((item) => item.tags!.contains(tag));
+    if (tags != null && tags.isNotEmpty) {
+      results = results
+          .where((item) => item.tags!.isNotEmpty)
+          .where((item) => tags.contains(item.tags![0]));
     }
 
     if (showSelected) {
@@ -465,6 +477,7 @@ class _SearchCategorySelect extends HookWidget {
               style: const TextStyle(color: Colors.black54),
             ),
           ),
+          const VerticalDivider(color: Colors.grey),
           PopupMenuButton<Tag>(
             onSelected: onTagSelected,
             itemBuilder: (context) => [
