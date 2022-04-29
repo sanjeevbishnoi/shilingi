@@ -198,7 +198,6 @@ class _Item extends StatelessWidget {
         behavior: HitTestBehavior.translucent,
         onTap: () {
           onChanged(!selected);
-          print('tap');
         },
         child: Row(
           mainAxisSize: MainAxisSize.max,
