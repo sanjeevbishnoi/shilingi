@@ -220,11 +220,33 @@ class PageInfo {
 typedef Json = Map<String, dynamic>;
 
 @JsonSerializable()
+class ShoppingListItem {
+  final int id;
+  final Item item;
+  final PurchaseItem? purchase;
+
+  const ShoppingListItem({required this.id, required this.item, this.purchase});
+
+  factory ShoppingListItem.fromJson(Json json) =>
+      _$ShoppingListItemFromJson(json);
+
+  Json toJson() => _$ShoppingListItemToJson(this);
+}
+
+@JsonSerializable()
 class ShoppingList {
   final int id;
   final String name;
+  final DateTime? createTime;
+  final DateTime? updateTime;
+  final List<ShoppingListItem>? items;
 
-  const ShoppingList({required this.id, required this.name});
+  const ShoppingList(
+      {required this.id,
+      required this.name,
+      this.createTime,
+      this.updateTime,
+      this.items});
 
   factory ShoppingList.fromJson(Json json) => _$ShoppingListFromJson(json);
 

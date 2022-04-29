@@ -13,6 +13,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/schema/utils"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/entops"
@@ -248,6 +249,7 @@ func (r *queryResolver) Tags(ctx context.Context) ([]*ent.Tag, error) {
 
 func (r *queryResolver) ShoppingList(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int) (*ent.ShoppingListConnection, error) {
 	return r.cli.ShoppingList.Query().
+		Order(ent.Desc(shoppinglist.FieldCreateTime)).
 		Paginate(ctx, after, first, before, last)
 }
 

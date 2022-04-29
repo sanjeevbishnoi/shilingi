@@ -179,3 +179,46 @@ var unlabeledPurchaseItemsQuery = gql(r'''
       }
     }
 ''');
+
+var shoppingListQuery = gql(r'''
+    query shoppingList($after: Cursor, $first: Int, $before: Cursor, $last: Int) {
+      shoppingList(after: $after, first: $first, before: $before, last: $last) {
+        totalCount
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        edges {
+          cursor
+          node {
+            id
+            name
+            createTime
+            updateTime
+          }
+        }
+      }
+    }
+''');
+
+var shoppingDetailQuery = gql(r'''
+    query shoppingListDetail($id: Int!) {
+      node(id: $id) {
+        ... on ShoppingList {
+          id
+          name
+          createTime
+          updateTime
+          items {
+            id
+            item {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+''');

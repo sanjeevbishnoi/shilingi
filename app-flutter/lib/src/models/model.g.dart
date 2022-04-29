@@ -240,15 +240,43 @@ Map<String, dynamic> _$PageInfoToJson(PageInfo instance) => <String, dynamic>{
       'endCursor': instance.endCursor,
     };
 
+ShoppingListItem _$ShoppingListItemFromJson(Map<String, dynamic> json) =>
+    ShoppingListItem(
+      id: json['id'] as int,
+      item: Item.fromJson(json['item'] as Map<String, dynamic>),
+      purchase: json['purchase'] == null
+          ? null
+          : PurchaseItem.fromJson(json['purchase'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$ShoppingListItemToJson(ShoppingListItem instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'item': instance.item,
+      'purchase': instance.purchase,
+    };
+
 ShoppingList _$ShoppingListFromJson(Map<String, dynamic> json) => ShoppingList(
       id: json['id'] as int,
       name: json['name'] as String,
+      createTime: json['createTime'] == null
+          ? null
+          : DateTime.parse(json['createTime'] as String),
+      updateTime: json['updateTime'] == null
+          ? null
+          : DateTime.parse(json['updateTime'] as String),
+      items: (json['items'] as List<dynamic>?)
+          ?.map((e) => ShoppingListItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$ShoppingListToJson(ShoppingList instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
+      'createTime': instance.createTime?.toIso8601String(),
+      'updateTime': instance.updateTime?.toIso8601String(),
+      'items': instance.items,
     };
 
 ShoppingListEdge _$ShoppingListEdgeFromJson(Map<String, dynamic> json) =>
