@@ -86,6 +86,19 @@ var itemsQuery = gql(r'''
     }
 ''');
 
+var itemsQueryWithLabels = gql(r'''
+    query items($tagID: Int, $negate: Boolean) {
+      items(tagID: $tagID, negate: $negate) {
+        id
+        name
+        tags {
+          id
+          name
+        }
+      }
+    }
+''');
+
 var labelItems = gql(r'''
     query itemsUnderSubLabel($labelID: Int!) {
       node(id: $labelID) {
@@ -163,6 +176,49 @@ var unlabeledPurchaseItemsQuery = gql(r'''
         pricePerUnit
         units
         total
+      }
+    }
+''');
+
+var shoppingListQuery = gql(r'''
+    query shoppingList($after: Cursor, $first: Int, $before: Cursor, $last: Int) {
+      shoppingList(after: $after, first: $first, before: $before, last: $last) {
+        totalCount
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        edges {
+          cursor
+          node {
+            id
+            name
+            createTime
+            updateTime
+          }
+        }
+      }
+    }
+''');
+
+var shoppingDetailQuery = gql(r'''
+    query shoppingListDetail($id: Int!) {
+      node(id: $id) {
+        ... on ShoppingList {
+          id
+          name
+          createTime
+          updateTime
+          items {
+            id
+            item {
+              id
+              name
+            }
+          }
+        }
       }
     }
 ''');

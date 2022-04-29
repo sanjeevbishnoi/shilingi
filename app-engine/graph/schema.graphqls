@@ -20,6 +20,12 @@ type Query {
   vendors: [Vendor!]!
   node(id: Int!): Node!
   tags: [Tag!]!
+  shoppingList(
+    after: Cursor
+    first: Int
+    before: Cursor
+    last: Int
+  ): ShoppingListConnection
 }
 
 type Mutation {
@@ -36,4 +42,5 @@ type Mutation {
   removeItemsFromSubLabel(subLabelID: Int!, itemIDs: [Int!]!): SubLabel!
   editSubLabel(subLabelID: Int!, input: SubLabelInput!): SubLabel!
   deleteSubLabel(subLabelID: Int!): Boolean!
+  createShoppingList(input: ShoppingListInput!): ShoppingList!
 }

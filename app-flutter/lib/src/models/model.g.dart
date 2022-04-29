@@ -80,11 +80,25 @@ Items _$ItemsFromJson(Map<String, dynamic> json) => Items(
       items: (json['items'] as List<dynamic>)
           .map((e) => Item.fromJson(e as Map<String, dynamic>))
           .toList(),
+      tags: (json['tags'] as List<dynamic>?)
+          ?.map((e) => Tag.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
-Map<String, dynamic> _$ItemsToJson(Items instance) => <String, dynamic>{
-      'items': instance.items,
-    };
+Map<String, dynamic> _$ItemsToJson(Items instance) {
+  final val = <String, dynamic>{
+    'items': instance.items,
+  };
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('tags', instance.tags);
+  return val;
+}
 
 Catalogue _$CatalogueFromJson(Map<String, dynamic> json) => Catalogue(
       items: (json['items'] as List<dynamic>)
@@ -211,3 +225,88 @@ Map<String, dynamic> _$SubLabelToJson(SubLabel instance) {
   writeNotNull('items', instance.items);
   return val;
 }
+
+PageInfo _$PageInfoFromJson(Map<String, dynamic> json) => PageInfo(
+      hasNextPage: json['hasNextPage'] as bool?,
+      hasPreviousPage: json['hasPreviousPage'] as bool?,
+      startCursor: json['startCursor'] as String?,
+      endCursor: json['endCursor'] as String?,
+    );
+
+Map<String, dynamic> _$PageInfoToJson(PageInfo instance) => <String, dynamic>{
+      'hasNextPage': instance.hasNextPage,
+      'hasPreviousPage': instance.hasPreviousPage,
+      'startCursor': instance.startCursor,
+      'endCursor': instance.endCursor,
+    };
+
+ShoppingListItem _$ShoppingListItemFromJson(Map<String, dynamic> json) =>
+    ShoppingListItem(
+      id: json['id'] as int,
+      item: Item.fromJson(json['item'] as Map<String, dynamic>),
+      purchase: json['purchase'] == null
+          ? null
+          : PurchaseItem.fromJson(json['purchase'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$ShoppingListItemToJson(ShoppingListItem instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'item': instance.item,
+      'purchase': instance.purchase,
+    };
+
+ShoppingList _$ShoppingListFromJson(Map<String, dynamic> json) => ShoppingList(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      createTime: json['createTime'] == null
+          ? null
+          : DateTime.parse(json['createTime'] as String),
+      updateTime: json['updateTime'] == null
+          ? null
+          : DateTime.parse(json['updateTime'] as String),
+      items: (json['items'] as List<dynamic>?)
+          ?.map((e) => ShoppingListItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$ShoppingListToJson(ShoppingList instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'createTime': instance.createTime?.toIso8601String(),
+      'updateTime': instance.updateTime?.toIso8601String(),
+      'items': instance.items,
+    };
+
+ShoppingListEdge _$ShoppingListEdgeFromJson(Map<String, dynamic> json) =>
+    ShoppingListEdge(
+      cursor: json['cursor'] as String?,
+      node: ShoppingList.fromJson(json['node'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$ShoppingListEdgeToJson(ShoppingListEdge instance) =>
+    <String, dynamic>{
+      'cursor': instance.cursor,
+      'node': instance.node,
+    };
+
+ShoppingListConnection _$ShoppingListConnectionFromJson(
+        Map<String, dynamic> json) =>
+    ShoppingListConnection(
+      totalCount: json['totalCount'] as int?,
+      pageInfo: json['pageInfo'] == null
+          ? null
+          : PageInfo.fromJson(json['pageInfo'] as Map<String, dynamic>),
+      edges: (json['edges'] as List<dynamic>)
+          .map((e) => ShoppingListEdge.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$ShoppingListConnectionToJson(
+        ShoppingListConnection instance) =>
+    <String, dynamic>{
+      'totalCount': instance.totalCount,
+      'pageInfo': instance.pageInfo,
+      'edges': instance.edges,
+    };

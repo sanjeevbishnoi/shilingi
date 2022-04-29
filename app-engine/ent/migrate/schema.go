@@ -87,6 +87,61 @@ var (
 			},
 		},
 	}
+	// ShoppingListsColumns holds the columns for the "shopping_lists" table.
+	ShoppingListsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString},
+		{Name: "shopping_shopping_list", Type: field.TypeInt, Nullable: true},
+	}
+	// ShoppingListsTable holds the schema information for the "shopping_lists" table.
+	ShoppingListsTable = &schema.Table{
+		Name:       "shopping_lists",
+		Columns:    ShoppingListsColumns,
+		PrimaryKey: []*schema.Column{ShoppingListsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "shopping_lists_shoppings_shoppingList",
+				Columns:    []*schema.Column{ShoppingListsColumns[4]},
+				RefColumns: []*schema.Column{ShoppingsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// ShoppingListItemsColumns holds the columns for the "shopping_list_items" table.
+	ShoppingListItemsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "item_shopping_list", Type: field.TypeInt, Nullable: true},
+		{Name: "shopping_item_shopping_list", Type: field.TypeInt, Nullable: true},
+		{Name: "shopping_list_items", Type: field.TypeInt, Nullable: true},
+	}
+	// ShoppingListItemsTable holds the schema information for the "shopping_list_items" table.
+	ShoppingListItemsTable = &schema.Table{
+		Name:       "shopping_list_items",
+		Columns:    ShoppingListItemsColumns,
+		PrimaryKey: []*schema.Column{ShoppingListItemsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "shopping_list_items_items_shoppingList",
+				Columns:    []*schema.Column{ShoppingListItemsColumns[1]},
+				RefColumns: []*schema.Column{ItemsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "shopping_list_items_shopping_items_shoppingList",
+				Columns:    []*schema.Column{ShoppingListItemsColumns[2]},
+				RefColumns: []*schema.Column{ShoppingItemsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "shopping_list_items_shopping_lists_items",
+				Columns:    []*schema.Column{ShoppingListItemsColumns[3]},
+				RefColumns: []*schema.Column{ShoppingListsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// SubLabelsColumns holds the columns for the "sub_labels" table.
 	SubLabelsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -180,6 +235,8 @@ var (
 		ItemsTable,
 		ShoppingsTable,
 		ShoppingItemsTable,
+		ShoppingListsTable,
+		ShoppingListItemsTable,
 		SubLabelsTable,
 		TagsTable,
 		VendorsTable,
@@ -196,6 +253,14 @@ func init() {
 	ShoppingsTable.ForeignKeys[0].RefTable = VendorsTable
 	ShoppingItemsTable.ForeignKeys[0].RefTable = ItemsTable
 	ShoppingItemsTable.ForeignKeys[1].RefTable = ShoppingsTable
+	ShoppingListsTable.ForeignKeys[0].RefTable = ShoppingsTable
+	ShoppingListsTable.Annotation = &entsql.Annotation{
+		Charset:   "utf8mb4",
+		Collation: "utf8mb4_0900_ai_ci",
+	}
+	ShoppingListItemsTable.ForeignKeys[0].RefTable = ItemsTable
+	ShoppingListItemsTable.ForeignKeys[1].RefTable = ShoppingItemsTable
+	ShoppingListItemsTable.ForeignKeys[2].RefTable = ShoppingListsTable
 	SubLabelsTable.ForeignKeys[0].RefTable = TagsTable
 	ItemTagsTable.ForeignKeys[0].RefTable = ItemsTable
 	ItemTagsTable.ForeignKeys[1].RefTable = TagsTable

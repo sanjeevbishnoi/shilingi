@@ -11,6 +11,8 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
@@ -34,12 +36,14 @@ type OrderFunc func(*sql.Selector)
 // columnChecker returns a function indicates if the column exists in the given column.
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
-		item.Table:         item.ValidColumn,
-		shopping.Table:     shopping.ValidColumn,
-		shoppingitem.Table: shoppingitem.ValidColumn,
-		sublabel.Table:     sublabel.ValidColumn,
-		tag.Table:          tag.ValidColumn,
-		vendor.Table:       vendor.ValidColumn,
+		item.Table:             item.ValidColumn,
+		shopping.Table:         shopping.ValidColumn,
+		shoppingitem.Table:     shoppingitem.ValidColumn,
+		shoppinglist.Table:     shoppinglist.ValidColumn,
+		shoppinglistitem.Table: shoppinglistitem.ValidColumn,
+		sublabel.Table:         sublabel.ValidColumn,
+		tag.Table:              tag.ValidColumn,
+		vendor.Table:           vendor.ValidColumn,
 	}
 	check, ok := checks[table]
 	if !ok {

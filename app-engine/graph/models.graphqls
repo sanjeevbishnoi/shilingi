@@ -76,3 +76,37 @@ type SubLabel implements Node {
 input SubLabelInput {
   name: String!
 }
+
+type ShoppingList implements Node {
+  id: ID!
+  name: String!
+  createTime: Time!
+  updateTime: Time!
+  items: [ShoppingListItem!]!
+}
+
+type ShoppingListItem implements Node {
+  id: ID!
+  item: Item!
+  purchase: ShoppingItem
+}
+
+input ShoppingListInput {
+  name: String!
+  items: [ShoppingListItemInput!]!
+}
+
+input ShoppingListItemInput {
+  item: Int!
+}
+
+type ShoppingListConnection {
+  totalCount: Int!
+  pageInfo: PageInfo!
+  edges: [ShoppingListEdge]
+}
+
+type ShoppingListEdge {
+  node: ShoppingList
+  cursor: Cursor!
+}

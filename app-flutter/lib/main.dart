@@ -47,6 +47,7 @@ class MyApp extends StatelessWidget {
               const PurchaseDetailsPage(),
           cataloguePage: (context) => const CataloguePage(),
           shoppingItemPage: (context) => const ShoppingItemDetailPage(),
+          shoppingListPage: (context) => const ShoppingListPage(),
         },
       ),
     );

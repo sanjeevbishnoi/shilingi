@@ -13,6 +13,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 	"github.com/shopspring/decimal"
 )
 
@@ -133,6 +134,21 @@ func (sic *ShoppingItemCreate) SetShoppingID(id int) *ShoppingItemCreate {
 // SetShopping sets the "shopping" edge to the Shopping entity.
 func (sic *ShoppingItemCreate) SetShopping(s *Shopping) *ShoppingItemCreate {
 	return sic.SetShoppingID(s.ID)
+}
+
+// AddShoppingListIDs adds the "shoppingList" edge to the ShoppingListItem entity by IDs.
+func (sic *ShoppingItemCreate) AddShoppingListIDs(ids ...int) *ShoppingItemCreate {
+	sic.mutation.AddShoppingListIDs(ids...)
+	return sic
+}
+
+// AddShoppingList adds the "shoppingList" edges to the ShoppingListItem entity.
+func (sic *ShoppingItemCreate) AddShoppingList(s ...*ShoppingListItem) *ShoppingItemCreate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return sic.AddShoppingListIDs(ids...)
 }
 
 // Mutation returns the ShoppingItemMutation object of the builder.
@@ -361,6 +377,25 @@ func (sic *ShoppingItemCreate) createSpec() (*ShoppingItem, *sqlgraph.CreateSpec
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.shopping_items = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sic.mutation.ShoppingListIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shoppingitem.ShoppingListTable,
+			Columns: []string{shoppingitem.ShoppingListColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppinglistitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

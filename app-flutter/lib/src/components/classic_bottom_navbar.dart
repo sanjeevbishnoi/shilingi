@@ -14,6 +14,9 @@ class ClassicBottomNavigation extends StatelessWidget {
       case '/catalogue':
         currentIndex = 1;
         break;
+      case '/shopping-list':
+        currentIndex = 2;
+        break;
     }
 
     return BottomNavigationBar(
@@ -23,6 +26,8 @@ class ClassicBottomNavigation extends StatelessWidget {
             icon: Icon(Icons.calendar_today_rounded), label: 'Purchases'),
         BottomNavigationBarItem(
             icon: Icon(Icons.amp_stories), label: 'Catalogue'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.checklist), label: 'Shopping lists'),
       ],
       onTap: (index) {
         switch (index) {
@@ -31,6 +36,9 @@ class ClassicBottomNavigation extends StatelessWidget {
             break;
           case 1:
             Navigator.of(context).pushReplacementNamed('/catalogue');
+            break;
+          case 2:
+            Navigator.of(context).pushReplacementNamed('/shopping-list');
             break;
         }
       },

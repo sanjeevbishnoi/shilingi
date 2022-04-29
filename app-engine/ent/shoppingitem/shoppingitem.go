@@ -29,6 +29,8 @@ const (
 	EdgeItem = "item"
 	// EdgeShopping holds the string denoting the shopping edge name in mutations.
 	EdgeShopping = "shopping"
+	// EdgeShoppingList holds the string denoting the shoppinglist edge name in mutations.
+	EdgeShoppingList = "shoppingList"
 	// Table holds the table name of the shoppingitem in the database.
 	Table = "shopping_items"
 	// ItemTable is the table that holds the item relation/edge.
@@ -45,6 +47,13 @@ const (
 	ShoppingInverseTable = "shoppings"
 	// ShoppingColumn is the table column denoting the shopping relation/edge.
 	ShoppingColumn = "shopping_items"
+	// ShoppingListTable is the table that holds the shoppingList relation/edge.
+	ShoppingListTable = "shopping_list_items"
+	// ShoppingListInverseTable is the table name for the ShoppingListItem entity.
+	// It exists in this package in order to avoid circular dependency with the "shoppinglistitem" package.
+	ShoppingListInverseTable = "shopping_list_items"
+	// ShoppingListColumn is the table column denoting the shoppingList relation/edge.
+	ShoppingListColumn = "shopping_item_shopping_list"
 )
 
 // Columns holds all SQL columns for shoppingitem fields.

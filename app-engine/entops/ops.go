@@ -337,3 +337,43 @@ func EditSubLabel(ctx context.Context, subLabelID int, input model.SubLabelInput
 		SetName(cleanedName).
 		Save(ctx)
 }
+
+// CreateShoppingList creates a shopping list with items
+func CreateShoppingList(ctx context.Context, input model.ShoppingListInput) (*ent.ShoppingList, error) {
+	cli := ent.FromContext(ctx)
+
+	itemIDs := []int{}
+	for _, item := range input.Items {
+		itemIDs = append(itemIDs, item.Item)
+	}
+	// Check that the provided item ids are all valid
+	count, err := cli.Item.Query().
+		Where(
+			item.IDIn(itemIDs...),
+		).Count(ctx)
+	if count != len(input.Items) {
+		return nil, gqlerror.Errorf("The provided items are not all valid")
+	}
+
+	shoppingList, err := cli.ShoppingList.Create().
+		SetName(input.Name).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	shoppingListItemCreate := []*ent.ShoppingListItemCreate{}
+	for _, input := range input.Items {
+		shoppingListItemCreate = append(shoppingListItemCreate,
+			cli.ShoppingListItem.Create().
+				SetItemID(input.Item).
+				SetShoppingList(shoppingList),
+		)
+	}
+
+	if _, err := cli.ShoppingListItem.CreateBulk(shoppingListItemCreate...).Save(ctx); err != nil {
+		return nil, err
+	}
+
+	return shoppingList, nil
+}

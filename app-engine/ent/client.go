@@ -12,6 +12,8 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
@@ -32,6 +34,10 @@ type Client struct {
 	Shopping *ShoppingClient
 	// ShoppingItem is the client for interacting with the ShoppingItem builders.
 	ShoppingItem *ShoppingItemClient
+	// ShoppingList is the client for interacting with the ShoppingList builders.
+	ShoppingList *ShoppingListClient
+	// ShoppingListItem is the client for interacting with the ShoppingListItem builders.
+	ShoppingListItem *ShoppingListItemClient
 	// SubLabel is the client for interacting with the SubLabel builders.
 	SubLabel *SubLabelClient
 	// Tag is the client for interacting with the Tag builders.
@@ -56,6 +62,8 @@ func (c *Client) init() {
 	c.Item = NewItemClient(c.config)
 	c.Shopping = NewShoppingClient(c.config)
 	c.ShoppingItem = NewShoppingItemClient(c.config)
+	c.ShoppingList = NewShoppingListClient(c.config)
+	c.ShoppingListItem = NewShoppingListItemClient(c.config)
 	c.SubLabel = NewSubLabelClient(c.config)
 	c.Tag = NewTagClient(c.config)
 	c.Vendor = NewVendorClient(c.config)
@@ -90,14 +98,16 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:          ctx,
-		config:       cfg,
-		Item:         NewItemClient(cfg),
-		Shopping:     NewShoppingClient(cfg),
-		ShoppingItem: NewShoppingItemClient(cfg),
-		SubLabel:     NewSubLabelClient(cfg),
-		Tag:          NewTagClient(cfg),
-		Vendor:       NewVendorClient(cfg),
+		ctx:              ctx,
+		config:           cfg,
+		Item:             NewItemClient(cfg),
+		Shopping:         NewShoppingClient(cfg),
+		ShoppingItem:     NewShoppingItemClient(cfg),
+		ShoppingList:     NewShoppingListClient(cfg),
+		ShoppingListItem: NewShoppingListItemClient(cfg),
+		SubLabel:         NewSubLabelClient(cfg),
+		Tag:              NewTagClient(cfg),
+		Vendor:           NewVendorClient(cfg),
 	}, nil
 }
 
@@ -115,13 +125,15 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		config:       cfg,
-		Item:         NewItemClient(cfg),
-		Shopping:     NewShoppingClient(cfg),
-		ShoppingItem: NewShoppingItemClient(cfg),
-		SubLabel:     NewSubLabelClient(cfg),
-		Tag:          NewTagClient(cfg),
-		Vendor:       NewVendorClient(cfg),
+		config:           cfg,
+		Item:             NewItemClient(cfg),
+		Shopping:         NewShoppingClient(cfg),
+		ShoppingItem:     NewShoppingItemClient(cfg),
+		ShoppingList:     NewShoppingListClient(cfg),
+		ShoppingListItem: NewShoppingListItemClient(cfg),
+		SubLabel:         NewSubLabelClient(cfg),
+		Tag:              NewTagClient(cfg),
+		Vendor:           NewVendorClient(cfg),
 	}, nil
 }
 
@@ -154,6 +166,8 @@ func (c *Client) Use(hooks ...Hook) {
 	c.Item.Use(hooks...)
 	c.Shopping.Use(hooks...)
 	c.ShoppingItem.Use(hooks...)
+	c.ShoppingList.Use(hooks...)
+	c.ShoppingListItem.Use(hooks...)
 	c.SubLabel.Use(hooks...)
 	c.Tag.Use(hooks...)
 	c.Vendor.Use(hooks...)
@@ -292,6 +306,22 @@ func (c *ItemClient) QuerySublabel(i *Item) *SubLabelQuery {
 	return query
 }
 
+// QueryShoppingList queries the shoppingList edge of a Item.
+func (c *ItemClient) QueryShoppingList(i *Item) *ShoppingListItemQuery {
+	query := &ShoppingListItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := i.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(shoppinglistitem.Table, shoppinglistitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, item.ShoppingListTable, item.ShoppingListColumn),
+		)
+		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ItemClient) Hooks() []Hook {
 	return c.hooks.Item
@@ -407,6 +437,22 @@ func (c *ShoppingClient) QueryVendor(s *Shopping) *VendorQuery {
 			sqlgraph.From(shopping.Table, shopping.FieldID, id),
 			sqlgraph.To(vendor.Table, vendor.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, shopping.VendorTable, shopping.VendorColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryShoppingList queries the shoppingList edge of a Shopping.
+func (c *ShoppingClient) QueryShoppingList(s *Shopping) *ShoppingListQuery {
+	query := &ShoppingListQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shopping.Table, shopping.FieldID, id),
+			sqlgraph.To(shoppinglist.Table, shoppinglist.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, shopping.ShoppingListTable, shopping.ShoppingListColumn),
 		)
 		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
 		return fromV, nil
@@ -536,9 +582,285 @@ func (c *ShoppingItemClient) QueryShopping(si *ShoppingItem) *ShoppingQuery {
 	return query
 }
 
+// QueryShoppingList queries the shoppingList edge of a ShoppingItem.
+func (c *ShoppingItemClient) QueryShoppingList(si *ShoppingItem) *ShoppingListItemQuery {
+	query := &ShoppingListItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := si.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppingitem.Table, shoppingitem.FieldID, id),
+			sqlgraph.To(shoppinglistitem.Table, shoppinglistitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, shoppingitem.ShoppingListTable, shoppingitem.ShoppingListColumn),
+		)
+		fromV = sqlgraph.Neighbors(si.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ShoppingItemClient) Hooks() []Hook {
 	return c.hooks.ShoppingItem
+}
+
+// ShoppingListClient is a client for the ShoppingList schema.
+type ShoppingListClient struct {
+	config
+}
+
+// NewShoppingListClient returns a client for the ShoppingList from the given config.
+func NewShoppingListClient(c config) *ShoppingListClient {
+	return &ShoppingListClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `shoppinglist.Hooks(f(g(h())))`.
+func (c *ShoppingListClient) Use(hooks ...Hook) {
+	c.hooks.ShoppingList = append(c.hooks.ShoppingList, hooks...)
+}
+
+// Create returns a create builder for ShoppingList.
+func (c *ShoppingListClient) Create() *ShoppingListCreate {
+	mutation := newShoppingListMutation(c.config, OpCreate)
+	return &ShoppingListCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ShoppingList entities.
+func (c *ShoppingListClient) CreateBulk(builders ...*ShoppingListCreate) *ShoppingListCreateBulk {
+	return &ShoppingListCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ShoppingList.
+func (c *ShoppingListClient) Update() *ShoppingListUpdate {
+	mutation := newShoppingListMutation(c.config, OpUpdate)
+	return &ShoppingListUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ShoppingListClient) UpdateOne(sl *ShoppingList) *ShoppingListUpdateOne {
+	mutation := newShoppingListMutation(c.config, OpUpdateOne, withShoppingList(sl))
+	return &ShoppingListUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ShoppingListClient) UpdateOneID(id int) *ShoppingListUpdateOne {
+	mutation := newShoppingListMutation(c.config, OpUpdateOne, withShoppingListID(id))
+	return &ShoppingListUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ShoppingList.
+func (c *ShoppingListClient) Delete() *ShoppingListDelete {
+	mutation := newShoppingListMutation(c.config, OpDelete)
+	return &ShoppingListDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *ShoppingListClient) DeleteOne(sl *ShoppingList) *ShoppingListDeleteOne {
+	return c.DeleteOneID(sl.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *ShoppingListClient) DeleteOneID(id int) *ShoppingListDeleteOne {
+	builder := c.Delete().Where(shoppinglist.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ShoppingListDeleteOne{builder}
+}
+
+// Query returns a query builder for ShoppingList.
+func (c *ShoppingListClient) Query() *ShoppingListQuery {
+	return &ShoppingListQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a ShoppingList entity by its id.
+func (c *ShoppingListClient) Get(ctx context.Context, id int) (*ShoppingList, error) {
+	return c.Query().Where(shoppinglist.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ShoppingListClient) GetX(ctx context.Context, id int) *ShoppingList {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryItems queries the items edge of a ShoppingList.
+func (c *ShoppingListClient) QueryItems(sl *ShoppingList) *ShoppingListItemQuery {
+	query := &ShoppingListItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppinglist.Table, shoppinglist.FieldID, id),
+			sqlgraph.To(shoppinglistitem.Table, shoppinglistitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, shoppinglist.ItemsTable, shoppinglist.ItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(sl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPurchases queries the purchases edge of a ShoppingList.
+func (c *ShoppingListClient) QueryPurchases(sl *ShoppingList) *ShoppingQuery {
+	query := &ShoppingQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppinglist.Table, shoppinglist.FieldID, id),
+			sqlgraph.To(shopping.Table, shopping.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, shoppinglist.PurchasesTable, shoppinglist.PurchasesColumn),
+		)
+		fromV = sqlgraph.Neighbors(sl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ShoppingListClient) Hooks() []Hook {
+	return c.hooks.ShoppingList
+}
+
+// ShoppingListItemClient is a client for the ShoppingListItem schema.
+type ShoppingListItemClient struct {
+	config
+}
+
+// NewShoppingListItemClient returns a client for the ShoppingListItem from the given config.
+func NewShoppingListItemClient(c config) *ShoppingListItemClient {
+	return &ShoppingListItemClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `shoppinglistitem.Hooks(f(g(h())))`.
+func (c *ShoppingListItemClient) Use(hooks ...Hook) {
+	c.hooks.ShoppingListItem = append(c.hooks.ShoppingListItem, hooks...)
+}
+
+// Create returns a create builder for ShoppingListItem.
+func (c *ShoppingListItemClient) Create() *ShoppingListItemCreate {
+	mutation := newShoppingListItemMutation(c.config, OpCreate)
+	return &ShoppingListItemCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ShoppingListItem entities.
+func (c *ShoppingListItemClient) CreateBulk(builders ...*ShoppingListItemCreate) *ShoppingListItemCreateBulk {
+	return &ShoppingListItemCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ShoppingListItem.
+func (c *ShoppingListItemClient) Update() *ShoppingListItemUpdate {
+	mutation := newShoppingListItemMutation(c.config, OpUpdate)
+	return &ShoppingListItemUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ShoppingListItemClient) UpdateOne(sli *ShoppingListItem) *ShoppingListItemUpdateOne {
+	mutation := newShoppingListItemMutation(c.config, OpUpdateOne, withShoppingListItem(sli))
+	return &ShoppingListItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ShoppingListItemClient) UpdateOneID(id int) *ShoppingListItemUpdateOne {
+	mutation := newShoppingListItemMutation(c.config, OpUpdateOne, withShoppingListItemID(id))
+	return &ShoppingListItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ShoppingListItem.
+func (c *ShoppingListItemClient) Delete() *ShoppingListItemDelete {
+	mutation := newShoppingListItemMutation(c.config, OpDelete)
+	return &ShoppingListItemDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *ShoppingListItemClient) DeleteOne(sli *ShoppingListItem) *ShoppingListItemDeleteOne {
+	return c.DeleteOneID(sli.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *ShoppingListItemClient) DeleteOneID(id int) *ShoppingListItemDeleteOne {
+	builder := c.Delete().Where(shoppinglistitem.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ShoppingListItemDeleteOne{builder}
+}
+
+// Query returns a query builder for ShoppingListItem.
+func (c *ShoppingListItemClient) Query() *ShoppingListItemQuery {
+	return &ShoppingListItemQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a ShoppingListItem entity by its id.
+func (c *ShoppingListItemClient) Get(ctx context.Context, id int) (*ShoppingListItem, error) {
+	return c.Query().Where(shoppinglistitem.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ShoppingListItemClient) GetX(ctx context.Context, id int) *ShoppingListItem {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryShoppingList queries the shoppingList edge of a ShoppingListItem.
+func (c *ShoppingListItemClient) QueryShoppingList(sli *ShoppingListItem) *ShoppingListQuery {
+	query := &ShoppingListQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sli.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppinglistitem.Table, shoppinglistitem.FieldID, id),
+			sqlgraph.To(shoppinglist.Table, shoppinglist.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, shoppinglistitem.ShoppingListTable, shoppinglistitem.ShoppingListColumn),
+		)
+		fromV = sqlgraph.Neighbors(sli.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryItem queries the item edge of a ShoppingListItem.
+func (c *ShoppingListItemClient) QueryItem(sli *ShoppingListItem) *ItemQuery {
+	query := &ItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sli.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppinglistitem.Table, shoppinglistitem.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, shoppinglistitem.ItemTable, shoppinglistitem.ItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(sli.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPurchase queries the purchase edge of a ShoppingListItem.
+func (c *ShoppingListItemClient) QueryPurchase(sli *ShoppingListItem) *ShoppingItemQuery {
+	query := &ShoppingItemQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sli.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shoppinglistitem.Table, shoppinglistitem.FieldID, id),
+			sqlgraph.To(shoppingitem.Table, shoppingitem.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, shoppinglistitem.PurchaseTable, shoppinglistitem.PurchaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(sli.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ShoppingListItemClient) Hooks() []Hook {
+	return c.hooks.ShoppingListItem
 }
 
 // SubLabelClient is a client for the SubLabel schema.

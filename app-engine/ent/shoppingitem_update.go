@@ -14,6 +14,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 	"github.com/shopspring/decimal"
 )
 
@@ -153,6 +154,21 @@ func (siu *ShoppingItemUpdate) SetShopping(s *Shopping) *ShoppingItemUpdate {
 	return siu.SetShoppingID(s.ID)
 }
 
+// AddShoppingListIDs adds the "shoppingList" edge to the ShoppingListItem entity by IDs.
+func (siu *ShoppingItemUpdate) AddShoppingListIDs(ids ...int) *ShoppingItemUpdate {
+	siu.mutation.AddShoppingListIDs(ids...)
+	return siu
+}
+
+// AddShoppingList adds the "shoppingList" edges to the ShoppingListItem entity.
+func (siu *ShoppingItemUpdate) AddShoppingList(s ...*ShoppingListItem) *ShoppingItemUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return siu.AddShoppingListIDs(ids...)
+}
+
 // Mutation returns the ShoppingItemMutation object of the builder.
 func (siu *ShoppingItemUpdate) Mutation() *ShoppingItemMutation {
 	return siu.mutation
@@ -168,6 +184,27 @@ func (siu *ShoppingItemUpdate) ClearItem() *ShoppingItemUpdate {
 func (siu *ShoppingItemUpdate) ClearShopping() *ShoppingItemUpdate {
 	siu.mutation.ClearShopping()
 	return siu
+}
+
+// ClearShoppingList clears all "shoppingList" edges to the ShoppingListItem entity.
+func (siu *ShoppingItemUpdate) ClearShoppingList() *ShoppingItemUpdate {
+	siu.mutation.ClearShoppingList()
+	return siu
+}
+
+// RemoveShoppingListIDs removes the "shoppingList" edge to ShoppingListItem entities by IDs.
+func (siu *ShoppingItemUpdate) RemoveShoppingListIDs(ids ...int) *ShoppingItemUpdate {
+	siu.mutation.RemoveShoppingListIDs(ids...)
+	return siu
+}
+
+// RemoveShoppingList removes "shoppingList" edges to ShoppingListItem entities.
+func (siu *ShoppingItemUpdate) RemoveShoppingList(s ...*ShoppingListItem) *ShoppingItemUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return siu.RemoveShoppingListIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -419,6 +456,60 @@ func (siu *ShoppingItemUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if siu.mutation.ShoppingListCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shoppingitem.ShoppingListTable,
+			Columns: []string{shoppingitem.ShoppingListColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppinglistitem.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := siu.mutation.RemovedShoppingListIDs(); len(nodes) > 0 && !siu.mutation.ShoppingListCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shoppingitem.ShoppingListTable,
+			Columns: []string{shoppingitem.ShoppingListColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppinglistitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := siu.mutation.ShoppingListIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shoppingitem.ShoppingListTable,
+			Columns: []string{shoppingitem.ShoppingListColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppinglistitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, siu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{shoppingitem.Label}
@@ -561,6 +652,21 @@ func (siuo *ShoppingItemUpdateOne) SetShopping(s *Shopping) *ShoppingItemUpdateO
 	return siuo.SetShoppingID(s.ID)
 }
 
+// AddShoppingListIDs adds the "shoppingList" edge to the ShoppingListItem entity by IDs.
+func (siuo *ShoppingItemUpdateOne) AddShoppingListIDs(ids ...int) *ShoppingItemUpdateOne {
+	siuo.mutation.AddShoppingListIDs(ids...)
+	return siuo
+}
+
+// AddShoppingList adds the "shoppingList" edges to the ShoppingListItem entity.
+func (siuo *ShoppingItemUpdateOne) AddShoppingList(s ...*ShoppingListItem) *ShoppingItemUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return siuo.AddShoppingListIDs(ids...)
+}
+
 // Mutation returns the ShoppingItemMutation object of the builder.
 func (siuo *ShoppingItemUpdateOne) Mutation() *ShoppingItemMutation {
 	return siuo.mutation
@@ -576,6 +682,27 @@ func (siuo *ShoppingItemUpdateOne) ClearItem() *ShoppingItemUpdateOne {
 func (siuo *ShoppingItemUpdateOne) ClearShopping() *ShoppingItemUpdateOne {
 	siuo.mutation.ClearShopping()
 	return siuo
+}
+
+// ClearShoppingList clears all "shoppingList" edges to the ShoppingListItem entity.
+func (siuo *ShoppingItemUpdateOne) ClearShoppingList() *ShoppingItemUpdateOne {
+	siuo.mutation.ClearShoppingList()
+	return siuo
+}
+
+// RemoveShoppingListIDs removes the "shoppingList" edge to ShoppingListItem entities by IDs.
+func (siuo *ShoppingItemUpdateOne) RemoveShoppingListIDs(ids ...int) *ShoppingItemUpdateOne {
+	siuo.mutation.RemoveShoppingListIDs(ids...)
+	return siuo
+}
+
+// RemoveShoppingList removes "shoppingList" edges to ShoppingListItem entities.
+func (siuo *ShoppingItemUpdateOne) RemoveShoppingList(s ...*ShoppingListItem) *ShoppingItemUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return siuo.RemoveShoppingListIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -843,6 +970,60 @@ func (siuo *ShoppingItemUpdateOne) sqlSave(ctx context.Context) (_node *Shopping
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: shopping.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if siuo.mutation.ShoppingListCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shoppingitem.ShoppingListTable,
+			Columns: []string{shoppingitem.ShoppingListColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppinglistitem.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := siuo.mutation.RemovedShoppingListIDs(); len(nodes) > 0 && !siuo.mutation.ShoppingListCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shoppingitem.ShoppingListTable,
+			Columns: []string{shoppingitem.ShoppingListColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppinglistitem.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := siuo.mutation.ShoppingListIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   shoppingitem.ShoppingListTable,
+			Columns: []string{shoppingitem.ShoppingListColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: shoppinglistitem.FieldID,
 				},
 			},
 		}

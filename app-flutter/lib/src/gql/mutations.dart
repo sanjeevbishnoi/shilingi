@@ -113,3 +113,21 @@ var mutationEditSubLabel = gql(r'''
       }
     }
 ''');
+
+var mutationCreateItem = gql(r'''
+    mutation createItem($input: ItemInput!) {
+      createItem(input: $input) {
+        id
+        name
+      }
+    }
+''');
+
+var mutationCreateShoppingList = gql(r'''
+    mutation createShoppingList($input: ShoppingListInput!) {
+      createShoppingList(input: $input) {
+        id
+        name
+      }
+    }
+''');

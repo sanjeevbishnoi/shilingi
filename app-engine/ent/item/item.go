@@ -25,6 +25,8 @@ const (
 	EdgeTags = "tags"
 	// EdgeSublabel holds the string denoting the sublabel edge name in mutations.
 	EdgeSublabel = "sublabel"
+	// EdgeShoppingList holds the string denoting the shoppinglist edge name in mutations.
+	EdgeShoppingList = "shoppingList"
 	// Table holds the table name of the item in the database.
 	Table = "items"
 	// PurchasesTable is the table that holds the purchases relation/edge.
@@ -46,6 +48,13 @@ const (
 	SublabelInverseTable = "sub_labels"
 	// SublabelColumn is the table column denoting the sublabel relation/edge.
 	SublabelColumn = "sub_label_items"
+	// ShoppingListTable is the table that holds the shoppingList relation/edge.
+	ShoppingListTable = "shopping_list_items"
+	// ShoppingListInverseTable is the table name for the ShoppingListItem entity.
+	// It exists in this package in order to avoid circular dependency with the "shoppinglistitem" package.
+	ShoppingListInverseTable = "shopping_list_items"
+	// ShoppingListColumn is the table column denoting the shoppingList relation/edge.
+	ShoppingListColumn = "item_shopping_list"
 )
 
 // Columns holds all SQL columns for item fields.

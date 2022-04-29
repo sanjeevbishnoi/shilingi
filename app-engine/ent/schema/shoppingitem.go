@@ -52,6 +52,7 @@ func (ShoppingItem) Edges() []ent.Edge {
 			Ref("items").
 			Unique().
 			Required(),
+		edge.To("shoppingList", ShoppingListItem.Type),
 	}
 }
 

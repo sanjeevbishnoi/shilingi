@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import '../components/azlistview_component.dart' show Nameable;
+
 part 'model.g.dart';
 
 @JsonSerializable()
@@ -43,7 +45,8 @@ class PurchaseItems {
 }
 
 @JsonSerializable()
-class Item {
+class Item implements Nameable {
+  @override
   final String name;
   @JsonKey(includeIfNull: false)
   final int? id;
@@ -60,8 +63,10 @@ class Item {
 @JsonSerializable()
 class Items {
   final List<Item> items;
+  @JsonKey(includeIfNull: false)
+  final List<Tag>? tags;
 
-  const Items({required this.items});
+  const Items({required this.items, this.tags});
 
   factory Items.fromJson(Map<String, dynamic> json) => _$ItemsFromJson(json);
   Map<String, dynamic> toJson() => _$ItemsToJson(this);
@@ -151,6 +156,21 @@ class Tag {
 
   factory Tag.fromJson(Map<String, dynamic> json) => _$TagFromJson(json);
   Map<String, dynamic> toJson() => _$TagToJson(this);
+
+  @override
+  int get hashCode => id ?? 0;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! Tag) {
+      return false;
+    }
+
+    if (id != null) {
+      return id == other.id;
+    }
+    return name == other.name;
+  }
 }
 
 @JsonSerializable()
@@ -177,4 +197,86 @@ class SubLabel {
       _$SubLabelFromJson(json);
 
   Map<String, dynamic> toJson() => _$SubLabelToJson(this);
+}
+
+@JsonSerializable()
+class PageInfo {
+  final bool? hasNextPage;
+  final bool? hasPreviousPage;
+  final String? startCursor;
+  final String? endCursor;
+
+  const PageInfo(
+      {this.hasNextPage,
+      this.hasPreviousPage,
+      this.startCursor,
+      this.endCursor});
+
+  factory PageInfo.fromJson(Json json) => _$PageInfoFromJson(json);
+
+  Json toJson() => _$PageInfoToJson(this);
+}
+
+typedef Json = Map<String, dynamic>;
+
+@JsonSerializable()
+class ShoppingListItem {
+  final int id;
+  final Item item;
+  final PurchaseItem? purchase;
+
+  const ShoppingListItem({required this.id, required this.item, this.purchase});
+
+  factory ShoppingListItem.fromJson(Json json) =>
+      _$ShoppingListItemFromJson(json);
+
+  Json toJson() => _$ShoppingListItemToJson(this);
+}
+
+@JsonSerializable()
+class ShoppingList {
+  final int id;
+  final String name;
+  final DateTime? createTime;
+  final DateTime? updateTime;
+  final List<ShoppingListItem>? items;
+
+  const ShoppingList(
+      {required this.id,
+      required this.name,
+      this.createTime,
+      this.updateTime,
+      this.items});
+
+  factory ShoppingList.fromJson(Json json) => _$ShoppingListFromJson(json);
+
+  Json toJson() => _$ShoppingListToJson(this);
+}
+
+@JsonSerializable()
+class ShoppingListEdge {
+  final String? cursor;
+  final ShoppingList node;
+
+  const ShoppingListEdge({this.cursor, required this.node});
+
+  factory ShoppingListEdge.fromJson(Json json) =>
+      _$ShoppingListEdgeFromJson(json);
+
+  Json toJson() => _$ShoppingListEdgeToJson(this);
+}
+
+@JsonSerializable()
+class ShoppingListConnection {
+  final int? totalCount;
+  final PageInfo? pageInfo;
+  final List<ShoppingListEdge> edges;
+
+  const ShoppingListConnection(
+      {this.totalCount, this.pageInfo, required this.edges});
+
+  factory ShoppingListConnection.fromJson(Json json) =>
+      _$ShoppingListConnectionFromJson(json);
+
+  Json toJson() => _$ShoppingListConnectionToJson(this);
 }

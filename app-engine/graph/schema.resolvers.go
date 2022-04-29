@@ -13,6 +13,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/schema/utils"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/entops"
@@ -145,6 +146,10 @@ func (r *mutationResolver) DeleteSubLabel(ctx context.Context, subLabelID int) (
 	return true, nil
 }
 
+func (r *mutationResolver) CreateShoppingList(ctx context.Context, input model.ShoppingListInput) (*ent.ShoppingList, error) {
+	return entops.CreateShoppingList(ctx, input)
+}
+
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {
 	query := r.cli.Item.Query()
 	if tagID != nil {
@@ -240,6 +245,12 @@ func (r *queryResolver) Tags(ctx context.Context) ([]*ent.Tag, error) {
 	return r.cli.Tag.Query().
 		Order(ent.Asc(tag.FieldName)).
 		All(ctx)
+}
+
+func (r *queryResolver) ShoppingList(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int) (*ent.ShoppingListConnection, error) {
+	return r.cli.ShoppingList.Query().
+		Order(ent.Desc(shoppinglist.FieldCreateTime)).
+		Paginate(ctx, after, first, before, last)
 }
 
 // Mutation returns generated.MutationResolver implementation.

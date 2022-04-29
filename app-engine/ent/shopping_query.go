@@ -15,6 +15,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 )
 
@@ -28,9 +29,10 @@ type ShoppingQuery struct {
 	fields     []string
 	predicates []predicate.Shopping
 	// eager-loading edges.
-	withItems  *ShoppingItemQuery
-	withVendor *VendorQuery
-	withFKs    bool
+	withItems        *ShoppingItemQuery
+	withVendor       *VendorQuery
+	withShoppingList *ShoppingListQuery
+	withFKs          bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -104,6 +106,28 @@ func (sq *ShoppingQuery) QueryVendor() *VendorQuery {
 			sqlgraph.From(shopping.Table, shopping.FieldID, selector),
 			sqlgraph.To(vendor.Table, vendor.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, shopping.VendorTable, shopping.VendorColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryShoppingList chains the current query on the "shoppingList" edge.
+func (sq *ShoppingQuery) QueryShoppingList() *ShoppingListQuery {
+	query := &ShoppingListQuery{config: sq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(shopping.Table, shopping.FieldID, selector),
+			sqlgraph.To(shoppinglist.Table, shoppinglist.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, shopping.ShoppingListTable, shopping.ShoppingListColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
 		return fromU, nil
@@ -287,13 +311,14 @@ func (sq *ShoppingQuery) Clone() *ShoppingQuery {
 		return nil
 	}
 	return &ShoppingQuery{
-		config:     sq.config,
-		limit:      sq.limit,
-		offset:     sq.offset,
-		order:      append([]OrderFunc{}, sq.order...),
-		predicates: append([]predicate.Shopping{}, sq.predicates...),
-		withItems:  sq.withItems.Clone(),
-		withVendor: sq.withVendor.Clone(),
+		config:           sq.config,
+		limit:            sq.limit,
+		offset:           sq.offset,
+		order:            append([]OrderFunc{}, sq.order...),
+		predicates:       append([]predicate.Shopping{}, sq.predicates...),
+		withItems:        sq.withItems.Clone(),
+		withVendor:       sq.withVendor.Clone(),
+		withShoppingList: sq.withShoppingList.Clone(),
 		// clone intermediate query.
 		sql:  sq.sql.Clone(),
 		path: sq.path,
@@ -319,6 +344,17 @@ func (sq *ShoppingQuery) WithVendor(opts ...func(*VendorQuery)) *ShoppingQuery {
 		opt(query)
 	}
 	sq.withVendor = query
+	return sq
+}
+
+// WithShoppingList tells the query-builder to eager-load the nodes that are connected to
+// the "shoppingList" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *ShoppingQuery) WithShoppingList(opts ...func(*ShoppingListQuery)) *ShoppingQuery {
+	query := &ShoppingListQuery{config: sq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	sq.withShoppingList = query
 	return sq
 }
 
@@ -388,9 +424,10 @@ func (sq *ShoppingQuery) sqlAll(ctx context.Context) ([]*Shopping, error) {
 		nodes       = []*Shopping{}
 		withFKs     = sq.withFKs
 		_spec       = sq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			sq.withItems != nil,
 			sq.withVendor != nil,
+			sq.withShoppingList != nil,
 		}
 	)
 	if sq.withVendor != nil {
@@ -474,6 +511,35 @@ func (sq *ShoppingQuery) sqlAll(ctx context.Context) ([]*Shopping, error) {
 			for i := range nodes {
 				nodes[i].Edges.Vendor = n
 			}
+		}
+	}
+
+	if query := sq.withShoppingList; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*Shopping)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.ShoppingList = []*ShoppingList{}
+		}
+		query.withFKs = true
+		query.Where(predicate.ShoppingList(func(s *sql.Selector) {
+			s.Where(sql.InValues(shopping.ShoppingListColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.shopping_shopping_list
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "shopping_shopping_list" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "shopping_shopping_list" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.ShoppingList = append(node.Edges.ShoppingList, n)
 		}
 	}
 

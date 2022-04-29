@@ -18,6 +18,10 @@ type Tx struct {
 	Shopping *ShoppingClient
 	// ShoppingItem is the client for interacting with the ShoppingItem builders.
 	ShoppingItem *ShoppingItemClient
+	// ShoppingList is the client for interacting with the ShoppingList builders.
+	ShoppingList *ShoppingListClient
+	// ShoppingListItem is the client for interacting with the ShoppingListItem builders.
+	ShoppingListItem *ShoppingListItemClient
 	// SubLabel is the client for interacting with the SubLabel builders.
 	SubLabel *SubLabelClient
 	// Tag is the client for interacting with the Tag builders.
@@ -162,6 +166,8 @@ func (tx *Tx) init() {
 	tx.Item = NewItemClient(tx.config)
 	tx.Shopping = NewShoppingClient(tx.config)
 	tx.ShoppingItem = NewShoppingItemClient(tx.config)
+	tx.ShoppingList = NewShoppingListClient(tx.config)
+	tx.ShoppingListItem = NewShoppingListItemClient(tx.config)
 	tx.SubLabel = NewSubLabelClient(tx.config)
 	tx.Tag = NewTagClient(tx.config)
 	tx.Vendor = NewVendorClient(tx.config)

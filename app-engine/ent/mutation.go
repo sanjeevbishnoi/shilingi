@@ -12,6 +12,8 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/predicate"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
@@ -29,36 +31,41 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeItem         = "Item"
-	TypeShopping     = "Shopping"
-	TypeShoppingItem = "ShoppingItem"
-	TypeSubLabel     = "SubLabel"
-	TypeTag          = "Tag"
-	TypeVendor       = "Vendor"
+	TypeItem             = "Item"
+	TypeShopping         = "Shopping"
+	TypeShoppingItem     = "ShoppingItem"
+	TypeShoppingList     = "ShoppingList"
+	TypeShoppingListItem = "ShoppingListItem"
+	TypeSubLabel         = "SubLabel"
+	TypeTag              = "Tag"
+	TypeVendor           = "Vendor"
 )
 
 // ItemMutation represents an operation that mutates the Item nodes in the graph.
 type ItemMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *int
-	create_time      *time.Time
-	update_time      *time.Time
-	name             *string
-	slug             *string
-	clearedFields    map[string]struct{}
-	purchases        map[int]struct{}
-	removedpurchases map[int]struct{}
-	clearedpurchases bool
-	tags             map[int]struct{}
-	removedtags      map[int]struct{}
-	clearedtags      bool
-	sublabel         *int
-	clearedsublabel  bool
-	done             bool
-	oldValue         func(context.Context) (*Item, error)
-	predicates       []predicate.Item
+	op                  Op
+	typ                 string
+	id                  *int
+	create_time         *time.Time
+	update_time         *time.Time
+	name                *string
+	slug                *string
+	clearedFields       map[string]struct{}
+	purchases           map[int]struct{}
+	removedpurchases    map[int]struct{}
+	clearedpurchases    bool
+	tags                map[int]struct{}
+	removedtags         map[int]struct{}
+	clearedtags         bool
+	sublabel            *int
+	clearedsublabel     bool
+	shoppingList        map[int]struct{}
+	removedshoppingList map[int]struct{}
+	clearedshoppingList bool
+	done                bool
+	oldValue            func(context.Context) (*Item, error)
+	predicates          []predicate.Item
 }
 
 var _ ent.Mutation = (*ItemMutation)(nil)
@@ -431,6 +438,60 @@ func (m *ItemMutation) ResetSublabel() {
 	m.clearedsublabel = false
 }
 
+// AddShoppingListIDs adds the "shoppingList" edge to the ShoppingListItem entity by ids.
+func (m *ItemMutation) AddShoppingListIDs(ids ...int) {
+	if m.shoppingList == nil {
+		m.shoppingList = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.shoppingList[ids[i]] = struct{}{}
+	}
+}
+
+// ClearShoppingList clears the "shoppingList" edge to the ShoppingListItem entity.
+func (m *ItemMutation) ClearShoppingList() {
+	m.clearedshoppingList = true
+}
+
+// ShoppingListCleared reports if the "shoppingList" edge to the ShoppingListItem entity was cleared.
+func (m *ItemMutation) ShoppingListCleared() bool {
+	return m.clearedshoppingList
+}
+
+// RemoveShoppingListIDs removes the "shoppingList" edge to the ShoppingListItem entity by IDs.
+func (m *ItemMutation) RemoveShoppingListIDs(ids ...int) {
+	if m.removedshoppingList == nil {
+		m.removedshoppingList = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.shoppingList, ids[i])
+		m.removedshoppingList[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedShoppingList returns the removed IDs of the "shoppingList" edge to the ShoppingListItem entity.
+func (m *ItemMutation) RemovedShoppingListIDs() (ids []int) {
+	for id := range m.removedshoppingList {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ShoppingListIDs returns the "shoppingList" edge IDs in the mutation.
+func (m *ItemMutation) ShoppingListIDs() (ids []int) {
+	for id := range m.shoppingList {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetShoppingList resets all changes to the "shoppingList" edge.
+func (m *ItemMutation) ResetShoppingList() {
+	m.shoppingList = nil
+	m.clearedshoppingList = false
+	m.removedshoppingList = nil
+}
+
 // Where appends a list predicates to the ItemMutation builder.
 func (m *ItemMutation) Where(ps ...predicate.Item) {
 	m.predicates = append(m.predicates, ps...)
@@ -600,7 +661,7 @@ func (m *ItemMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ItemMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.purchases != nil {
 		edges = append(edges, item.EdgePurchases)
 	}
@@ -609,6 +670,9 @@ func (m *ItemMutation) AddedEdges() []string {
 	}
 	if m.sublabel != nil {
 		edges = append(edges, item.EdgeSublabel)
+	}
+	if m.shoppingList != nil {
+		edges = append(edges, item.EdgeShoppingList)
 	}
 	return edges
 }
@@ -633,18 +697,27 @@ func (m *ItemMutation) AddedIDs(name string) []ent.Value {
 		if id := m.sublabel; id != nil {
 			return []ent.Value{*id}
 		}
+	case item.EdgeShoppingList:
+		ids := make([]ent.Value, 0, len(m.shoppingList))
+		for id := range m.shoppingList {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ItemMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removedpurchases != nil {
 		edges = append(edges, item.EdgePurchases)
 	}
 	if m.removedtags != nil {
 		edges = append(edges, item.EdgeTags)
+	}
+	if m.removedshoppingList != nil {
+		edges = append(edges, item.EdgeShoppingList)
 	}
 	return edges
 }
@@ -665,13 +738,19 @@ func (m *ItemMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case item.EdgeShoppingList:
+		ids := make([]ent.Value, 0, len(m.removedshoppingList))
+		for id := range m.removedshoppingList {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ItemMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedpurchases {
 		edges = append(edges, item.EdgePurchases)
 	}
@@ -680,6 +759,9 @@ func (m *ItemMutation) ClearedEdges() []string {
 	}
 	if m.clearedsublabel {
 		edges = append(edges, item.EdgeSublabel)
+	}
+	if m.clearedshoppingList {
+		edges = append(edges, item.EdgeShoppingList)
 	}
 	return edges
 }
@@ -694,6 +776,8 @@ func (m *ItemMutation) EdgeCleared(name string) bool {
 		return m.clearedtags
 	case item.EdgeSublabel:
 		return m.clearedsublabel
+	case item.EdgeShoppingList:
+		return m.clearedshoppingList
 	}
 	return false
 }
@@ -722,6 +806,9 @@ func (m *ItemMutation) ResetEdge(name string) error {
 	case item.EdgeSublabel:
 		m.ResetSublabel()
 		return nil
+	case item.EdgeShoppingList:
+		m.ResetShoppingList()
+		return nil
 	}
 	return fmt.Errorf("unknown Item edge %s", name)
 }
@@ -729,21 +816,24 @@ func (m *ItemMutation) ResetEdge(name string) error {
 // ShoppingMutation represents an operation that mutates the Shopping nodes in the graph.
 type ShoppingMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	create_time   *time.Time
-	update_time   *time.Time
-	date          *time.Time
-	clearedFields map[string]struct{}
-	items         map[int]struct{}
-	removeditems  map[int]struct{}
-	cleareditems  bool
-	vendor        *int
-	clearedvendor bool
-	done          bool
-	oldValue      func(context.Context) (*Shopping, error)
-	predicates    []predicate.Shopping
+	op                  Op
+	typ                 string
+	id                  *int
+	create_time         *time.Time
+	update_time         *time.Time
+	date                *time.Time
+	clearedFields       map[string]struct{}
+	items               map[int]struct{}
+	removeditems        map[int]struct{}
+	cleareditems        bool
+	vendor              *int
+	clearedvendor       bool
+	shoppingList        map[int]struct{}
+	removedshoppingList map[int]struct{}
+	clearedshoppingList bool
+	done                bool
+	oldValue            func(context.Context) (*Shopping, error)
+	predicates          []predicate.Shopping
 }
 
 var _ ent.Mutation = (*ShoppingMutation)(nil)
@@ -1026,6 +1116,60 @@ func (m *ShoppingMutation) ResetVendor() {
 	m.clearedvendor = false
 }
 
+// AddShoppingListIDs adds the "shoppingList" edge to the ShoppingList entity by ids.
+func (m *ShoppingMutation) AddShoppingListIDs(ids ...int) {
+	if m.shoppingList == nil {
+		m.shoppingList = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.shoppingList[ids[i]] = struct{}{}
+	}
+}
+
+// ClearShoppingList clears the "shoppingList" edge to the ShoppingList entity.
+func (m *ShoppingMutation) ClearShoppingList() {
+	m.clearedshoppingList = true
+}
+
+// ShoppingListCleared reports if the "shoppingList" edge to the ShoppingList entity was cleared.
+func (m *ShoppingMutation) ShoppingListCleared() bool {
+	return m.clearedshoppingList
+}
+
+// RemoveShoppingListIDs removes the "shoppingList" edge to the ShoppingList entity by IDs.
+func (m *ShoppingMutation) RemoveShoppingListIDs(ids ...int) {
+	if m.removedshoppingList == nil {
+		m.removedshoppingList = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.shoppingList, ids[i])
+		m.removedshoppingList[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedShoppingList returns the removed IDs of the "shoppingList" edge to the ShoppingList entity.
+func (m *ShoppingMutation) RemovedShoppingListIDs() (ids []int) {
+	for id := range m.removedshoppingList {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ShoppingListIDs returns the "shoppingList" edge IDs in the mutation.
+func (m *ShoppingMutation) ShoppingListIDs() (ids []int) {
+	for id := range m.shoppingList {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetShoppingList resets all changes to the "shoppingList" edge.
+func (m *ShoppingMutation) ResetShoppingList() {
+	m.shoppingList = nil
+	m.clearedshoppingList = false
+	m.removedshoppingList = nil
+}
+
 // Where appends a list predicates to the ShoppingMutation builder.
 func (m *ShoppingMutation) Where(ps ...predicate.Shopping) {
 	m.predicates = append(m.predicates, ps...)
@@ -1178,12 +1322,15 @@ func (m *ShoppingMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ShoppingMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.items != nil {
 		edges = append(edges, shopping.EdgeItems)
 	}
 	if m.vendor != nil {
 		edges = append(edges, shopping.EdgeVendor)
+	}
+	if m.shoppingList != nil {
+		edges = append(edges, shopping.EdgeShoppingList)
 	}
 	return edges
 }
@@ -1202,15 +1349,24 @@ func (m *ShoppingMutation) AddedIDs(name string) []ent.Value {
 		if id := m.vendor; id != nil {
 			return []ent.Value{*id}
 		}
+	case shopping.EdgeShoppingList:
+		ids := make([]ent.Value, 0, len(m.shoppingList))
+		for id := range m.shoppingList {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ShoppingMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removeditems != nil {
 		edges = append(edges, shopping.EdgeItems)
+	}
+	if m.removedshoppingList != nil {
+		edges = append(edges, shopping.EdgeShoppingList)
 	}
 	return edges
 }
@@ -1225,18 +1381,27 @@ func (m *ShoppingMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case shopping.EdgeShoppingList:
+		ids := make([]ent.Value, 0, len(m.removedshoppingList))
+		for id := range m.removedshoppingList {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ShoppingMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.cleareditems {
 		edges = append(edges, shopping.EdgeItems)
 	}
 	if m.clearedvendor {
 		edges = append(edges, shopping.EdgeVendor)
+	}
+	if m.clearedshoppingList {
+		edges = append(edges, shopping.EdgeShoppingList)
 	}
 	return edges
 }
@@ -1249,6 +1414,8 @@ func (m *ShoppingMutation) EdgeCleared(name string) bool {
 		return m.cleareditems
 	case shopping.EdgeVendor:
 		return m.clearedvendor
+	case shopping.EdgeShoppingList:
+		return m.clearedshoppingList
 	}
 	return false
 }
@@ -1274,6 +1441,9 @@ func (m *ShoppingMutation) ResetEdge(name string) error {
 	case shopping.EdgeVendor:
 		m.ResetVendor()
 		return nil
+	case shopping.EdgeShoppingList:
+		m.ResetShoppingList()
+		return nil
 	}
 	return fmt.Errorf("unknown Shopping edge %s", name)
 }
@@ -1281,27 +1451,30 @@ func (m *ShoppingMutation) ResetEdge(name string) error {
 // ShoppingItemMutation represents an operation that mutates the ShoppingItem nodes in the graph.
 type ShoppingItemMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *int
-	create_time       *time.Time
-	update_time       *time.Time
-	quantity          *float64
-	addquantity       *float64
-	quantity_type     *string
-	units             *int
-	addunits          *int
-	brand             *string
-	price_per_unit    *decimal.Decimal
-	addprice_per_unit *decimal.Decimal
-	clearedFields     map[string]struct{}
-	item              *int
-	cleareditem       bool
-	shopping          *int
-	clearedshopping   bool
-	done              bool
-	oldValue          func(context.Context) (*ShoppingItem, error)
-	predicates        []predicate.ShoppingItem
+	op                  Op
+	typ                 string
+	id                  *int
+	create_time         *time.Time
+	update_time         *time.Time
+	quantity            *float64
+	addquantity         *float64
+	quantity_type       *string
+	units               *int
+	addunits            *int
+	brand               *string
+	price_per_unit      *decimal.Decimal
+	addprice_per_unit   *decimal.Decimal
+	clearedFields       map[string]struct{}
+	item                *int
+	cleareditem         bool
+	shopping            *int
+	clearedshopping     bool
+	shoppingList        map[int]struct{}
+	removedshoppingList map[int]struct{}
+	clearedshoppingList bool
+	done                bool
+	oldValue            func(context.Context) (*ShoppingItem, error)
+	predicates          []predicate.ShoppingItem
 }
 
 var _ ent.Mutation = (*ShoppingItemMutation)(nil)
@@ -1813,6 +1986,60 @@ func (m *ShoppingItemMutation) ResetShopping() {
 	m.clearedshopping = false
 }
 
+// AddShoppingListIDs adds the "shoppingList" edge to the ShoppingListItem entity by ids.
+func (m *ShoppingItemMutation) AddShoppingListIDs(ids ...int) {
+	if m.shoppingList == nil {
+		m.shoppingList = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.shoppingList[ids[i]] = struct{}{}
+	}
+}
+
+// ClearShoppingList clears the "shoppingList" edge to the ShoppingListItem entity.
+func (m *ShoppingItemMutation) ClearShoppingList() {
+	m.clearedshoppingList = true
+}
+
+// ShoppingListCleared reports if the "shoppingList" edge to the ShoppingListItem entity was cleared.
+func (m *ShoppingItemMutation) ShoppingListCleared() bool {
+	return m.clearedshoppingList
+}
+
+// RemoveShoppingListIDs removes the "shoppingList" edge to the ShoppingListItem entity by IDs.
+func (m *ShoppingItemMutation) RemoveShoppingListIDs(ids ...int) {
+	if m.removedshoppingList == nil {
+		m.removedshoppingList = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.shoppingList, ids[i])
+		m.removedshoppingList[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedShoppingList returns the removed IDs of the "shoppingList" edge to the ShoppingListItem entity.
+func (m *ShoppingItemMutation) RemovedShoppingListIDs() (ids []int) {
+	for id := range m.removedshoppingList {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ShoppingListIDs returns the "shoppingList" edge IDs in the mutation.
+func (m *ShoppingItemMutation) ShoppingListIDs() (ids []int) {
+	for id := range m.shoppingList {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetShoppingList resets all changes to the "shoppingList" edge.
+func (m *ShoppingItemMutation) ResetShoppingList() {
+	m.shoppingList = nil
+	m.clearedshoppingList = false
+	m.removedshoppingList = nil
+}
+
 // Where appends a list predicates to the ShoppingItemMutation builder.
 func (m *ShoppingItemMutation) Where(ps ...predicate.ShoppingItem) {
 	m.predicates = append(m.predicates, ps...)
@@ -2093,12 +2320,15 @@ func (m *ShoppingItemMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ShoppingItemMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.item != nil {
 		edges = append(edges, shoppingitem.EdgeItem)
 	}
 	if m.shopping != nil {
 		edges = append(edges, shoppingitem.EdgeShopping)
+	}
+	if m.shoppingList != nil {
+		edges = append(edges, shoppingitem.EdgeShoppingList)
 	}
 	return edges
 }
@@ -2115,13 +2345,22 @@ func (m *ShoppingItemMutation) AddedIDs(name string) []ent.Value {
 		if id := m.shopping; id != nil {
 			return []ent.Value{*id}
 		}
+	case shoppingitem.EdgeShoppingList:
+		ids := make([]ent.Value, 0, len(m.shoppingList))
+		for id := range m.shoppingList {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ShoppingItemMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.removedshoppingList != nil {
+		edges = append(edges, shoppingitem.EdgeShoppingList)
+	}
 	return edges
 }
 
@@ -2129,18 +2368,27 @@ func (m *ShoppingItemMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *ShoppingItemMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
+	case shoppingitem.EdgeShoppingList:
+		ids := make([]ent.Value, 0, len(m.removedshoppingList))
+		for id := range m.removedshoppingList {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ShoppingItemMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.cleareditem {
 		edges = append(edges, shoppingitem.EdgeItem)
 	}
 	if m.clearedshopping {
 		edges = append(edges, shoppingitem.EdgeShopping)
+	}
+	if m.clearedshoppingList {
+		edges = append(edges, shoppingitem.EdgeShoppingList)
 	}
 	return edges
 }
@@ -2153,6 +2401,8 @@ func (m *ShoppingItemMutation) EdgeCleared(name string) bool {
 		return m.cleareditem
 	case shoppingitem.EdgeShopping:
 		return m.clearedshopping
+	case shoppingitem.EdgeShoppingList:
+		return m.clearedshoppingList
 	}
 	return false
 }
@@ -2181,8 +2431,980 @@ func (m *ShoppingItemMutation) ResetEdge(name string) error {
 	case shoppingitem.EdgeShopping:
 		m.ResetShopping()
 		return nil
+	case shoppingitem.EdgeShoppingList:
+		m.ResetShoppingList()
+		return nil
 	}
 	return fmt.Errorf("unknown ShoppingItem edge %s", name)
+}
+
+// ShoppingListMutation represents an operation that mutates the ShoppingList nodes in the graph.
+type ShoppingListMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *int
+	create_time      *time.Time
+	update_time      *time.Time
+	name             *string
+	clearedFields    map[string]struct{}
+	items            map[int]struct{}
+	removeditems     map[int]struct{}
+	cleareditems     bool
+	purchases        *int
+	clearedpurchases bool
+	done             bool
+	oldValue         func(context.Context) (*ShoppingList, error)
+	predicates       []predicate.ShoppingList
+}
+
+var _ ent.Mutation = (*ShoppingListMutation)(nil)
+
+// shoppinglistOption allows management of the mutation configuration using functional options.
+type shoppinglistOption func(*ShoppingListMutation)
+
+// newShoppingListMutation creates new mutation for the ShoppingList entity.
+func newShoppingListMutation(c config, op Op, opts ...shoppinglistOption) *ShoppingListMutation {
+	m := &ShoppingListMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeShoppingList,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withShoppingListID sets the ID field of the mutation.
+func withShoppingListID(id int) shoppinglistOption {
+	return func(m *ShoppingListMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ShoppingList
+		)
+		m.oldValue = func(ctx context.Context) (*ShoppingList, error) {
+			once.Do(func() {
+				if m.done {
+					err = fmt.Errorf("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ShoppingList.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withShoppingList sets the old ShoppingList of the mutation.
+func withShoppingList(node *ShoppingList) shoppinglistOption {
+	return func(m *ShoppingListMutation) {
+		m.oldValue = func(context.Context) (*ShoppingList, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ShoppingListMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ShoppingListMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ShoppingListMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// SetCreateTime sets the "create_time" field.
+func (m *ShoppingListMutation) SetCreateTime(t time.Time) {
+	m.create_time = &t
+}
+
+// CreateTime returns the value of the "create_time" field in the mutation.
+func (m *ShoppingListMutation) CreateTime() (r time.Time, exists bool) {
+	v := m.create_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateTime returns the old "create_time" field's value of the ShoppingList entity.
+// If the ShoppingList object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ShoppingListMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldCreateTime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldCreateTime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateTime: %w", err)
+	}
+	return oldValue.CreateTime, nil
+}
+
+// ResetCreateTime resets all changes to the "create_time" field.
+func (m *ShoppingListMutation) ResetCreateTime() {
+	m.create_time = nil
+}
+
+// SetUpdateTime sets the "update_time" field.
+func (m *ShoppingListMutation) SetUpdateTime(t time.Time) {
+	m.update_time = &t
+}
+
+// UpdateTime returns the value of the "update_time" field in the mutation.
+func (m *ShoppingListMutation) UpdateTime() (r time.Time, exists bool) {
+	v := m.update_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdateTime returns the old "update_time" field's value of the ShoppingList entity.
+// If the ShoppingList object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ShoppingListMutation) OldUpdateTime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldUpdateTime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldUpdateTime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdateTime: %w", err)
+	}
+	return oldValue.UpdateTime, nil
+}
+
+// ResetUpdateTime resets all changes to the "update_time" field.
+func (m *ShoppingListMutation) ResetUpdateTime() {
+	m.update_time = nil
+}
+
+// SetName sets the "name" field.
+func (m *ShoppingListMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ShoppingListMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the ShoppingList entity.
+// If the ShoppingList object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ShoppingListMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ShoppingListMutation) ResetName() {
+	m.name = nil
+}
+
+// AddItemIDs adds the "items" edge to the ShoppingListItem entity by ids.
+func (m *ShoppingListMutation) AddItemIDs(ids ...int) {
+	if m.items == nil {
+		m.items = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.items[ids[i]] = struct{}{}
+	}
+}
+
+// ClearItems clears the "items" edge to the ShoppingListItem entity.
+func (m *ShoppingListMutation) ClearItems() {
+	m.cleareditems = true
+}
+
+// ItemsCleared reports if the "items" edge to the ShoppingListItem entity was cleared.
+func (m *ShoppingListMutation) ItemsCleared() bool {
+	return m.cleareditems
+}
+
+// RemoveItemIDs removes the "items" edge to the ShoppingListItem entity by IDs.
+func (m *ShoppingListMutation) RemoveItemIDs(ids ...int) {
+	if m.removeditems == nil {
+		m.removeditems = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.items, ids[i])
+		m.removeditems[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedItems returns the removed IDs of the "items" edge to the ShoppingListItem entity.
+func (m *ShoppingListMutation) RemovedItemsIDs() (ids []int) {
+	for id := range m.removeditems {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ItemsIDs returns the "items" edge IDs in the mutation.
+func (m *ShoppingListMutation) ItemsIDs() (ids []int) {
+	for id := range m.items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetItems resets all changes to the "items" edge.
+func (m *ShoppingListMutation) ResetItems() {
+	m.items = nil
+	m.cleareditems = false
+	m.removeditems = nil
+}
+
+// SetPurchasesID sets the "purchases" edge to the Shopping entity by id.
+func (m *ShoppingListMutation) SetPurchasesID(id int) {
+	m.purchases = &id
+}
+
+// ClearPurchases clears the "purchases" edge to the Shopping entity.
+func (m *ShoppingListMutation) ClearPurchases() {
+	m.clearedpurchases = true
+}
+
+// PurchasesCleared reports if the "purchases" edge to the Shopping entity was cleared.
+func (m *ShoppingListMutation) PurchasesCleared() bool {
+	return m.clearedpurchases
+}
+
+// PurchasesID returns the "purchases" edge ID in the mutation.
+func (m *ShoppingListMutation) PurchasesID() (id int, exists bool) {
+	if m.purchases != nil {
+		return *m.purchases, true
+	}
+	return
+}
+
+// PurchasesIDs returns the "purchases" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PurchasesID instead. It exists only for internal usage by the builders.
+func (m *ShoppingListMutation) PurchasesIDs() (ids []int) {
+	if id := m.purchases; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPurchases resets all changes to the "purchases" edge.
+func (m *ShoppingListMutation) ResetPurchases() {
+	m.purchases = nil
+	m.clearedpurchases = false
+}
+
+// Where appends a list predicates to the ShoppingListMutation builder.
+func (m *ShoppingListMutation) Where(ps ...predicate.ShoppingList) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *ShoppingListMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (ShoppingList).
+func (m *ShoppingListMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ShoppingListMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.create_time != nil {
+		fields = append(fields, shoppinglist.FieldCreateTime)
+	}
+	if m.update_time != nil {
+		fields = append(fields, shoppinglist.FieldUpdateTime)
+	}
+	if m.name != nil {
+		fields = append(fields, shoppinglist.FieldName)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ShoppingListMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case shoppinglist.FieldCreateTime:
+		return m.CreateTime()
+	case shoppinglist.FieldUpdateTime:
+		return m.UpdateTime()
+	case shoppinglist.FieldName:
+		return m.Name()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ShoppingListMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case shoppinglist.FieldCreateTime:
+		return m.OldCreateTime(ctx)
+	case shoppinglist.FieldUpdateTime:
+		return m.OldUpdateTime(ctx)
+	case shoppinglist.FieldName:
+		return m.OldName(ctx)
+	}
+	return nil, fmt.Errorf("unknown ShoppingList field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ShoppingListMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case shoppinglist.FieldCreateTime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateTime(v)
+		return nil
+	case shoppinglist.FieldUpdateTime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdateTime(v)
+		return nil
+	case shoppinglist.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ShoppingList field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ShoppingListMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ShoppingListMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ShoppingListMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ShoppingList numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ShoppingListMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ShoppingListMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ShoppingListMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ShoppingList nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ShoppingListMutation) ResetField(name string) error {
+	switch name {
+	case shoppinglist.FieldCreateTime:
+		m.ResetCreateTime()
+		return nil
+	case shoppinglist.FieldUpdateTime:
+		m.ResetUpdateTime()
+		return nil
+	case shoppinglist.FieldName:
+		m.ResetName()
+		return nil
+	}
+	return fmt.Errorf("unknown ShoppingList field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ShoppingListMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.items != nil {
+		edges = append(edges, shoppinglist.EdgeItems)
+	}
+	if m.purchases != nil {
+		edges = append(edges, shoppinglist.EdgePurchases)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ShoppingListMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case shoppinglist.EdgeItems:
+		ids := make([]ent.Value, 0, len(m.items))
+		for id := range m.items {
+			ids = append(ids, id)
+		}
+		return ids
+	case shoppinglist.EdgePurchases:
+		if id := m.purchases; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ShoppingListMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removeditems != nil {
+		edges = append(edges, shoppinglist.EdgeItems)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ShoppingListMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case shoppinglist.EdgeItems:
+		ids := make([]ent.Value, 0, len(m.removeditems))
+		for id := range m.removeditems {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ShoppingListMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.cleareditems {
+		edges = append(edges, shoppinglist.EdgeItems)
+	}
+	if m.clearedpurchases {
+		edges = append(edges, shoppinglist.EdgePurchases)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ShoppingListMutation) EdgeCleared(name string) bool {
+	switch name {
+	case shoppinglist.EdgeItems:
+		return m.cleareditems
+	case shoppinglist.EdgePurchases:
+		return m.clearedpurchases
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ShoppingListMutation) ClearEdge(name string) error {
+	switch name {
+	case shoppinglist.EdgePurchases:
+		m.ClearPurchases()
+		return nil
+	}
+	return fmt.Errorf("unknown ShoppingList unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ShoppingListMutation) ResetEdge(name string) error {
+	switch name {
+	case shoppinglist.EdgeItems:
+		m.ResetItems()
+		return nil
+	case shoppinglist.EdgePurchases:
+		m.ResetPurchases()
+		return nil
+	}
+	return fmt.Errorf("unknown ShoppingList edge %s", name)
+}
+
+// ShoppingListItemMutation represents an operation that mutates the ShoppingListItem nodes in the graph.
+type ShoppingListItemMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *int
+	clearedFields       map[string]struct{}
+	shoppingList        *int
+	clearedshoppingList bool
+	item                *int
+	cleareditem         bool
+	purchase            *int
+	clearedpurchase     bool
+	done                bool
+	oldValue            func(context.Context) (*ShoppingListItem, error)
+	predicates          []predicate.ShoppingListItem
+}
+
+var _ ent.Mutation = (*ShoppingListItemMutation)(nil)
+
+// shoppinglistitemOption allows management of the mutation configuration using functional options.
+type shoppinglistitemOption func(*ShoppingListItemMutation)
+
+// newShoppingListItemMutation creates new mutation for the ShoppingListItem entity.
+func newShoppingListItemMutation(c config, op Op, opts ...shoppinglistitemOption) *ShoppingListItemMutation {
+	m := &ShoppingListItemMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeShoppingListItem,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withShoppingListItemID sets the ID field of the mutation.
+func withShoppingListItemID(id int) shoppinglistitemOption {
+	return func(m *ShoppingListItemMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ShoppingListItem
+		)
+		m.oldValue = func(ctx context.Context) (*ShoppingListItem, error) {
+			once.Do(func() {
+				if m.done {
+					err = fmt.Errorf("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ShoppingListItem.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withShoppingListItem sets the old ShoppingListItem of the mutation.
+func withShoppingListItem(node *ShoppingListItem) shoppinglistitemOption {
+	return func(m *ShoppingListItemMutation) {
+		m.oldValue = func(context.Context) (*ShoppingListItem, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ShoppingListItemMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ShoppingListItemMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ShoppingListItemMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// SetShoppingListID sets the "shoppingList" edge to the ShoppingList entity by id.
+func (m *ShoppingListItemMutation) SetShoppingListID(id int) {
+	m.shoppingList = &id
+}
+
+// ClearShoppingList clears the "shoppingList" edge to the ShoppingList entity.
+func (m *ShoppingListItemMutation) ClearShoppingList() {
+	m.clearedshoppingList = true
+}
+
+// ShoppingListCleared reports if the "shoppingList" edge to the ShoppingList entity was cleared.
+func (m *ShoppingListItemMutation) ShoppingListCleared() bool {
+	return m.clearedshoppingList
+}
+
+// ShoppingListID returns the "shoppingList" edge ID in the mutation.
+func (m *ShoppingListItemMutation) ShoppingListID() (id int, exists bool) {
+	if m.shoppingList != nil {
+		return *m.shoppingList, true
+	}
+	return
+}
+
+// ShoppingListIDs returns the "shoppingList" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ShoppingListID instead. It exists only for internal usage by the builders.
+func (m *ShoppingListItemMutation) ShoppingListIDs() (ids []int) {
+	if id := m.shoppingList; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetShoppingList resets all changes to the "shoppingList" edge.
+func (m *ShoppingListItemMutation) ResetShoppingList() {
+	m.shoppingList = nil
+	m.clearedshoppingList = false
+}
+
+// SetItemID sets the "item" edge to the Item entity by id.
+func (m *ShoppingListItemMutation) SetItemID(id int) {
+	m.item = &id
+}
+
+// ClearItem clears the "item" edge to the Item entity.
+func (m *ShoppingListItemMutation) ClearItem() {
+	m.cleareditem = true
+}
+
+// ItemCleared reports if the "item" edge to the Item entity was cleared.
+func (m *ShoppingListItemMutation) ItemCleared() bool {
+	return m.cleareditem
+}
+
+// ItemID returns the "item" edge ID in the mutation.
+func (m *ShoppingListItemMutation) ItemID() (id int, exists bool) {
+	if m.item != nil {
+		return *m.item, true
+	}
+	return
+}
+
+// ItemIDs returns the "item" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ItemID instead. It exists only for internal usage by the builders.
+func (m *ShoppingListItemMutation) ItemIDs() (ids []int) {
+	if id := m.item; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetItem resets all changes to the "item" edge.
+func (m *ShoppingListItemMutation) ResetItem() {
+	m.item = nil
+	m.cleareditem = false
+}
+
+// SetPurchaseID sets the "purchase" edge to the ShoppingItem entity by id.
+func (m *ShoppingListItemMutation) SetPurchaseID(id int) {
+	m.purchase = &id
+}
+
+// ClearPurchase clears the "purchase" edge to the ShoppingItem entity.
+func (m *ShoppingListItemMutation) ClearPurchase() {
+	m.clearedpurchase = true
+}
+
+// PurchaseCleared reports if the "purchase" edge to the ShoppingItem entity was cleared.
+func (m *ShoppingListItemMutation) PurchaseCleared() bool {
+	return m.clearedpurchase
+}
+
+// PurchaseID returns the "purchase" edge ID in the mutation.
+func (m *ShoppingListItemMutation) PurchaseID() (id int, exists bool) {
+	if m.purchase != nil {
+		return *m.purchase, true
+	}
+	return
+}
+
+// PurchaseIDs returns the "purchase" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PurchaseID instead. It exists only for internal usage by the builders.
+func (m *ShoppingListItemMutation) PurchaseIDs() (ids []int) {
+	if id := m.purchase; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPurchase resets all changes to the "purchase" edge.
+func (m *ShoppingListItemMutation) ResetPurchase() {
+	m.purchase = nil
+	m.clearedpurchase = false
+}
+
+// Where appends a list predicates to the ShoppingListItemMutation builder.
+func (m *ShoppingListItemMutation) Where(ps ...predicate.ShoppingListItem) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *ShoppingListItemMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (ShoppingListItem).
+func (m *ShoppingListItemMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ShoppingListItemMutation) Fields() []string {
+	fields := make([]string, 0, 0)
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ShoppingListItemMutation) Field(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ShoppingListItemMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	return nil, fmt.Errorf("unknown ShoppingListItem field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ShoppingListItemMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ShoppingListItem field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ShoppingListItemMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ShoppingListItemMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ShoppingListItemMutation) AddField(name string, value ent.Value) error {
+	return fmt.Errorf("unknown ShoppingListItem numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ShoppingListItemMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ShoppingListItemMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ShoppingListItemMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ShoppingListItem nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ShoppingListItemMutation) ResetField(name string) error {
+	return fmt.Errorf("unknown ShoppingListItem field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ShoppingListItemMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.shoppingList != nil {
+		edges = append(edges, shoppinglistitem.EdgeShoppingList)
+	}
+	if m.item != nil {
+		edges = append(edges, shoppinglistitem.EdgeItem)
+	}
+	if m.purchase != nil {
+		edges = append(edges, shoppinglistitem.EdgePurchase)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ShoppingListItemMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case shoppinglistitem.EdgeShoppingList:
+		if id := m.shoppingList; id != nil {
+			return []ent.Value{*id}
+		}
+	case shoppinglistitem.EdgeItem:
+		if id := m.item; id != nil {
+			return []ent.Value{*id}
+		}
+	case shoppinglistitem.EdgePurchase:
+		if id := m.purchase; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ShoppingListItemMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ShoppingListItemMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ShoppingListItemMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.clearedshoppingList {
+		edges = append(edges, shoppinglistitem.EdgeShoppingList)
+	}
+	if m.cleareditem {
+		edges = append(edges, shoppinglistitem.EdgeItem)
+	}
+	if m.clearedpurchase {
+		edges = append(edges, shoppinglistitem.EdgePurchase)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ShoppingListItemMutation) EdgeCleared(name string) bool {
+	switch name {
+	case shoppinglistitem.EdgeShoppingList:
+		return m.clearedshoppingList
+	case shoppinglistitem.EdgeItem:
+		return m.cleareditem
+	case shoppinglistitem.EdgePurchase:
+		return m.clearedpurchase
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ShoppingListItemMutation) ClearEdge(name string) error {
+	switch name {
+	case shoppinglistitem.EdgeShoppingList:
+		m.ClearShoppingList()
+		return nil
+	case shoppinglistitem.EdgeItem:
+		m.ClearItem()
+		return nil
+	case shoppinglistitem.EdgePurchase:
+		m.ClearPurchase()
+		return nil
+	}
+	return fmt.Errorf("unknown ShoppingListItem unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ShoppingListItemMutation) ResetEdge(name string) error {
+	switch name {
+	case shoppinglistitem.EdgeShoppingList:
+		m.ResetShoppingList()
+		return nil
+	case shoppinglistitem.EdgeItem:
+		m.ResetItem()
+		return nil
+	case shoppinglistitem.EdgePurchase:
+		m.ResetPurchase()
+		return nil
+	}
+	return fmt.Errorf("unknown ShoppingListItem edge %s", name)
 }
 
 // SubLabelMutation represents an operation that mutates the SubLabel nodes in the graph.

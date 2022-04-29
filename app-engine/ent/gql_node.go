@@ -18,6 +18,8 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
@@ -56,7 +58,7 @@ func (i *Item) Node(ctx context.Context) (node *Node, err error) {
 		ID:     i.ID,
 		Type:   "Item",
 		Fields: make([]*Field, 4),
-		Edges:  make([]*Edge, 3),
+		Edges:  make([]*Edge, 4),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(i.CreateTime); err != nil {
@@ -121,6 +123,16 @@ func (i *Item) Node(ctx context.Context) (node *Node, err error) {
 	if err != nil {
 		return nil, err
 	}
+	node.Edges[3] = &Edge{
+		Type: "ShoppingListItem",
+		Name: "shoppingList",
+	}
+	err = i.QueryShoppingList().
+		Select(shoppinglistitem.FieldID).
+		Scan(ctx, &node.Edges[3].IDs)
+	if err != nil {
+		return nil, err
+	}
 	return node, nil
 }
 
@@ -129,7 +141,7 @@ func (s *Shopping) Node(ctx context.Context) (node *Node, err error) {
 		ID:     s.ID,
 		Type:   "Shopping",
 		Fields: make([]*Field, 3),
-		Edges:  make([]*Edge, 2),
+		Edges:  make([]*Edge, 3),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(s.CreateTime); err != nil {
@@ -176,6 +188,16 @@ func (s *Shopping) Node(ctx context.Context) (node *Node, err error) {
 	if err != nil {
 		return nil, err
 	}
+	node.Edges[2] = &Edge{
+		Type: "ShoppingList",
+		Name: "shoppingList",
+	}
+	err = s.QueryShoppingList().
+		Select(shoppinglist.FieldID).
+		Scan(ctx, &node.Edges[2].IDs)
+	if err != nil {
+		return nil, err
+	}
 	return node, nil
 }
 
@@ -184,7 +206,7 @@ func (si *ShoppingItem) Node(ctx context.Context) (node *Node, err error) {
 		ID:     si.ID,
 		Type:   "ShoppingItem",
 		Fields: make([]*Field, 7),
-		Edges:  make([]*Edge, 2),
+		Edges:  make([]*Edge, 3),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(si.CreateTime); err != nil {
@@ -260,6 +282,111 @@ func (si *ShoppingItem) Node(ctx context.Context) (node *Node, err error) {
 	err = si.QueryShopping().
 		Select(shopping.FieldID).
 		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[2] = &Edge{
+		Type: "ShoppingListItem",
+		Name: "shoppingList",
+	}
+	err = si.QueryShoppingList().
+		Select(shoppinglistitem.FieldID).
+		Scan(ctx, &node.Edges[2].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (sl *ShoppingList) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     sl.ID,
+		Type:   "ShoppingList",
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 2),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(sl.CreateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "create_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(sl.UpdateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "update_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(sl.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "ShoppingListItem",
+		Name: "items",
+	}
+	err = sl.QueryItems().
+		Select(shoppinglistitem.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "Shopping",
+		Name: "purchases",
+	}
+	err = sl.QueryPurchases().
+		Select(shopping.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (sli *ShoppingListItem) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     sli.ID,
+		Type:   "ShoppingListItem",
+		Fields: make([]*Field, 0),
+		Edges:  make([]*Edge, 3),
+	}
+	node.Edges[0] = &Edge{
+		Type: "ShoppingList",
+		Name: "shoppingList",
+	}
+	err = sli.QueryShoppingList().
+		Select(shoppinglist.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "Item",
+		Name: "item",
+	}
+	err = sli.QueryItem().
+		Select(item.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[2] = &Edge{
+		Type: "ShoppingItem",
+		Name: "purchase",
+	}
+	err = sli.QueryPurchase().
+		Select(shoppingitem.FieldID).
+		Scan(ctx, &node.Edges[2].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -523,6 +650,24 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 			return nil, err
 		}
 		return n, nil
+	case shoppinglist.Table:
+		n, err := c.ShoppingList.Query().
+			Where(shoppinglist.ID(id)).
+			CollectFields(ctx, "ShoppingList").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case shoppinglistitem.Table:
+		n, err := c.ShoppingListItem.Query().
+			Where(shoppinglistitem.ID(id)).
+			CollectFields(ctx, "ShoppingListItem").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case sublabel.Table:
 		n, err := c.SubLabel.Query().
 			Where(sublabel.ID(id)).
@@ -653,6 +798,32 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		nodes, err := c.ShoppingItem.Query().
 			Where(shoppingitem.IDIn(ids...)).
 			CollectFields(ctx, "ShoppingItem").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case shoppinglist.Table:
+		nodes, err := c.ShoppingList.Query().
+			Where(shoppinglist.IDIn(ids...)).
+			CollectFields(ctx, "ShoppingList").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case shoppinglistitem.Table:
+		nodes, err := c.ShoppingListItem.Query().
+			Where(shoppinglistitem.IDIn(ids...)).
+			CollectFields(ctx, "ShoppingListItem").
 			All(ctx)
 		if err != nil {
 			return nil, err
