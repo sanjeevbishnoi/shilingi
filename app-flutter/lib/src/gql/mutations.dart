@@ -131,3 +131,9 @@ var mutationCreateShoppingList = gql(r'''
       }
     }
 ''');
+
+var mutationDeleteShoppingList = gql(r'''
+    mutation deleteShoppingList($id: Int!) {
+      deleteShoppingList(id: $id)
+    }
+''');

@@ -113,7 +113,12 @@ class _Body extends HookWidget {
       child: ListView.builder(
         padding: const EdgeInsets.only(top: 30.0),
         itemBuilder: (context, index) {
-          return _ShoppingList(list: connection.edges[index].node);
+          return _ShoppingList(
+            list: connection.edges[index].node,
+            onDelete: () {
+              queryResult.refetch();
+            },
+          );
         },
         itemCount: connection.edges.length,
       ),
@@ -180,8 +185,10 @@ class _EmptyList extends StatelessWidget {
 
 class _ShoppingList extends StatelessWidget {
   final ShoppingList list;
+  final VoidCallback? onDelete;
 
-  const _ShoppingList({Key? key, required this.list}) : super(key: key);
+  const _ShoppingList({Key? key, required this.list, this.onDelete})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -197,9 +204,13 @@ class _ShoppingList extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(6.0),
-            onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(
+            onTap: () async {
+              var result = await Navigator.of(context).push(MaterialPageRoute(
                   builder: (context) => ShoppingListDetail(id: list.id)));
+              // If result is true, we will need to reload the list
+              if (result is bool && result && onDelete != null) {
+                onDelete!();
+              }
             },
             splashColor: Colors.black45,
             child: Padding(
