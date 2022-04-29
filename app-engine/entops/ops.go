@@ -6,14 +6,17 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/vektah/gqlparser/v2/gqlerror"
+	"go.uber.org/zap"
+
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/schema/utils"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 // CreatePurchase verifies and creates a new purchase
@@ -376,4 +379,26 @@ func CreateShoppingList(ctx context.Context, input model.ShoppingListInput) (*en
 	}
 
 	return shoppingList, nil
+}
+
+// DeleteShoppingList checks whether the shopping list is connect to an existing purchase
+// If such a connection exists, the delete will not succeed
+func DeleteShoppingList(ctx context.Context, id int) (bool, error) {
+	cli := ent.FromContext(ctx)
+	if exists, err := cli.ShoppingList.Query().Where(
+		shoppinglist.ID(id),
+		shoppinglist.HasPurchases(),
+	).Exist(ctx); exists || err != nil {
+		if err == nil {
+			err = gqlerror.Errorf("A shopping list that is already connect to a purchase cannot be deleted")
+		}
+		return false, err
+	}
+
+	if err := cli.ShoppingList.DeleteOneID(id).Exec(ctx); err != nil {
+		zap.S().Errorf("unable to delete a shopping list: %w", err)
+		return false, gqlerror.Errorf("We were an able perform the requested action at the moment")
+	}
+
+	return true, nil
 }

@@ -150,6 +150,11 @@ func (r *mutationResolver) CreateShoppingList(ctx context.Context, input model.S
 	return entops.CreateShoppingList(ctx, input)
 }
 
+func (r *mutationResolver) DeleteShoppingList(ctx context.Context, id int) (*bool, error) {
+	result, err := entops.DeleteShoppingList(ctx, id)
+	return &result, err
+}
+
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {
 	query := r.cli.Item.Query()
 	if tagID != nil {
