@@ -4,6 +4,13 @@ type Item implements Node {
   slug: String!
   tags: [Tag!]!
   sublabel: SubLabel
+  # We would like to perform custom ordering for shopping items
+  purchases(
+    after: Cursor
+    first: Int
+    before: Cursor
+    last: Int
+  ): ShoppingItemConnection @goModel(forceResolver: true)
 }
 
 input ItemInput {
@@ -36,6 +43,17 @@ type ShoppingItem implements Node {
   item: Item!
   shopping: Shopping!
   total: Decimal!
+}
+
+type ShoppingItemConnection {
+  totalCount: Int!
+  pageInfo: PageInfo!
+  edges: [ShoppingItemEdge]
+}
+
+type ShoppingItemEdge {
+  node: ShoppingItem
+  cursor: Cursor!
 }
 
 type Shopping implements Node {
