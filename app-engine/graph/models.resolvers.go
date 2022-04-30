@@ -22,6 +22,11 @@ func (r *itemResolver) Purchases(ctx context.Context, obj *ent.Item, after *ent.
 			s.Join(t).On(s.C(shoppingitem.ShoppingColumn), t.C(shopping.FieldID))
 			s.OrderBy(sql.Desc(t.C(shopping.FieldDate)))
 		}).
+		// Weird error is through since we are ordering by a field in a related entity
+		// The specific field: FieldDate is not part of the Select list statement and
+		// ent by default includes a Distinct keyword to the id field which is also used to
+		// order by
+		Unique(false).
 		Paginate(ctx, after, first, before, last)
 }
 
