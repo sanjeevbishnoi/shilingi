@@ -9,6 +9,12 @@ import '../constants/constants.dart';
 import '../gql/gql.dart';
 import '../models/model.dart';
 
+enum _FilterState {
+  all,
+  completed,
+  uncompleted,
+}
+
 class ShoppingListDetail extends HookWidget {
   final int id;
 
@@ -16,6 +22,7 @@ class ShoppingListDetail extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final filterState = useState<_FilterState>(_FilterState.uncompleted);
     var selectedItems = useState<List<int>>([]);
     var queryResult = useQuery(
       QueryOptions(document: shoppingDetailQuery, variables: {
@@ -65,6 +72,22 @@ class ShoppingListDetail extends HookWidget {
       );
     } else {
       list = ShoppingList.fromJson(result.data!['node']);
+      var items = list.items;
+      switch (filterState.value) {
+        case _FilterState.all:
+          // We can just pass, this is the default
+          break;
+        case _FilterState.completed:
+          items = items!
+              .where((item) => selectedItems.value.contains(item.id))
+              .toList();
+          break;
+        case _FilterState.uncompleted:
+          items = items!
+              .where((item) => !selectedItems.value.contains(item.id))
+              .toList();
+          break;
+      }
 
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,7 +102,7 @@ class ShoppingListDetail extends HookWidget {
                 const EdgeInsets.symmetric(horizontal: 30.0, vertical: 5.0),
             child: Text(
                 'Last modified: ' +
-                    DateFormat("EEE, MMM d, ''yy'").format(
+                    DateFormat("EEE h:ma, MMM d, ''yy'").format(
                       list.updateTime!.toLocal(),
                     ),
                 style: const TextStyle(color: Colors.black45)),
@@ -90,37 +113,66 @@ class ShoppingListDetail extends HookWidget {
             child: Wrap(
               spacing: 4.0,
               children: [
-                _SelectButton(selected: true, text: 'All', onPressed: () {}),
                 _SelectButton(
-                    selected: false, text: 'Completed', onPressed: () {}),
+                    selected: filterState.value == _FilterState.all,
+                    text: 'All',
+                    onPressed: () {
+                      filterState.value = _FilterState.all;
+                    }),
                 _SelectButton(
-                    selected: false, text: 'Uncompleted', onPressed: () {}),
+                    selected: filterState.value == _FilterState.completed,
+                    text: 'Completed',
+                    onPressed: () {
+                      filterState.value = _FilterState.completed;
+                    }),
+                _SelectButton(
+                    selected: filterState.value == _FilterState.uncompleted,
+                    text: 'Uncompleted',
+                    onPressed: () {
+                      filterState.value = _FilterState.uncompleted;
+                    }),
               ],
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                itemBuilder: (context, index) {
-                  final item = list!.items![index];
-                  return _Item(
-                    item: item,
-                    selected: selectedItems.value.contains(item.id),
-                    onChanged: (val) {
-                      if (val != null) {
-                        final list = selectedItems.value.toList();
-                        if (val) {
-                          list.add(item.id);
-                        } else {
-                          list.remove(item.id);
+          if (items!.isNotEmpty)
+            Expanded(
+              child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                  itemBuilder: (context, index) {
+                    final item = items![index];
+                    return _Item(
+                      item: item,
+                      selected: selectedItems.value.contains(item.id),
+                      onChanged: (val) {
+                        if (val != null) {
+                          final list = selectedItems.value.toList();
+                          if (val) {
+                            list.add(item.id);
+                          } else {
+                            list.remove(item.id);
+                          }
+                          selectedItems.value = list;
                         }
-                        selectedItems.value = list;
-                      }
-                    },
-                  );
-                },
-                itemCount: list.items!.length),
-          ),
+                      },
+                    );
+                  },
+                  itemCount: items.length),
+            ),
+          if (items.isEmpty) ...[
+            const SizedBox(height: 10.0),
+            Center(
+              child: UnDraw(
+                illustration: filterState.value == _FilterState.uncompleted
+                    ? UnDrawIllustration.well_done
+                    : UnDrawIllustration.not_found,
+                color: Colors.lightGreen,
+                height: 100,
+              ),
+            ),
+            if (list.items!.isNotEmpty &&
+                filterState.value == _FilterState.uncompleted)
+              const Center(child: Text('Great job!')),
+          ]
         ],
       );
     }
