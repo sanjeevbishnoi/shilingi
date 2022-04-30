@@ -6,31 +6,22 @@ package graph
 import (
 	"context"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/shopspring/decimal"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
-	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
 )
 
 func (r *itemResolver) Purchases(ctx context.Context, obj *ent.Item, after *ent.Cursor, first *int, before *ent.Cursor, last *int) (*ent.ShoppingItemConnection, error) {
-	return r.cli.Shopping.Query().
-		Where(
-			shopping.HasItemsWith(
-				shoppingitem.HasItemWith(
-					item.ID(obj.ID),
-				),
-			),
-		).
-		Order(ent.Desc(shopping.FieldDate)).
-		QueryItems().
-		Where(
-			shoppingitem.HasItemWith(
-				item.ID(obj.ID),
-			),
-		).
+	return obj.QueryPurchases().
+		Order(func(s *sql.Selector) {
+			t := sql.Table(shopping.Table)
+			s.Join(t).On(s.C(shoppingitem.ShoppingColumn), t.C(shopping.FieldID))
+			s.OrderBy(sql.Desc(t.C(shopping.FieldDate)))
+		}).
 		Paginate(ctx, after, first, before, last)
 }
 

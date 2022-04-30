@@ -216,6 +216,20 @@ var shoppingDetailQuery = gql(r'''
             item {
               id
               name
+              purchases(first: 1) {
+                edges {
+                  node {
+                    id
+                    total
+                    pricePerUnit
+                    units
+                    shopping {
+                      id
+                      date
+                    }
+                  }
+                }
+              }
             }
           }
         }

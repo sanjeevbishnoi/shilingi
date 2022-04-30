@@ -71,7 +71,7 @@ class _PurchaseDetailWidget extends StatelessWidget {
             ),
             const SizedBox(width: 10.0),
             Text(
-              purchase.vendor.name,
+              purchase.vendor!.name,
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 20.0,

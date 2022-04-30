@@ -205,6 +205,7 @@ class _ShoppingList extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(6.0),
             onTap: () async {
+              print('id: ${list.id.runtimeType}');
               var result = await Navigator.of(context).push(MaterialPageRoute(
                   builder: (context) => ShoppingListDetail(id: list.id)));
               // If result is true, we will need to reload the list

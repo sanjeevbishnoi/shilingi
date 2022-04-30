@@ -312,7 +312,7 @@ class _PurchaseItem extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 10.0),
-                        Text('Bought from ${item.shopping!.vendor.name}')
+                        Text('Bought from ${item.shopping!.vendor!.name}')
                       ],
                     ),
                   ),

@@ -4,6 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:ms_undraw/ms_undraw.dart';
 import 'package:intl/intl.dart';
+import 'package:timeago_flutter/timeago_flutter.dart';
 
 import '../constants/constants.dart';
 import '../gql/gql.dart';
@@ -254,9 +255,9 @@ class _Item extends StatelessWidget {
         onTap: () {
           onChanged(!selected);
         },
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          children: [
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+          child: Row(mainAxisSize: MainAxisSize.max, children: [
             Checkbox(
               value: selected,
               onChanged: onChanged,
@@ -265,11 +266,44 @@ class _Item extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 5.0),
-            Text(item.item.name),
-          ],
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Text(
+                      item.item.name,
+                      style: TextStyle(
+                          fontSize: 16.0,
+                          decoration:
+                              selected ? TextDecoration.lineThrough : null),
+                    ),
+                  ],
+                ),
+                if (purchase != null)
+                  Timeago(
+                      builder: (_, value) => Tooltip(
+                            child: Text('Last bought $value',
+                                style: const TextStyle(color: Colors.grey)),
+                            message: DateFormat("EEE, MMM d, ''y'")
+                                .format(purchase!.date),
+                          ),
+                      date: purchase!.date),
+              ],
+            )
+          ]),
         ),
       ),
     );
+  }
+
+  Purchase? get purchase {
+    var length = item.item.purchases?.edges?.length ?? 0;
+    if (length == 0) {
+      return null;
+    }
+    return item.item.purchases!.edges![0].node!.shopping;
   }
 }
 
