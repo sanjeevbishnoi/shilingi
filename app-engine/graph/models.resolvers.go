@@ -5,16 +5,33 @@ package graph
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/shopspring/decimal"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
+	"github.com/kingzbauer/shilingi/app-engine/ent/item"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
-	"github.com/shopspring/decimal"
 )
 
 func (r *itemResolver) Purchases(ctx context.Context, obj *ent.Item, after *ent.Cursor, first *int, before *ent.Cursor, last *int) (*ent.ShoppingItemConnection, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.cli.Shopping.Query().
+		Where(
+			shopping.HasItemsWith(
+				shoppingitem.HasItemWith(
+					item.ID(obj.ID),
+				),
+			),
+		).
+		Order(ent.Desc(shopping.FieldDate)).
+		QueryItems().
+		Where(
+			shoppingitem.HasItemWith(
+				item.ID(obj.ID),
+			),
+		).
+		Paginate(ctx, after, first, before, last)
 }
 
 func (r *shoppingResolver) Total(ctx context.Context, obj *ent.Shopping) (*decimal.Decimal, error) {
