@@ -1,3 +1,6 @@
+directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION
+    | FIELD_DEFINITION
+
 type Item implements Node {
   id: ID!
   name: String!
@@ -10,7 +13,7 @@ type Item implements Node {
     first: Int
     before: Cursor
     last: Int
-  ): ShoppingItemConnection @goModel(forceResolver: true)
+  ): ShoppingItemConnection @goField(forceResolver: true)
 }
 
 input ItemInput {

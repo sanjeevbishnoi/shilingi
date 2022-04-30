@@ -40,6 +40,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Item() ItemResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Shopping() ShoppingResolver
@@ -51,11 +52,12 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Item struct {
-		ID       func(childComplexity int) int
-		Name     func(childComplexity int) int
-		Slug     func(childComplexity int) int
-		Sublabel func(childComplexity int) int
-		Tags     func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Name      func(childComplexity int) int
+		Purchases func(childComplexity int, after *ent.Cursor, first *int, before *ent.Cursor, last *int) int
+		Slug      func(childComplexity int) int
+		Sublabel  func(childComplexity int) int
+		Tags      func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -115,6 +117,17 @@ type ComplexityRoot struct {
 		Units        func(childComplexity int) int
 	}
 
+	ShoppingItemConnection struct {
+		Edges      func(childComplexity int) int
+		PageInfo   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	ShoppingItemEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
+	}
+
 	ShoppingList struct {
 		CreateTime func(childComplexity int) int
 		ID         func(childComplexity int) int
@@ -160,6 +173,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type ItemResolver interface {
+	Purchases(ctx context.Context, obj *ent.Item, after *ent.Cursor, first *int, before *ent.Cursor, last *int) (*ent.ShoppingItemConnection, error)
+}
 type MutationResolver interface {
 	CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error)
 	CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error)
@@ -223,6 +239,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Item.Name(childComplexity), true
+
+	case "Item.purchases":
+		if e.complexity.Item.Purchases == nil {
+			break
+		}
+
+		args, err := ec.field_Item_purchases_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Item.Purchases(childComplexity, args["after"].(*ent.Cursor), args["first"].(*int), args["before"].(*ent.Cursor), args["last"].(*int)), true
 
 	case "Item.slug":
 		if e.complexity.Item.Slug == nil {
@@ -649,6 +677,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ShoppingItem.Units(childComplexity), true
 
+	case "ShoppingItemConnection.edges":
+		if e.complexity.ShoppingItemConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.ShoppingItemConnection.Edges(childComplexity), true
+
+	case "ShoppingItemConnection.pageInfo":
+		if e.complexity.ShoppingItemConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.ShoppingItemConnection.PageInfo(childComplexity), true
+
+	case "ShoppingItemConnection.totalCount":
+		if e.complexity.ShoppingItemConnection.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.ShoppingItemConnection.TotalCount(childComplexity), true
+
+	case "ShoppingItemEdge.cursor":
+		if e.complexity.ShoppingItemEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.ShoppingItemEdge.Cursor(childComplexity), true
+
+	case "ShoppingItemEdge.node":
+		if e.complexity.ShoppingItemEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.ShoppingItemEdge.Node(childComplexity), true
+
 	case "ShoppingList.createTime":
 		if e.complexity.ShoppingList.CreateTime == nil {
 			break
@@ -874,12 +937,22 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "graph/models.graphqls", Input: `type Item implements Node {
+	{Name: "graph/models.graphqls", Input: `directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION
+    | FIELD_DEFINITION
+
+type Item implements Node {
   id: ID!
   name: String!
   slug: String!
   tags: [Tag!]!
   sublabel: SubLabel
+  # We would like to perform custom ordering for shopping items
+  purchases(
+    after: Cursor
+    first: Int
+    before: Cursor
+    last: Int
+  ): ShoppingItemConnection @goField(forceResolver: true)
 }
 
 input ItemInput {
@@ -912,6 +985,17 @@ type ShoppingItem implements Node {
   item: Item!
   shopping: Shopping!
   total: Decimal!
+}
+
+type ShoppingItemConnection {
+  totalCount: Int!
+  pageInfo: PageInfo!
+  edges: [ShoppingItemEdge]
+}
+
+type ShoppingItemEdge {
+  node: ShoppingItem
+  cursor: Cursor!
 }
 
 type Shopping implements Node {
@@ -1050,6 +1134,48 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Item_purchases_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *ent.Cursor
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg0, err = ec.unmarshalOCursor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *ent.Cursor
+	if tmp, ok := rawArgs["before"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+		arg2, err = ec.unmarshalOCursor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg2
+	var arg3 *int
+	if tmp, ok := rawArgs["last"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
+		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["last"] = arg3
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_addItemsToSubLabel_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1766,6 +1892,45 @@ func (ec *executionContext) _Item_sublabel(ctx context.Context, field graphql.Co
 	res := resTmp.(*ent.SubLabel)
 	fc.Result = res
 	return ec.marshalOSubLabel2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐSubLabel(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Item_purchases(ctx context.Context, field graphql.CollectedField, obj *ent.Item) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Item",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Item_purchases_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Item().Purchases(rctx, obj, args["after"].(*ent.Cursor), args["first"].(*int), args["before"].(*ent.Cursor), args["last"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.ShoppingItemConnection)
+	fc.Result = res
+	return ec.marshalOShoppingItemConnection2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItemConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3431,6 +3596,175 @@ func (ec *executionContext) _ShoppingItem_total(ctx context.Context, field graph
 	res := resTmp.(*decimal.Decimal)
 	fc.Result = res
 	return ec.marshalNDecimal2ᚖgithubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingItemConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItemConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingItemConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TotalCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingItemConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItemConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingItemConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(ent.PageInfo)
+	fc.Result = res
+	return ec.marshalNPageInfo2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingItemConnection_edges(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItemConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingItemConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.ShoppingItemEdge)
+	fc.Result = res
+	return ec.marshalOShoppingItemEdge2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItemEdge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingItemEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItemEdge) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingItemEdge",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.ShoppingItem)
+	fc.Result = res
+	return ec.marshalOShoppingItem2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItem(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ShoppingItemEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingItemEdge) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ShoppingItemEdge",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(ent.Cursor)
+	fc.Result = res
+	return ec.marshalNCursor2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ShoppingList_id(ctx context.Context, field graphql.CollectedField, obj *ent.ShoppingList) (ret graphql.Marshaler) {
@@ -5711,6 +6045,17 @@ func (ec *executionContext) _Item(ctx context.Context, sel ast.SelectionSet, obj
 				res = ec._Item_sublabel(ctx, field, obj)
 				return res
 			})
+		case "purchases":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Item_purchases(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6148,6 +6493,69 @@ func (ec *executionContext) _ShoppingItem(ctx context.Context, sel ast.Selection
 				}
 				return res
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var shoppingItemConnectionImplementors = []string{"ShoppingItemConnection"}
+
+func (ec *executionContext) _ShoppingItemConnection(ctx context.Context, sel ast.SelectionSet, obj *ent.ShoppingItemConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, shoppingItemConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ShoppingItemConnection")
+		case "totalCount":
+			out.Values[i] = ec._ShoppingItemConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._ShoppingItemConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "edges":
+			out.Values[i] = ec._ShoppingItemConnection_edges(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var shoppingItemEdgeImplementors = []string{"ShoppingItemEdge"}
+
+func (ec *executionContext) _ShoppingItemEdge(ctx context.Context, sel ast.SelectionSet, obj *ent.ShoppingItemEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, shoppingItemEdgeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ShoppingItemEdge")
+		case "node":
+			out.Values[i] = ec._ShoppingItemEdge_node(ctx, field, obj)
+		case "cursor":
+			out.Values[i] = ec._ShoppingItemEdge_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7782,6 +8190,61 @@ func (ec *executionContext) marshalOShoppingItem2ᚖgithubᚗcomᚋkingzbauerᚋ
 		return graphql.Null
 	}
 	return ec._ShoppingItem(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOShoppingItemConnection2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItemConnection(ctx context.Context, sel ast.SelectionSet, v *ent.ShoppingItemConnection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ShoppingItemConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOShoppingItemEdge2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItemEdge(ctx context.Context, sel ast.SelectionSet, v []*ent.ShoppingItemEdge) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOShoppingItemEdge2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItemEdge(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOShoppingItemEdge2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingItemEdge(ctx context.Context, sel ast.SelectionSet, v *ent.ShoppingItemEdge) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ShoppingItemEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOShoppingList2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingList(ctx context.Context, sel ast.SelectionSet, v *ent.ShoppingList) graphql.Marshaler {

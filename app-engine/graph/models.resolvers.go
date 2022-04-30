@@ -5,12 +5,17 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
 	"github.com/shopspring/decimal"
 )
+
+func (r *itemResolver) Purchases(ctx context.Context, obj *ent.Item, after *ent.Cursor, first *int, before *ent.Cursor, last *int) (*ent.ShoppingItemConnection, error) {
+	panic(fmt.Errorf("not implemented"))
+}
 
 func (r *shoppingResolver) Total(ctx context.Context, obj *ent.Shopping) (*decimal.Decimal, error) {
 	items, err := obj.QueryItems().
@@ -36,11 +41,15 @@ func (r *shoppingItemResolver) Total(ctx context.Context, obj *ent.ShoppingItem)
 	return &val, nil
 }
 
+// Item returns generated.ItemResolver implementation.
+func (r *Resolver) Item() generated.ItemResolver { return &itemResolver{r} }
+
 // Shopping returns generated.ShoppingResolver implementation.
 func (r *Resolver) Shopping() generated.ShoppingResolver { return &shoppingResolver{r} }
 
 // ShoppingItem returns generated.ShoppingItemResolver implementation.
 func (r *Resolver) ShoppingItem() generated.ShoppingItemResolver { return &shoppingItemResolver{r} }
 
+type itemResolver struct{ *Resolver }
 type shoppingResolver struct{ *Resolver }
 type shoppingItemResolver struct{ *Resolver }
