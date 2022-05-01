@@ -1,3 +1,5 @@
+library model;
+
 import 'package:json_annotation/json_annotation.dart';
 
 import '../components/azlistview_component.dart' show Nameable;

@@ -9,12 +9,14 @@ import './src/constants/constants.dart';
 const apiUrl = String.fromEnvironment('API_URL',
     defaultValue: 'http://localhost:8080/query');
 
-void main() {
+void main() async {
+  await initHiveForFlutter();
+
   final HttpLink httpLink = HttpLink(apiUrl);
   ValueNotifier<GraphQLClient> client = ValueNotifier(
     GraphQLClient(
       link: httpLink,
-      cache: GraphQLCache(),
+      cache: GraphQLCache(store: HiveStore()),
     ),
   );
 

@@ -205,7 +205,6 @@ class _ShoppingList extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(6.0),
             onTap: () async {
-              print('id: ${list.id.runtimeType}');
               var result = await Navigator.of(context).push(MaterialPageRoute(
                   builder: (context) => ShoppingListDetail(id: list.id)));
               // If result is true, we will need to reload the list
@@ -239,7 +238,7 @@ class _ShoppingList extends StatelessWidget {
                             Timeago(
                               builder: (_, value) => Tooltip(
                                 child: Text(
-                                  value,
+                                  'Created $value',
                                   style: const TextStyle(color: Colors.black45),
                                 ),
                                 message: DateFormat("EEE, MMM d, ''yy'")

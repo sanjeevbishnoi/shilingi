@@ -5,6 +5,7 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:ms_undraw/ms_undraw.dart';
 import 'package:intl/intl.dart';
 import 'package:timeago_flutter/timeago_flutter.dart';
+import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 
 import '../constants/constants.dart';
 import '../gql/gql.dart';
@@ -23,7 +24,7 @@ class ShoppingListDetail extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final filterState = useState<_FilterState>(_FilterState.uncompleted);
+    final filterState = useState<_FilterState>(_FilterState.all);
     var selectedItems = useState<List<int>>([]);
     var queryResult = useQuery(
       QueryOptions(document: shoppingDetailQuery, variables: {
@@ -256,7 +257,7 @@ class _Item extends StatelessWidget {
           onChanged(!selected);
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+          padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 8.0),
           child: Row(mainAxisSize: MainAxisSize.max, children: [
             Checkbox(
               value: selected,
@@ -277,19 +278,57 @@ class _Item extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 16.0,
                           decoration:
-                              selected ? TextDecoration.lineThrough : null),
+                              selected ? TextDecoration.lineThrough : null,
+                          fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
-                if (purchase != null)
-                  Timeago(
-                      builder: (_, value) => Tooltip(
-                            child: Text('Last bought $value',
-                                style: const TextStyle(color: Colors.grey)),
-                            message: DateFormat("EEE, MMM d, ''y'")
-                                .format(purchase!.date),
-                          ),
-                      date: purchase!.date),
+                const SizedBox(height: 8.0),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.date_range,
+                      size: 14.0,
+                      color: Colors.black45,
+                    ),
+                    const SizedBox(width: 5.0),
+                    if (purchase != null)
+                      Wrap(children: [
+                        const Text('Last bought ',
+                            style: TextStyle(color: Colors.grey)),
+                        Timeago(
+                            builder: (_, value) => Tooltip(
+                                  child: Text(value,
+                                      style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontWeight: FontWeight.w600)),
+                                  message: DateFormat("EEE, MMM d, ''y'")
+                                      .format(purchase!.date),
+                                ),
+                            date: purchase!.date),
+                      ]),
+                    if (purchase == null)
+                      const Text('No purchase record',
+                          style: TextStyle(color: Colors.grey))
+                  ],
+                ),
+                if (purchaseItem != null)
+                  Row(
+                    children: [
+                      // const Icon(
+                      // FeatherIcons.creditCard,
+                      // size: 14.0,
+                      // color: Colors.black45,
+                      // ),
+                      const Text('At', style: TextStyle(color: Colors.black45)),
+                      const SizedBox(width: 5.0),
+                      Text(
+                          NumberFormat('#,##0 /=', 'en_US')
+                              .format(purchaseItem!.total),
+                          style: const TextStyle(
+                              color: Colors.grey, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
               ],
             )
           ]),
@@ -304,6 +343,15 @@ class _Item extends StatelessWidget {
       return null;
     }
     return item.item.purchases!.edges![0].node!.shopping;
+  }
+
+  PurchaseItem? get purchaseItem {
+    var length = item.item.purchases?.edges?.length ?? 0;
+    if (length == 0) {
+      return null;
+    }
+
+    return item.item.purchases!.edges![0].node;
   }
 }
 
