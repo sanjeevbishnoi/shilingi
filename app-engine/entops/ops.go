@@ -408,5 +408,22 @@ func DeleteShoppingList(ctx context.Context, id int) (bool, error) {
 // This for the moment it left as a burden on the client app
 func AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingList, error) {
 	cli := ent.FromContext(ctx)
-	return cli.ShoppingList.UpdateOneID(id).AddItemIDs(items...).Save(ctx)
+	shoppingList, err := cli.ShoppingList.Get(ctx, id)
+	if err != nil {
+		return nil, gqlerror.Errorf("Shopping list not found")
+	}
+	bulkCreate := []*ent.ShoppingListItemCreate{}
+	for _, i := range items {
+		create := cli.ShoppingListItem.Create().
+			SetItemID(i).
+			SetShoppingList(shoppingList)
+		bulkCreate = append(bulkCreate, create)
+	}
+	_, err = cli.ShoppingListItem.CreateBulk(bulkCreate...).Save(ctx)
+	if err != nil {
+		zap.S().Errorf("unable to save list items: %w", err)
+		return nil, gqlerror.Errorf("Uable to update shopping list")
+	}
+
+	return shoppingList, nil
 }

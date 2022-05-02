@@ -20,6 +20,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
 	"github.com/vektah/gqlparser/v2/gqlerror"
+	"go.uber.org/zap"
 )
 
 func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error) {
@@ -156,7 +157,12 @@ func (r *mutationResolver) DeleteShoppingList(ctx context.Context, id int) (*boo
 }
 
 func (r *mutationResolver) AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingList, error) {
-	return entops.AddToShoppingList(ctx, id, items)
+	list, err := entops.AddToShoppingList(ctx, id, items)
+	if err != nil {
+		zap.S().Errorf("unable to add to a shopping list: %w", err)
+		return nil, gqlerror.Errorf("One of the items is already connected to a shopping list")
+	}
+	return list, nil
 }
 
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {
