@@ -62,6 +62,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddItemsToSubLabel      func(childComplexity int, subLabelID int, itemIDs []int) int
+		AddToShoppingList       func(childComplexity int, id int, items []int) int
 		CreateItem              func(childComplexity int, input model.ItemInput) int
 		CreatePurchase          func(childComplexity int, input model.ShoppingInput) int
 		CreateShoppingList      func(childComplexity int, input model.ShoppingListInput) int
@@ -192,6 +193,7 @@ type MutationResolver interface {
 	DeleteSubLabel(ctx context.Context, subLabelID int) (bool, error)
 	CreateShoppingList(ctx context.Context, input model.ShoppingListInput) (*ent.ShoppingList, error)
 	DeleteShoppingList(ctx context.Context, id int) (*bool, error)
+	AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingList, error)
 }
 type QueryResolver interface {
 	Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error)
@@ -284,6 +286,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AddItemsToSubLabel(childComplexity, args["subLabelID"].(int), args["itemIDs"].([]int)), true
+
+	case "Mutation.addToShoppingList":
+		if e.complexity.Mutation.AddToShoppingList == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addToShoppingList_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddToShoppingList(childComplexity, args["id"].(int), args["items"].([]int)), true
 
 	case "Mutation.createItem":
 		if e.complexity.Mutation.CreateItem == nil {
@@ -1126,6 +1140,7 @@ type Mutation {
   deleteSubLabel(subLabelID: Int!): Boolean!
   createShoppingList(input: ShoppingListInput!): ShoppingList!
   deleteShoppingList(id: Int!): Boolean
+  addToShoppingList(id: Int!, items: [Int!]!): ShoppingList
 }
 `, BuiltIn: false},
 }
@@ -1198,6 +1213,30 @@ func (ec *executionContext) field_Mutation_addItemsToSubLabel_args(ctx context.C
 		}
 	}
 	args["itemIDs"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addToShoppingList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 []int
+	if tmp, ok := rawArgs["items"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("items"))
+		arg1, err = ec.unmarshalNInt2ᚕintᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["items"] = arg1
 	return args, nil
 }
 
@@ -2552,6 +2591,45 @@ func (ec *executionContext) _Mutation_deleteShoppingList(ctx context.Context, fi
 	res := resTmp.(*bool)
 	fc.Result = res
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addToShoppingList(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addToShoppingList_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddToShoppingList(rctx, args["id"].(int), args["items"].([]int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.ShoppingList)
+	fc.Result = res
+	return ec.marshalOShoppingList2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingList(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *ent.PageInfo) (ret graphql.Marshaler) {
@@ -6148,6 +6226,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deleteShoppingList":
 			out.Values[i] = ec._Mutation_deleteShoppingList(ctx, field)
+		case "addToShoppingList":
+			out.Values[i] = ec._Mutation_addToShoppingList(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

@@ -7,12 +7,11 @@ import (
 	"context"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/shopspring/decimal"
-
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
+	"github.com/shopspring/decimal"
 )
 
 func (r *itemResolver) Purchases(ctx context.Context, obj *ent.Item, after *ent.Cursor, first *int, before *ent.Cursor, last *int) (*ent.ShoppingItemConnection, error) {
