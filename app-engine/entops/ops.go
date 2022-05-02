@@ -402,3 +402,11 @@ func DeleteShoppingList(ctx context.Context, id int) (bool, error) {
 
 	return true, nil
 }
+
+// AddToShoppingList adds items to the shopping list. The function does on attempt
+// make sure that the provided items aren't already part of the shopping list.
+// This for the moment it left as a burden on the client app
+func AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingList, error) {
+	cli := ent.FromContext(ctx)
+	return cli.ShoppingList.UpdateOneID(id).AddItemIDs(items...).Save(ctx)
+}
