@@ -13,6 +13,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/schema/utils"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
@@ -426,4 +427,42 @@ func AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingL
 	}
 
 	return shoppingList, nil
+}
+
+// RemoveFromShoppingList removes a select set of entries from the shopping list
+// only if they aren't already linked to an existing purchase
+func RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.ShoppingList, error) {
+	cli := ent.FromContext(ctx)
+	list, err := cli.ShoppingList.Get(ctx, id)
+	if err != nil {
+		return nil, gqlerror.Errorf("Shopping list not found")
+	}
+
+	// Check if there are items which are already linked to a purchase
+	if exists, err := cli.ShoppingListItem.Query().
+		Where(
+			shoppinglistitem.IDIn(listItems...),
+			shoppinglistitem.HasPurchase(),
+		).Exist(ctx); exists || err != nil {
+		if exists {
+			return nil, gqlerror.Errorf("Some of the items are already purchased")
+		}
+		zap.S().Errorf("Unable to query the db: %w", err)
+		return nil, gqlerror.Errorf("Something went wrong. We have been notified of this")
+	}
+
+	count, err := cli.ShoppingListItem.Delete().
+		Where(
+			shoppinglistitem.IDIn(listItems...),
+			shoppinglistitem.HasShoppingListWith(
+				shoppinglist.ID(id),
+			),
+		).Exec(ctx)
+	zap.S().Debugf("Delete %d from shopping list: %d", count, id)
+	if err != nil {
+		zap.S().Errorf("unable to remove items from the shopping list: %w", err)
+		return nil, gqlerror.Errorf("Something went wrong. Kindly try again in a few.")
+	}
+
+	return list, nil
 }

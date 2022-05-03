@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -167,7 +166,7 @@ func (r *mutationResolver) AddToShoppingList(ctx context.Context, id int, items 
 }
 
 func (r *mutationResolver) RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.ShoppingList, error) {
-	panic(fmt.Errorf("not implemented"))
+	return entops.RemoveFromShoppingList(ctx, id, listItems)
 }
 
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {
