@@ -74,6 +74,7 @@ type ComplexityRoot struct {
 		EditItem                func(childComplexity int, id int, input model.ItemInput) int
 		EditSubLabel            func(childComplexity int, subLabelID int, input model.SubLabelInput) int
 		EditTag                 func(childComplexity int, id int, input model.TagInput) int
+		RemoveFromShoppingList  func(childComplexity int, id int, listItems []int) int
 		RemoveItemsFromSubLabel func(childComplexity int, subLabelID int, itemIDs []int) int
 		TagItems                func(childComplexity int, itemIDs []int, tagID int) int
 		UntagItems              func(childComplexity int, itemIDs []int, tagID int) int
@@ -194,6 +195,7 @@ type MutationResolver interface {
 	CreateShoppingList(ctx context.Context, input model.ShoppingListInput) (*ent.ShoppingList, error)
 	DeleteShoppingList(ctx context.Context, id int) (*bool, error)
 	AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingList, error)
+	RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.ShoppingList, error)
 }
 type QueryResolver interface {
 	Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error)
@@ -430,6 +432,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.EditTag(childComplexity, args["id"].(int), args["input"].(model.TagInput)), true
+
+	case "Mutation.removeFromShoppingList":
+		if e.complexity.Mutation.RemoveFromShoppingList == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeFromShoppingList_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveFromShoppingList(childComplexity, args["id"].(int), args["listItems"].([]int)), true
 
 	case "Mutation.removeItemsFromSubLabel":
 		if e.complexity.Mutation.RemoveItemsFromSubLabel == nil {
@@ -1141,6 +1155,7 @@ type Mutation {
   createShoppingList(input: ShoppingListInput!): ShoppingList!
   deleteShoppingList(id: Int!): Boolean
   addToShoppingList(id: Int!, items: [Int!]!): ShoppingList
+  removeFromShoppingList(id: Int!, listItems: [Int!]!): ShoppingList
 }
 `, BuiltIn: false},
 }
@@ -1438,6 +1453,30 @@ func (ec *executionContext) field_Mutation_editTag_args(ctx context.Context, raw
 		}
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeFromShoppingList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 []int
+	if tmp, ok := rawArgs["listItems"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("listItems"))
+		arg1, err = ec.unmarshalNInt2ᚕintᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["listItems"] = arg1
 	return args, nil
 }
 
@@ -2619,6 +2658,45 @@ func (ec *executionContext) _Mutation_addToShoppingList(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().AddToShoppingList(rctx, args["id"].(int), args["items"].([]int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.ShoppingList)
+	fc.Result = res
+	return ec.marshalOShoppingList2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingList(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_removeFromShoppingList(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_removeFromShoppingList_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveFromShoppingList(rctx, args["id"].(int), args["listItems"].([]int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6228,6 +6306,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_deleteShoppingList(ctx, field)
 		case "addToShoppingList":
 			out.Values[i] = ec._Mutation_addToShoppingList(ctx, field)
+		case "removeFromShoppingList":
+			out.Values[i] = ec._Mutation_removeFromShoppingList(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

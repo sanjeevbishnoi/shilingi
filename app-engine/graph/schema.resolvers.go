@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -163,6 +164,10 @@ func (r *mutationResolver) AddToShoppingList(ctx context.Context, id int, items 
 		return nil, gqlerror.Errorf("One of the items is already connected to a shopping list")
 	}
 	return list, nil
+}
+
+func (r *mutationResolver) RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.ShoppingList, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {
