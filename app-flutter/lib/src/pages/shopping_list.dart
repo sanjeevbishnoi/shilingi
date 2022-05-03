@@ -32,7 +32,8 @@ class ShoppingListPage extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(MaterialPageRoute(
                     builder: (context) => const SelectItemsPage(
-                        title: 'Create new shopping list')));
+                        title: 'Create new shopping list',
+                        buttonString: 'Create new list')));
               },
             ),
           ],
@@ -167,7 +168,8 @@ class _EmptyList extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(MaterialPageRoute(
                     builder: (context) => const SelectItemsPage(
-                        title: 'Create new shopping list')));
+                        title: 'Create new shopping list',
+                        buttonString: 'Create new list')));
               },
               child: const Text('Create first list'),
               style: ButtonStyle(

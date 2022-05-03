@@ -5,17 +5,19 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:ms_undraw/ms_undraw.dart';
 import 'package:intl/intl.dart';
 import 'package:timeago_flutter/timeago_flutter.dart';
-import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 
 import '../constants/constants.dart';
 import '../gql/gql.dart';
 import '../models/model.dart';
+import './select_items.dart' show SelectItemsPage;
 
 enum _FilterState {
   all,
   completed,
   uncompleted,
 }
+
+var _format = NumberFormat('#,##0', 'en_US');
 
 class ShoppingListDetail extends HookWidget {
   final int id;
@@ -182,12 +184,77 @@ class ShoppingListDetail extends HookWidget {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(backgroundColor: mainScaffoldBg, actions: [
-          _ShoppingListPopupButton(list: list),
+          _ShoppingListPopupButton(
+            list: list,
+            onItemsAdded: (ids) {
+              _addItems(context, ids, queryResult.refetch);
+            },
+          ),
         ]),
         backgroundColor: mainScaffoldBg,
         body: body,
+        floatingActionButton: list != null
+            ? FloatingActionButton(
+                onPressed: () {
+                  showModalBottomSheet(
+                      context: context,
+                      builder: (context) {
+                        return _ShowApproxTotal(list: list!);
+                      },
+                      backgroundColor: Colors.transparent);
+                },
+                child: const Icon(Icons.keyboard_arrow_up),
+                backgroundColor: Colors.white,
+              )
+            : null,
       ),
     );
+  }
+
+  void _addItems(BuildContext context, List<int> ids, Refetch refetch) {
+    final cli = GraphQLProvider.of(context).value;
+    final f = cli.mutate(
+        MutationOptions(document: mutationAddToShoppingList, variables: {
+      'id': id,
+      'items': ids,
+    }));
+
+    showDialog(
+        context: context,
+        builder: (context) {
+          f.then((value) {
+            Navigator.of(context).pop();
+            if (value.hasException) {
+              _showSnackbar(
+                  context,
+                  'Unable to add items to list. If this is an error on our part, we are working to resolve it',
+                  true);
+            } else {
+              _showSnackbar(context, 'List updated successfully', false);
+              refetch();
+            }
+          });
+          return WillPopScope(
+              child: AlertDialog(
+                content: Row(
+                  children: const [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 10.0),
+                    Expanded(child: Text('Updating list...')),
+                  ],
+                ),
+              ),
+              onWillPop: () {
+                return f.then((v) => true);
+              });
+        });
+  }
+
+  void _showSnackbar(BuildContext context, String msg, bool isException) {
+    final snackBar = SnackBar(
+        content: Text(msg),
+        backgroundColor: isException ? Colors.redAccent : Colors.black87);
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 }
 
@@ -357,12 +424,15 @@ class _Item extends StatelessWidget {
 
 enum _ShoppingListPopupActions {
   delete,
+  add,
 }
 
 class _ShoppingListPopupButton extends StatelessWidget {
   final ShoppingList? list;
+  final ValueChanged<List<int>> onItemsAdded;
 
-  const _ShoppingListPopupButton({Key? key, required this.list})
+  const _ShoppingListPopupButton(
+      {Key? key, required this.list, required this.onItemsAdded})
       : super(key: key);
 
   @override
@@ -379,6 +449,17 @@ class _ShoppingListPopupButton extends StatelessWidget {
               Navigator.of(context).pop(true);
             }
             break;
+          case _ShoppingListPopupActions.add:
+            final results = await Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const SelectItemsPage(
+                      title: 'Update list',
+                      buttonString: 'Add selected items',
+                      resultsOnPop: true,
+                    )));
+            if (results is List<int>) {
+              onItemsAdded(results);
+            }
+            break;
         }
       },
       itemBuilder: (context) => [
@@ -393,6 +474,16 @@ class _ShoppingListPopupButton extends StatelessWidget {
             ),
             value: _ShoppingListPopupActions.delete,
           ),
+        PopupMenuItem<_ShoppingListPopupActions>(
+          child: Row(
+            children: const [
+              Icon(Icons.add, color: Colors.grey),
+              SizedBox(width: 5.0),
+              Text('Add to list')
+            ],
+          ),
+          value: _ShoppingListPopupActions.add,
+        ),
       ],
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
@@ -472,5 +563,67 @@ class _ShoppingListPopupButton extends StatelessWidget {
         },
         barrierDismissible: false,
         useSafeArea: true);
+  }
+}
+
+class _ShowApproxTotal extends StatelessWidget {
+  final ShoppingList list;
+
+  const _ShowApproxTotal({Key? key, required this.list}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(6.0),
+      color: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4.0),
+        ),
+        padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Align(
+              alignment: Alignment.center,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10.0, top: 10.0),
+                width: 30.0,
+                height: 4.0,
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Approx. Total',
+                    style: TextStyle(color: Colors.grey)),
+                const SizedBox(width: 10.0),
+                Text('Ksh ' + _format.format(total),
+                    style: const TextStyle(
+                        fontSize: 20.0, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double get total {
+    var total = 0.0;
+    list.items?.forEach((element) {
+      final purchases = element.item.purchases;
+      if (purchases != null && purchases.edges!.isNotEmpty) {
+        total += purchases.edges![0].node!.total;
+      }
+    });
+
+    return total;
   }
 }

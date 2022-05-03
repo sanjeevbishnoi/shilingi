@@ -10,9 +10,19 @@ import '../constants/constants.dart';
 import '../models/model.dart';
 import '../components/components.dart';
 
+typedef ItemsSelected = Function(List<int>);
+
 class SelectItemsPage extends HookWidget {
   final String title;
-  const SelectItemsPage({Key? key, required this.title}) : super(key: key);
+  final String buttonString;
+  final bool resultsOnPop;
+
+  const SelectItemsPage(
+      {Key? key,
+      required this.title,
+      required this.buttonString,
+      this.resultsOnPop = false})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -202,19 +212,22 @@ class SelectItemsPage extends HookWidget {
                         builder: (context) {
                           return ElevatedButton(
                             onPressed: () {
-                              showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  isDismissible: false,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) {
-                                    return _SetTitleModal(
-                                      selectedItems: selectedItems.value,
-                                    );
-                                  });
+                              if (!resultsOnPop) {
+                                showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    isDismissible: false,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) {
+                                      return _SetTitleModal(
+                                        selectedItems: selectedItems.value,
+                                      );
+                                    });
+                              } else {
+                                Navigator.of(context).pop(selectedItems.value);
+                              }
                             },
-                            child: Text(
-                                'Create new list (${selectedItems.value.length})'),
+                            child: Text(buttonString),
                             style: ButtonStyle(
                               shape: MaterialStateProperty.all<
                                   RoundedRectangleBorder>(

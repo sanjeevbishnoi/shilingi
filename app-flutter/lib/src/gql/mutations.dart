@@ -137,3 +137,11 @@ var mutationDeleteShoppingList = gql(r'''
       deleteShoppingList(id: $id)
     }
 ''');
+
+var mutationAddToShoppingList = gql(r'''
+    mutation addToShoppingList($id: Int!, $items: [Int!]!) {
+      addToShoppingList(id: $id, items: $items) {
+        id
+      }
+    }
+''');
