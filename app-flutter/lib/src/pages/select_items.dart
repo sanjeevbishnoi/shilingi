@@ -29,7 +29,9 @@ class SelectItemsPage extends HookWidget {
     var itemsResult = useState<List<Item>>([]);
     var tags = useState<List<Tag>>([]);
     var selectedTags = useState<Set<Tag>>({});
-    var queryResult = useQuery(QueryOptions(document: itemsQueryWithLabels));
+    var queryResult = useQuery(QueryOptions(
+        document: itemsQueryWithLabels,
+        fetchPolicy: FetchPolicy.cacheAndNetwork));
     var selectedItems = useState<List<int>>([]);
     var result = queryResult.result;
     var createButtonPosition = useState<double>(-50.0);

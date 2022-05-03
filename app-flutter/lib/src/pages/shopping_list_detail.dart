@@ -146,6 +146,7 @@ class ShoppingListDetail extends HookWidget {
                     final item = items![index];
                     return _Item(
                       item: item,
+                      shoppingListId: id,
                       selected: selectedItems.value.contains(item.id),
                       onChanged: (val) {
                         if (val != null) {
@@ -157,6 +158,9 @@ class ShoppingListDetail extends HookWidget {
                           }
                           selectedItems.value = list;
                         }
+                      },
+                      onDeleted: (item) {
+                        queryResult.refetch();
                       },
                     );
                   },
@@ -300,14 +304,18 @@ class _SelectButton extends StatelessWidget {
 
 class _Item extends StatelessWidget {
   final ShoppingListItem item;
+  final int shoppingListId;
   final bool selected;
   final ValueChanged<bool?> onChanged;
+  final ValueChanged<ShoppingListItem> onDeleted;
 
   const _Item(
       {Key? key,
       required this.item,
       required this.selected,
-      required this.onChanged})
+      required this.onChanged,
+      required this.onDeleted,
+      required this.shoppingListId})
       : super(key: key);
 
   @override
@@ -318,87 +326,126 @@ class _Item extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(8.0),
       ),
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          onChanged(!selected);
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 8.0),
-          child: Row(mainAxisSize: MainAxisSize.max, children: [
-            Checkbox(
-              value: selected,
-              onChanged: onChanged,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20.0),
-              ),
+      child: Dismissible(
+        background: Container(
+          decoration: BoxDecoration(
+            color: Colors.redAccent,
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Row(children: const [
+            Padding(
+              padding: EdgeInsets.only(left: 30.0, top: 30.0, bottom: 30.0),
+              child: Icon(Icons.delete),
             ),
-            const SizedBox(width: 5.0),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Text(
-                      item.item.name,
-                      style: TextStyle(
-                          fontSize: 16.0,
-                          decoration:
-                              selected ? TextDecoration.lineThrough : null,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
+            SizedBox(width: 10.0),
+            Text('Delete', style: TextStyle(fontSize: 16.0)),
+          ]),
+        ),
+        direction: DismissDirection.startToEnd,
+        confirmDismiss: (direction) async {
+          final cli = GraphQLProvider.of(context).value;
+          final result = await cli.mutate(MutationOptions(
+            document: mutationRemoveFromShoppingList,
+            variables: {
+              'id': shoppingListId,
+              'listItems': [item.id],
+            },
+          ));
+          if (result.hasException) {
+            var snackBar =
+                const SnackBar(content: Text('Unable to remove item.'));
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            return Future.value(false);
+          }
+          onDeleted(item);
+          return Future.value(true);
+        },
+        key: ValueKey(item.id),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            onChanged(!selected);
+          },
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(vertical: 14.0, horizontal: 8.0),
+            child: Row(mainAxisSize: MainAxisSize.max, children: [
+              Checkbox(
+                value: selected,
+                onChanged: onChanged,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20.0),
                 ),
-                const SizedBox(height: 8.0),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.date_range,
-                      size: 14.0,
-                      color: Colors.black45,
-                    ),
-                    const SizedBox(width: 5.0),
-                    if (purchase != null)
-                      Wrap(children: [
-                        const Text('Last bought ',
-                            style: TextStyle(color: Colors.grey)),
-                        Timeago(
-                            builder: (_, value) => Tooltip(
-                                  child: Text(value,
-                                      style: const TextStyle(
-                                          color: Colors.grey,
-                                          fontWeight: FontWeight.w600)),
-                                  message: DateFormat("EEE, MMM d, ''y'")
-                                      .format(purchase!.date),
-                                ),
-                            date: purchase!.date),
-                      ]),
-                    if (purchase == null)
-                      const Text('No purchase record',
-                          style: TextStyle(color: Colors.grey))
-                  ],
-                ),
-                if (purchaseItem != null)
+              ),
+              const SizedBox(width: 5.0),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Row(
+                    mainAxisSize: MainAxisSize.max,
                     children: [
-                      // const Icon(
-                      // FeatherIcons.creditCard,
-                      // size: 14.0,
-                      // color: Colors.black45,
-                      // ),
-                      const Text('At', style: TextStyle(color: Colors.black45)),
-                      const SizedBox(width: 5.0),
                       Text(
-                          NumberFormat('#,##0 /=', 'en_US')
-                              .format(purchaseItem!.total),
-                          style: const TextStyle(
-                              color: Colors.grey, fontWeight: FontWeight.w600)),
+                        item.item.name,
+                        style: TextStyle(
+                            fontSize: 16.0,
+                            decoration:
+                                selected ? TextDecoration.lineThrough : null,
+                            fontWeight: FontWeight.w600),
+                      ),
                     ],
                   ),
-              ],
-            )
-          ]),
+                  const SizedBox(height: 8.0),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.date_range,
+                        size: 14.0,
+                        color: Colors.black45,
+                      ),
+                      const SizedBox(width: 5.0),
+                      if (purchase != null)
+                        Wrap(children: [
+                          const Text('Last bought ',
+                              style: TextStyle(color: Colors.grey)),
+                          Timeago(
+                              builder: (_, value) => Tooltip(
+                                    child: Text(value,
+                                        style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontWeight: FontWeight.w600)),
+                                    message: DateFormat("EEE, MMM d, ''y'")
+                                        .format(purchase!.date),
+                                  ),
+                              date: purchase!.date),
+                        ]),
+                      if (purchase == null)
+                        const Text('No purchase record',
+                            style: TextStyle(color: Colors.grey))
+                    ],
+                  ),
+                  if (purchaseItem != null)
+                    Row(
+                      children: [
+                        // const Icon(
+                        // FeatherIcons.creditCard,
+                        // size: 14.0,
+                        // color: Colors.black45,
+                        // ),
+                        const Text('At',
+                            style: TextStyle(color: Colors.black45)),
+                        const SizedBox(width: 5.0),
+                        Text(
+                            NumberFormat('#,##0 /=', 'en_US')
+                                .format(purchaseItem!.total),
+                            style: const TextStyle(
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                ],
+              )
+            ]),
+          ),
         ),
       ),
     );

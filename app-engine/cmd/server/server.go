@@ -15,6 +15,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/vektah/gqlparser/v2/gqlerror"
+	"go.uber.org/zap"
 
 	"github.com/kingzbauer/shilingi/app-engine/config"
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -26,12 +27,15 @@ import (
 const defaultPort = "8080"
 
 func main() {
+	if logger, err := zap.NewDevelopment(); err == nil {
+		defer logger.Sync()
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
 	cfg := config.SetupConfig()
-	fmt.Printf("%+v\n", cfg)
 
 	// Open a DB connection
 	cli, err := ent.Open(cfg.DBType, cfg.DBURI)

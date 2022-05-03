@@ -435,6 +435,7 @@ func RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.
 	cli := ent.FromContext(ctx)
 	list, err := cli.ShoppingList.Get(ctx, id)
 	if err != nil {
+		zap.S().Errorf("error: %s", err)
 		return nil, gqlerror.Errorf("Shopping list not found")
 	}
 

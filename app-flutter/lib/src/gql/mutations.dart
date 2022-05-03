@@ -145,3 +145,11 @@ var mutationAddToShoppingList = gql(r'''
       }
     }
 ''');
+
+var mutationRemoveFromShoppingList = gql(r'''
+    mutation removeFromShoppingList($id: Int!, $listItems: [Int!]!) {
+      removeFromShoppingList(id: $id, listItems: $listItems) {
+        id
+      }
+    }
+''');
