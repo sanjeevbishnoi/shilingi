@@ -5,6 +5,7 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:ms_undraw/ms_undraw.dart';
 import 'package:intl/intl.dart';
 import 'package:timeago_flutter/timeago_flutter.dart';
+import 'package:badges/badges.dart';
 
 import '../constants/constants.dart';
 import '../gql/gql.dart';
@@ -37,6 +38,7 @@ class ShoppingListDetail extends HookWidget {
 
     ShoppingList? list;
     Widget body;
+    var all = 0;
 
     if (result.isLoading && result.data == null) {
       body = const Center(
@@ -77,17 +79,19 @@ class ShoppingListDetail extends HookWidget {
     } else {
       list = ShoppingList.fromJson(result.data!['node']);
       var items = list.items;
+      all = items!.length;
+
       switch (filterState.value) {
         case _FilterState.all:
           // We can just pass, this is the default
           break;
         case _FilterState.completed:
-          items = items!
+          items = items
               .where((item) => selectedItems.value.contains(item.id))
               .toList();
           break;
         case _FilterState.uncompleted:
-          items = items!
+          items = items
               .where((item) => !selectedItems.value.contains(item.id))
               .toList();
           break;
@@ -115,30 +119,36 @@ class ShoppingListDetail extends HookWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 30.0, vertical: 14.0),
             child: Wrap(
-              spacing: 4.0,
+              spacing: 6.0,
               children: [
                 _SelectButton(
-                    selected: filterState.value == _FilterState.all,
-                    text: 'All',
-                    onPressed: () {
-                      filterState.value = _FilterState.all;
-                    }),
+                  selected: filterState.value == _FilterState.all,
+                  text: 'All',
+                  onPressed: () {
+                    filterState.value = _FilterState.all;
+                  },
+                  count: all,
+                ),
                 _SelectButton(
-                    selected: filterState.value == _FilterState.completed,
-                    text: 'Completed',
-                    onPressed: () {
-                      filterState.value = _FilterState.completed;
-                    }),
+                  selected: filterState.value == _FilterState.completed,
+                  text: 'Completed',
+                  onPressed: () {
+                    filterState.value = _FilterState.completed;
+                  },
+                  count: selectedItems.value.length,
+                ),
                 _SelectButton(
-                    selected: filterState.value == _FilterState.uncompleted,
-                    text: 'Uncompleted',
-                    onPressed: () {
-                      filterState.value = _FilterState.uncompleted;
-                    }),
+                  selected: filterState.value == _FilterState.uncompleted,
+                  text: 'Uncompleted',
+                  onPressed: () {
+                    filterState.value = _FilterState.uncompleted;
+                  },
+                  count: all - selectedItems.value.length,
+                ),
               ],
             ),
           ),
-          if (items!.isNotEmpty)
+          if (items.isNotEmpty)
             Expanded(
               child: ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 30.0),
@@ -266,37 +276,44 @@ class _SelectButton extends StatelessWidget {
   final bool selected;
   final String text;
   final VoidCallback onPressed;
+  final int count;
 
   const _SelectButton(
       {Key? key,
       required this.selected,
       required this.text,
-      required this.onPressed})
+      required this.onPressed,
+      required this.count})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onPressed,
-      child: Text(text,
-          style: selected
-              ? const TextStyle(color: Colors.lightGreen)
-              : const TextStyle(color: Colors.black87)),
-      style: ButtonStyle(
-        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-          RoundedRectangleBorder(
-            side: selected
-                ? const BorderSide(color: Colors.lightGreen)
-                : BorderSide.none,
-            borderRadius: BorderRadius.circular(8.0),
+    return Badge(
+      badgeContent: Text(count.toString(),
+          style: const TextStyle(fontSize: 10.0, color: Colors.white)),
+      badgeColor: selected ? Colors.lightGreen : Colors.grey,
+      child: TextButton(
+        onPressed: onPressed,
+        child: Text(text,
+            style: selected
+                ? const TextStyle(color: Colors.lightGreen)
+                : const TextStyle(color: Colors.black87)),
+        style: ButtonStyle(
+          shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+            RoundedRectangleBorder(
+              side: selected
+                  ? const BorderSide(color: Colors.lightGreen)
+                  : BorderSide.none,
+              borderRadius: BorderRadius.circular(8.0),
+            ),
           ),
+          padding: MaterialStateProperty.all<EdgeInsets>(
+            const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
+          ),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          // minimumSize:
+          // MaterialStateProperty.all<Size?>(const Size.fromHeight(20.0)),
         ),
-        padding: MaterialStateProperty.all<EdgeInsets>(
-          const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
-        ),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        // minimumSize:
-        // MaterialStateProperty.all<Size?>(const Size.fromHeight(20.0)),
       ),
     );
   }
