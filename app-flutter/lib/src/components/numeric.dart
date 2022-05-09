@@ -1,0 +1,81 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+
+class SpinBox extends HookWidget {
+  final int initial;
+
+  const SpinBox({Key? key, this.initial = 1}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final initialValue = useState<int>(initial < 1 ? 1 : initial);
+    final controller = useTextEditingController();
+    controller.text = initialValue.value.toString();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30.0),
+      ),
+      padding: const EdgeInsets.all(4.0),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _CircularButton(
+              onPressed: () {
+                if (initialValue.value > 1) {
+                  initialValue.value -= 1;
+                }
+              },
+              icon: Icons.remove),
+          const SizedBox(width: 5.0),
+          SizedBox(
+            width: 50,
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 5.0),
+          _CircularButton(
+              onPressed: () {
+                initialValue.value += 1;
+              },
+              icon: Icons.add),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircularButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final IconData icon;
+
+  const _CircularButton({Key? key, required this.onPressed, required this.icon})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      child: Center(
+        child: Ink(
+          decoration: const ShapeDecoration(
+            color: Color(0xFFefefef),
+            shape: CircleBorder(),
+          ),
+          child: IconButton(
+            onPressed: onPressed,
+            icon: Icon(icon),
+          ),
+        ),
+      ),
+    );
+  }
+}

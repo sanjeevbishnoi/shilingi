@@ -11,6 +11,7 @@ import '../constants/constants.dart';
 import '../gql/gql.dart';
 import '../models/model.dart';
 import './select_items.dart' show SelectItemsPage;
+import '../components/components.dart';
 
 enum _FilterState {
   all,
@@ -160,13 +161,25 @@ class ShoppingListDetail extends HookWidget {
                       selected: selectedItems.value.contains(item.id),
                       onChanged: (val) {
                         if (val != null) {
-                          final list = selectedItems.value.toList();
-                          if (val) {
-                            list.add(item.id);
-                          } else {
-                            list.remove(item.id);
-                          }
-                          selectedItems.value = list;
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (context) {
+                              return Padding(
+                                padding: MediaQuery.of(context).viewInsets,
+                                child: _ConfirmItemCheck(item: item.item),
+                              );
+                            },
+                          ).then((value) {
+                            final list = selectedItems.value.toList();
+                            if (val) {
+                              list.add(item.id);
+                            } else {
+                              list.remove(item.id);
+                            }
+                            selectedItems.value = list;
+                          });
                         }
                       },
                       onDeleted: (item) {
@@ -642,7 +655,7 @@ class _ShowApproxTotal extends StatelessWidget {
       color: Colors.transparent,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: mainScaffoldBg,
           borderRadius: BorderRadius.circular(4.0),
         ),
         padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
@@ -689,5 +702,95 @@ class _ShowApproxTotal extends StatelessWidget {
     });
 
     return total;
+  }
+}
+
+class _ConfirmItemCheck extends StatelessWidget {
+  final Item item;
+
+  const _ConfirmItemCheck({Key? key, required this.item}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(6.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: mainScaffoldBg,
+          borderRadius: BorderRadius.circular(6.0),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10.0, top: 10.0),
+                  width: 30.0,
+                  height: 4.0,
+                  decoration: BoxDecoration(
+                    color: Colors.grey,
+                    borderRadius: BorderRadius.circular(20.0),
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(item.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 24.0)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  _AmountTextField(),
+                  SizedBox(width: 8.0),
+                  SpinBox(),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AmountTextField extends HookWidget {
+  const _AmountTextField({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30.0),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 15.0),
+      child: Row(
+        children: const [
+          Text('Ksh'),
+          SizedBox(width: 5.0),
+          SizedBox(
+            width: 70.0,
+            child: TextField(
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
