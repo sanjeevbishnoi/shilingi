@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:ms_undraw/ms_undraw.dart';
+import 'package:intl/intl.dart';
 
 import '../gql/gql.dart';
 import '../constants/constants.dart';
@@ -538,8 +539,14 @@ class _SetTitleModal extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    var text = useState<String>('');
+    var text = useState<String>(
+        'Shopping ' + DateFormat('EEE h:ma, MMM d').format(DateTime.now()));
     var loading = useState<bool>(false);
+    var controller = useTextEditingController();
+    useEffect(() {
+      controller.text = text.value;
+      return;
+    }, [text]);
 
     return Padding(
       padding: MediaQuery.of(context).viewInsets,
@@ -568,6 +575,7 @@ class _SetTitleModal extends HookWidget {
                 elevation: 2,
                 borderRadius: BorderRadius.circular(20.0),
                 child: TextField(
+                  controller: controller,
                   onChanged: (val) {
                     text.value = val;
                   },
@@ -591,6 +599,14 @@ class _SetTitleModal extends HookWidget {
                         vertical: 12, horizontal: 14.0),
                     filled: true,
                     fillColor: Colors.white,
+                    prefixIcon: text.value.isNotEmpty
+                        ? IconButton(
+                            onPressed: () {
+                              text.value = "";
+                              controller.clear();
+                            },
+                            icon: const Icon(Icons.clear))
+                        : null,
                   ),
                   enabled: !loading.value,
                 ),
@@ -600,7 +616,8 @@ class _SetTitleModal extends HookWidget {
                 onPressed: text.value.isNotEmpty && !loading.value
                     ? () async {
                         loading.value = true;
-                        var result = await _createList(context, text.value);
+                        var result =
+                            await _createList(context, controller.text);
                         if (result.hasException) {
                           var snackBar = const SnackBar(
                               content: Text(

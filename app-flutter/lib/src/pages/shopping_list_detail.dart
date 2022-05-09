@@ -546,7 +546,7 @@ class _ShoppingListPopupButton extends StatelessWidget {
               children: const [
                 Icon(Icons.delete, color: Colors.redAccent),
                 SizedBox(width: 5.0),
-                Text('Delete')
+                Text('Delete list')
               ],
             ),
             value: _ShoppingListPopupActions.delete,
