@@ -15,39 +15,8 @@ import './select_items.dart' show SelectItemsPage;
 import '../gql/gql.dart';
 import './shopping_list_detail.dart';
 
-class ShoppingListPage extends StatelessWidget {
+class ShoppingListPage extends HookWidget {
   const ShoppingListPage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Shopping lists'),
-          backgroundColor: mainScaffoldBg,
-          centerTitle: true,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => const SelectItemsPage(
-                        title: 'Create new shopping list',
-                        buttonString: 'Create new list')));
-              },
-            ),
-          ],
-        ),
-        backgroundColor: mainScaffoldBg,
-        body: const _Body(),
-        bottomNavigationBar: const ClassicBottomNavigation(),
-      ),
-    );
-  }
-}
-
-class _Body extends HookWidget {
-  const _Body({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -60,14 +29,53 @@ class _Body extends HookWidget {
       ),
     );
 
-    if (queryResult.result.isLoading && queryResult.result.data == null) {
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Shopping lists'),
+          backgroundColor: mainScaffoldBg,
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () async {
+                await Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => const SelectItemsPage(
+                        title: 'Create new shopping list',
+                        buttonString: 'Create new list')));
+                queryResult.refetch();
+              },
+            ),
+          ],
+        ),
+        backgroundColor: mainScaffoldBg,
+        body: _Body(
+          refetch: queryResult.refetch,
+          result: queryResult.result,
+        ),
+        bottomNavigationBar: const ClassicBottomNavigation(),
+      ),
+    );
+  }
+}
+
+class _Body extends HookWidget {
+  final Refetch refetch;
+  final QueryResult result;
+
+  const _Body({Key? key, required this.refetch, required this.result})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    if (result.isLoading && result.data == null) {
       return const Padding(
         padding: EdgeInsets.all(30.0),
         child: Center(
           child: CircularProgressIndicator(),
         ),
       );
-    } else if (queryResult.result.hasException) {
+    } else if (result.hasException) {
       return Padding(
         padding: const EdgeInsets.all(30.0),
         child: Center(
@@ -84,7 +92,7 @@ class _Body extends HookWidget {
               const SizedBox(height: 4.0),
               TextButton(
                 onPressed: () {
-                  queryResult.refetch();
+                  refetch();
                 },
                 child: const Text('Retry reload'),
                 style: ButtonStyle(
@@ -101,13 +109,11 @@ class _Body extends HookWidget {
       );
     }
 
-    final connection = ShoppingListConnection.fromJson(
-        queryResult.result.data!['shoppingList']);
+    final connection =
+        ShoppingListConnection.fromJson(result.data!['shoppingList']);
 
     if (connection.edges.isEmpty) {
-      // TODO(jack): add refresh when a user navigates back from creating the
-      // first list
-      return const _EmptyList();
+      return _EmptyList(refetch: refetch);
     }
 
     return RefreshIndicator(
@@ -117,21 +123,23 @@ class _Body extends HookWidget {
           return _ShoppingList(
             list: connection.edges[index].node,
             onDelete: () {
-              queryResult.refetch();
+              refetch();
             },
           );
         },
         itemCount: connection.edges.length,
       ),
       onRefresh: () {
-        return queryResult.refetch();
+        return refetch();
       },
     );
   }
 }
 
 class _EmptyList extends StatelessWidget {
-  const _EmptyList({Key? key}) : super(key: key);
+  final Refetch refetch;
+
+  const _EmptyList({Key? key, required this.refetch}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -165,11 +173,12 @@ class _EmptyList extends StatelessWidget {
             ),
             const SizedBox(height: 10.0),
             TextButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
+              onPressed: () async {
+                await Navigator.of(context).push(MaterialPageRoute(
                     builder: (context) => const SelectItemsPage(
                         title: 'Create new shopping list',
                         buttonString: 'Create new list')));
+                refetch();
               },
               child: const Text('Create first list'),
               style: ButtonStyle(
