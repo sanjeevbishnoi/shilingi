@@ -196,70 +196,150 @@ class _ShoppingList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 30.0),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(6.0),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(6.0),
-            onTap: () async {
-              var result = await Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => ShoppingListDetail(id: list.id)));
-              // If result is true, we will need to reload the list
-              if (result is bool && result && onDelete != null) {
-                onDelete!();
-              }
-            },
-            splashColor: Colors.black45,
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(list.name,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black87,
-                                fontSize: 18.0)),
-                        const SizedBox(height: 5.0),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.date_range,
-                              size: 14.0,
-                              color: Colors.black45,
-                            ),
-                            const SizedBox(width: 5.0),
-                            Timeago(
-                              builder: (_, value) => Tooltip(
-                                child: Text(
-                                  'Created $value',
-                                  style: const TextStyle(color: Colors.black45),
-                                ),
-                                message: DateFormat("EEE, MMM d, ''yy'")
-                                    .format(list.createTime!.toLocal()),
-                              ),
-                              date: list.createTime!,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+      child: Dismissible(
+        key: ValueKey(list.id),
+        confirmDismiss: (direction) async {
+          var result = await showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: Row(
+                    children: const [
+                      Icon(Icons.delete, color: Colors.redAccent),
+                      SizedBox(width: 5.0),
+                      Text('Delete list'),
+                    ],
                   ),
-                  const Icon(Icons.chevron_right),
-                ],
+                  content:
+                      const Text('Are you sure? This action cannot be undone'),
+                  actions: [
+                    TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Cancel',
+                            style: TextStyle(color: Colors.grey))),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop(true);
+                      },
+                      icon: const Icon(Icons.delete_sweep),
+                      label: const Text('Yes, delete'),
+                      style: ButtonStyle(
+                        backgroundColor:
+                            MaterialStateProperty.all<Color>(Colors.redAccent),
+                        elevation: MaterialStateProperty.all<double>(0.0),
+                      ),
+                    ),
+                  ],
+                );
+              });
+          if (result is bool && result) {
+            _deletelist(context);
+          }
+          return false;
+        },
+        background: Container(
+          decoration: BoxDecoration(
+            color: Colors.redAccent,
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Row(children: const [
+            Padding(
+              padding: EdgeInsets.only(left: 30.0, top: 30.0, bottom: 30.0),
+              child: Icon(Icons.delete),
+            ),
+            SizedBox(width: 10.0),
+            Text('Delete', style: TextStyle(fontSize: 16.0)),
+          ]),
+        ),
+        direction: DismissDirection.startToEnd,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 10.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(6.0),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(6.0),
+              onTap: () async {
+                var result = await Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => ShoppingListDetail(id: list.id)));
+                // If result is true, we will need to reload the list
+                if (result is bool && result && onDelete != null) {
+                  onDelete!();
+                }
+              },
+              splashColor: Colors.black45,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(list.name,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
+                                  fontSize: 18.0)),
+                          const SizedBox(height: 5.0),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.date_range,
+                                size: 14.0,
+                                color: Colors.black45,
+                              ),
+                              const SizedBox(width: 5.0),
+                              Timeago(
+                                builder: (_, value) => Tooltip(
+                                  child: Text(
+                                    'Created $value',
+                                    style:
+                                        const TextStyle(color: Colors.black45),
+                                  ),
+                                  message: DateFormat("EEE, MMM d, ''yy'")
+                                      .format(list.createTime!.toLocal()),
+                                ),
+                                date: list.createTime!,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  void _deletelist(BuildContext context) async {
+    var cli = GraphQLProvider.of(context).value;
+    var result = await cli.mutate(
+        MutationOptions(document: mutationDeleteShoppingList, variables: {
+      'id': list.id,
+    }));
+    SnackBar snackBar;
+    if (result.hasException) {
+      snackBar = const SnackBar(
+        content: Text('Unable to delete list. Try again later'),
+        backgroundColor: Colors.redAccent,
+      );
+    } else {
+      snackBar =
+          const SnackBar(content: Text('List has been successfully deleted'));
+      onDelete?.call();
+    }
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 }
