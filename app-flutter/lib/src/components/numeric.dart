@@ -10,7 +10,7 @@ class SpinBox extends HookWidget {
   Widget build(BuildContext context) {
     final initialValue = useState<int>(initial < 1 ? 1 : initial);
     final controller = useTextEditingController();
-    controller.text = initialValue.value.toString();
+    controller.text = initial.toString();
 
     return Container(
       decoration: BoxDecoration(
@@ -23,8 +23,13 @@ class SpinBox extends HookWidget {
         children: [
           _CircularButton(
               onPressed: () {
-                if (initialValue.value > 1) {
-                  initialValue.value -= 1;
+                final text = controller.text;
+                if (text.isEmpty) {
+                  controller.text = '1';
+                } else {
+                  var val = (double.tryParse(text) ?? 0) - 1;
+                  val = val < 1 ? 1 : val;
+                  controller.text = val.toInt().toString();
                 }
               },
               icon: Icons.remove),
@@ -38,12 +43,19 @@ class SpinBox extends HookWidget {
                 border: InputBorder.none,
               ),
               textAlign: TextAlign.center,
+              // onChanged: (val) {},
             ),
           ),
           const SizedBox(width: 5.0),
           _CircularButton(
               onPressed: () {
-                initialValue.value += 1;
+                final text = controller.text;
+                if (text.isEmpty) {
+                  controller.text = '1';
+                } else {
+                  controller.text =
+                      ((double.tryParse(text) ?? 0) + 1).toInt().toString();
+                }
               },
               icon: Icons.add),
         ],

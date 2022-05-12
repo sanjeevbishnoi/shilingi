@@ -37,6 +37,12 @@ class ShoppingListPage extends HookWidget {
           centerTitle: true,
           actions: [
             IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                queryResult.refetch();
+              },
+            ),
+            IconButton(
               icon: const Icon(Icons.add),
               onPressed: () async {
                 await Navigator.of(context).push(MaterialPageRoute(

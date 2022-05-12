@@ -6,18 +6,22 @@ import 'package:ms_undraw/ms_undraw.dart';
 import 'package:intl/intl.dart';
 import 'package:timeago_flutter/timeago_flutter.dart';
 import 'package:badges/badges.dart';
+import 'package:provider/provider.dart';
 
 import '../constants/constants.dart';
 import '../gql/gql.dart';
 import '../models/model.dart';
 import './select_items.dart' show SelectItemsPage;
 import '../components/components.dart';
+import './shopping_list_helpers/change_notifiers.dart';
 
 enum _FilterState {
   all,
   completed,
   uncompleted,
 }
+
+const textFieldBg = Color(0XFFFAFAFA);
 
 var _format = NumberFormat('#,##0', 'en_US');
 
@@ -28,6 +32,7 @@ class ShoppingListDetail extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final searchString = useState<String>('');
     final filterState = useState<_FilterState>(_FilterState.all);
     var selectedItems = useState<List<int>>([]);
     var queryResult = useQuery(
@@ -98,6 +103,14 @@ class ShoppingListDetail extends HookWidget {
           break;
       }
 
+      if (searchString.value.isNotEmpty) {
+        items = items
+            .where((item) => item.item.name
+                .toLowerCase()
+                .contains(searchString.value.toLowerCase()))
+            .toList();
+      }
+
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -149,7 +162,15 @@ class ShoppingListDetail extends HookWidget {
               ],
             ),
           ),
-          if (items.isNotEmpty)
+          Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30.0),
+              child: _SearchListItemsField(
+                onChanged: (search) {
+                  searchString.value = search;
+                },
+              )),
+          const SizedBox(height: 15.0),
+          if (items.isNotEmpty) ...[
             Expanded(
               child: ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 30.0),
@@ -159,9 +180,9 @@ class ShoppingListDetail extends HookWidget {
                       item: item,
                       shoppingListId: id,
                       selected: selectedItems.value.contains(item.id),
-                      onChanged: (val) {
+                      onChanged: (val) async {
                         if (val != null) {
-                          showModalBottomSheet(
+                          final result = await showModalBottomSheet(
                             context: context,
                             backgroundColor: Colors.transparent,
                             isScrollControlled: true,
@@ -171,7 +192,9 @@ class ShoppingListDetail extends HookWidget {
                                 child: _ConfirmItemCheck(item: item.item),
                               );
                             },
-                          ).then((value) {
+                          );
+
+                          if (result is bool && result) {
                             final list = selectedItems.value.toList();
                             if (val) {
                               list.add(item.id);
@@ -179,7 +202,7 @@ class ShoppingListDetail extends HookWidget {
                               list.remove(item.id);
                             }
                             selectedItems.value = list;
-                          });
+                          }
                         }
                       },
                       onDeleted: (item) {
@@ -189,6 +212,7 @@ class ShoppingListDetail extends HookWidget {
                   },
                   itemCount: items.length),
             ),
+          ],
           if (items.isEmpty) ...[
             const SizedBox(height: 10.0),
             Center(
@@ -705,59 +729,129 @@ class _ShowApproxTotal extends StatelessWidget {
   }
 }
 
-class _ConfirmItemCheck extends StatelessWidget {
+class _ConfirmItemCheck extends HookWidget {
   final Item item;
 
   const _ConfirmItemCheck({Key? key, required this.item}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(6.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: mainScaffoldBg,
-          borderRadius: BorderRadius.circular(6.0),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                alignment: Alignment.center,
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 10.0, top: 10.0),
-                  width: 30.0,
-                  height: 4.0,
-                  decoration: BoxDecoration(
-                    color: Colors.grey,
-                    borderRadius: BorderRadius.circular(20.0),
+    return ChangeNotifierProvider(
+      create: (context) => ShoppingListItemChangeNotifier(),
+      child: Padding(
+        padding: const EdgeInsets.all(6.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: mainScaffoldBg,
+            borderRadius: BorderRadius.circular(6.0),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.center,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 10.0, top: 10.0),
+                    width: 30.0,
+                    height: 4.0,
+                    decoration: BoxDecoration(
+                      color: Colors.grey,
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
                   ),
                 ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(item.name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 24.0)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  _AmountTextField(),
-                  SizedBox(width: 8.0),
-                  SpinBox(),
-                ],
-              ),
-            ],
+                Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(item.name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 24.0)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 5.0),
+                      child: _AmountTextField(),
+                    ),
+                    const SizedBox(width: 8.0),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.only(left: 15.0),
+                          child: Text('Units'),
+                        ),
+                        SpinBox(),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10.0),
+                Row(
+                  children: const [
+                    Text('Optional fields',
+                        style: TextStyle(color: Colors.grey)),
+                    SizedBox(width: 10.0),
+                    Expanded(
+                      child: Divider(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Expanded(child: _QuantityField()),
+                  ],
+                ),
+                const SizedBox(height: 10.0),
+                const _BrandField(),
+                const SizedBox(height: 10.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Cancel',
+                            style: TextStyle(color: Colors.grey))),
+                    const SizedBox(width: 10.0),
+                    Builder(builder: (context) {
+                      return ElevatedButton(
+                        onPressed: () {
+                          // if (formKey.value.currentState!.validate()) {
+                          // Navigator.of(context).pop(true);
+                          // }
+                          Provider.of<ShoppingListItemChangeNotifier>(context,
+                                  listen: false)
+                              .validate();
+                        },
+                        child: const Text('Save'),
+                        style: ButtonStyle(
+                          elevation: MaterialStateProperty.all<double>(0),
+                          shape:
+                              MaterialStateProperty.all<RoundedRectangleBorder>(
+                            RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30.0)),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -770,6 +864,138 @@ class _AmountTextField extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Consumer<ShoppingListItemChangeNotifier>(
+      builder: (context, value, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30.0),
+                border: value.amountErr != null
+                    ? Border.all(color: Colors.red)
+                    : null,
+              ),
+              padding: const EdgeInsets.only(left: 15.0),
+              child: Row(
+                children: [
+                  const Text('Ksh'),
+                  const SizedBox(width: 10.0),
+                  Container(
+                    width: 80.0,
+                    padding: const EdgeInsets.only(left: 10.0, right: 10.0),
+                    decoration: const BoxDecoration(
+                      color: textFieldBg,
+                      borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(30.0),
+                          bottomRight: Radius.circular(30.0)),
+                    ),
+                    child: TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (val) {
+                        if (val.isNotEmpty) {
+                          final amount = double.tryParse(val);
+                          if (amount != null) {
+                            value.amount = amount;
+                          }
+                        } else {
+                          value.amount = null;
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (value.amountErr != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 15.0),
+                child: Text(
+                  value.amountErr!,
+                  style:
+                      const TextStyle(fontSize: 10.0, color: Colors.redAccent),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SearchListItemsField extends HookWidget {
+  final ValueChanged<String> onChanged;
+
+  const _SearchListItemsField({Key? key, required this.onChanged})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = useTextEditingController();
+    final text = useState<String>('');
+    controller.addListener(() {
+      text.value = controller.text;
+      onChanged(text.value);
+    });
+
+    return Container(
+      height: 40.0,
+      padding: const EdgeInsets.only(right: 5.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(50.0),
+        border: Border.all(color: Colors.grey),
+      ),
+      child: Row(
+        children: [
+          if (text.value.isNotEmpty)
+            SizedBox(
+              width: 40.0,
+              height: 40.0,
+              child: Center(
+                child: IconButton(
+                  iconSize: 14.0,
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    controller.clear();
+                  },
+                ),
+              ),
+            ),
+          Expanded(
+            child: TextField(
+              // onChanged: (val) {
+              // controller.text = val;
+              // },
+              controller: controller,
+              // onChanged: onChanged,
+              decoration: InputDecoration(
+                hintText: 'Search list',
+                focusedBorder: InputBorder.none,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(
+                    vertical: 8, horizontal: controller.text.isEmpty ? 14 : 0),
+              ),
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuantityField extends HookWidget {
+  const _QuantityField({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final qtyType = useState<String?>(null);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -777,15 +1003,80 @@ class _AmountTextField extends HookWidget {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 15.0),
       child: Row(
-        children: const [
-          Text('Ksh'),
-          SizedBox(width: 5.0),
-          SizedBox(
-            width: 70.0,
-            child: TextField(
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                border: InputBorder.none,
+        children: [
+          const Text('Qty'),
+          const SizedBox(width: 10.0),
+          Expanded(
+            child: Container(
+                padding: const EdgeInsets.only(left: 15.0),
+                decoration: const BoxDecoration(
+                  color: textFieldBg,
+                ),
+                child: const TextField(
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                      border: InputBorder.none, hintText: 'e.g 2.5'),
+                )),
+            flex: 1,
+          ),
+          const SizedBox(width: 5.0),
+          const VerticalDivider(color: Colors.black, width: 2.0),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: qtyType.value,
+              alignment: Alignment.centerRight,
+              items: [
+                for (final val in const [
+                  'KG',
+                  'Grams',
+                  'ML',
+                  'Litres',
+                  'Other'
+                ])
+                  DropdownMenuItem(
+                    child: Text(val),
+                    value: val,
+                  )
+              ],
+              onChanged: (val) {
+                qtyType.value = val ?? '';
+              },
+              hint: const Text('e.g KG'),
+              borderRadius: BorderRadius.circular(20.0),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BrandField extends HookWidget {
+  const _BrandField({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30.0),
+      ),
+      padding: const EdgeInsets.only(left: 15.0),
+      child: Row(
+        children: [
+          const Text('Brand'),
+          const SizedBox(width: 10.0),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.only(left: 15.0),
+              decoration: const BoxDecoration(
+                color: textFieldBg,
+                borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(30.0),
+                    bottomRight: Radius.circular(30.0)),
+              ),
+              child: const TextField(
+                decoration: InputDecoration(border: InputBorder.none),
               ),
             ),
           ),
