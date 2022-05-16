@@ -76,7 +76,7 @@ class ShoppingListItem {
   int pricePerUnit;
 
   @HiveField(3)
-  int? quantity;
+  double? quantity;
 
   @HiveField(4)
   String? quantityType;

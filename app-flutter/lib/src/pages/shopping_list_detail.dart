@@ -781,6 +781,10 @@ class _ConfirmItemCheck extends HookWidget {
           }
           return ShoppingListItemChangeNotifier(
             amount: storeItem!.pricePerUnit.toDouble(),
+            units: storeItem!.units,
+            quantity: storeItem!.quantity,
+            quantityType: storeItem!.quantityType,
+            brand: storeItem!.brand,
           );
         },
         child: Padding(
@@ -831,12 +835,21 @@ class _ConfirmItemCheck extends HookWidget {
                       const SizedBox(width: 8.0),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Padding(
+                        children: [
+                          const Padding(
                             padding: EdgeInsets.only(left: 15.0),
                             child: Text('Units'),
                           ),
-                          SpinBox(),
+                          Builder(
+                            builder: (context) {
+                              return SpinBox(
+                                  initial: Provider.of<
+                                              ShoppingListItemChangeNotifier>(
+                                          context,
+                                          listen: false)
+                                      .units);
+                            },
+                          ),
                         ],
                       ),
                     ],
@@ -1053,7 +1066,12 @@ class _QuantityField extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final qtyType = useState<String?>(null);
+    final provider =
+        Provider.of<ShoppingListItemChangeNotifier>(context, listen: false);
+    final qtyType = useState<String?>(provider.quantityType);
+    final quantity = provider.quantity;
+    final qtyInitial =
+        useState<String>(quantity != null ? quantity.toString() : '');
 
     return Container(
       decoration: BoxDecoration(
@@ -1071,7 +1089,8 @@ class _QuantityField extends HookWidget {
               decoration: const BoxDecoration(
                 color: textFieldBg,
               ),
-              child: TextField(
+              child: TextFormField(
+                initialValue: qtyInitial.value,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                     border: InputBorder.none, hintText: 'e.g 2.5'),
@@ -1148,7 +1167,11 @@ class _BrandField extends HookWidget {
                     topRight: Radius.circular(30.0),
                     bottomRight: Radius.circular(30.0)),
               ),
-              child: TextField(
+              child: TextFormField(
+                initialValue: Provider.of<ShoppingListItemChangeNotifier>(
+                        context,
+                        listen: false)
+                    .brand,
                 decoration: const InputDecoration(border: InputBorder.none),
                 onChanged: (val) {
                   Provider.of<ShoppingListItemChangeNotifier>(context,

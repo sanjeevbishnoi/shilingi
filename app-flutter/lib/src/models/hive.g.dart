@@ -57,7 +57,7 @@ class ShoppingListItemAdapter extends TypeAdapter<ShoppingListItem> {
       id: fields[0] as int,
       pricePerUnit: fields[2] as int,
       units: fields[1] as int,
-      quantity: fields[3] as int?,
+      quantity: fields[3] as double?,
       quantityType: fields[4] as String?,
       brand: fields[5] as String?,
     );
@@ -101,7 +101,7 @@ ShoppingListItem _$ShoppingListItemFromJson(Map<String, dynamic> json) =>
       id: json['id'] as int,
       pricePerUnit: json['pricePerUnit'] as int,
       units: json['units'] as int? ?? 1,
-      quantity: json['quantity'] as int?,
+      quantity: (json['quantity'] as num?)?.toDouble(),
       quantityType: json['quantityType'] as String?,
       brand: json['brand'] as String?,
     );
