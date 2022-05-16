@@ -1,4 +1,7 @@
 import 'package:hive/hive.dart';
+import 'package:json_annotation/json_annotation.dart';
+
+part 'hive.g.dart';
 
 const boxName = "shopping_list";
 
@@ -9,7 +12,7 @@ class ShoppingList extends HiveObject {
   @HiveField(1)
   List<ShoppingListItem> items;
 
-  Box? listBox;
+  Box<ShoppingList>? listBox;
 
   ShoppingList({required this.id, this.items = const []});
 
@@ -18,14 +21,24 @@ class ShoppingList extends HiveObject {
     if (index != -1) {
       items[index] = item;
     } else {
-      items.add(item);
+      items = [...items, item];
     }
     saveList();
   }
 
+  ShoppingListItem? getItem(int id) {
+    var index = items.indexWhere((element) => element.id == id);
+    if (index == -1) {
+      return null;
+    }
+    return items[index];
+  }
+
   void saveList() async {
     listBox ??= await ShoppingList.getBox();
-    listBox!.put(id, this);
+
+    // items = _items;
+    listBox!.put(id.toString(), this);
   }
 
   void clear() async {
@@ -33,22 +46,42 @@ class ShoppingList extends HiveObject {
     listBox!.delete(id);
   }
 
-  static Future<ShoppingList?> getList(int id) async {
+  static Future<ShoppingList> getList(int id) async {
     final listBox = await ShoppingList.getBox();
-    return listBox.get(id);
+    final list = listBox.get(id.toString());
+    // if (list != null) {
+    // list._items.addAll(list.items);
+    // }
+
+    return list ?? ShoppingList(id: id);
   }
 
-  static Future<Box> getBox() async {
+  static Future<Box<ShoppingList>> getBox() async {
     return await Hive.openBox(boxName);
   }
 }
 
+typedef Json = Map<String, dynamic>;
+
+@JsonSerializable()
+@HiveType(typeId: 2)
 class ShoppingListItem {
+  @HiveField(0)
   int id;
+
+  @HiveField(1)
   int units;
+
+  @HiveField(2)
   int pricePerUnit;
+
+  @HiveField(3)
   int? quantity;
+
+  @HiveField(4)
   String? quantityType;
+
+  @HiveField(5)
   String? brand;
 
   ShoppingListItem(
@@ -58,4 +91,9 @@ class ShoppingListItem {
       this.quantity,
       this.quantityType,
       this.brand});
+
+  factory ShoppingListItem.fromJson(Json json) =>
+      _$ShoppingListItemFromJson(json);
+
+  Json toJson() => _$ShoppingListItemToJson(this);
 }

@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 
 class ShoppingListItemChangeNotifier extends ChangeNotifier {
-  ShoppingListItemChangeNotifier();
+  ShoppingListItemChangeNotifier({
+    this.amount,
+    this.units = 1,
+    this.quantity,
+    this.quantityType,
+    this.brand,
+  });
 
-  double? _amount;
-  int _units = 1;
-  double? _quantity;
-  String? _quantityType;
-  String? _brand = '';
+  double? amount;
+  int units = 1;
+  double? quantity;
+  String? quantityType;
+  String? brand;
 
   // Error messages
   String? _amountErr;
   String? _unitsErr;
-
-  set amount(double? amount) => _amount = amount;
-  set units(int units) => _units = units;
-  set quantity(double quantity) => _quantity = quantity;
-  set quantityType(String quantityType) => _quantityType = quantityType;
-  set brand(String brand) => _brand = brand;
 
   String? get amountErr => _amountErr;
   String? get unitsErr => _unitsErr;
@@ -27,11 +27,11 @@ class ShoppingListItemChangeNotifier extends ChangeNotifier {
 
     var foundErr = false;
 
-    if (_amount == null || _amount == 0) {
+    if (amount == null || amount == 0) {
       _amountErr = 'Amount is required';
       foundErr = true;
     }
-    if (_units < 1) {
+    if (units < 1) {
       _unitsErr = 'Units cannot be less than 1';
       foundErr = true;
     }
@@ -47,21 +47,21 @@ class ShoppingListItemChangeNotifier extends ChangeNotifier {
   }
 
   void clear() {
-    _amount = null;
-    _units = 1;
-    _quantity = null;
-    _quantityType = _brand = null;
+    amount = null;
+    units = 1;
+    quantity = null;
+    quantityType = brand = null;
 
     clearErrors();
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'pricePerUnit': _amount,
-      'units': _units,
-      if (_quantity != null) 'quantity': _quantity,
-      if (_quantityType != null) 'quantityType': _quantityType,
-      if (_brand != null) 'brand': _brand,
+      'pricePerUnit': amount?.toInt() ?? 0,
+      'units': units,
+      if (quantity != null) 'quantity': quantity,
+      if (quantityType != null) 'quantityType': quantityType,
+      if (brand != null) 'brand': brand,
     };
   }
 }

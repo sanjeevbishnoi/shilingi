@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:provider/provider.dart';
+
+import '../pages/shopping_list_helpers/change_notifiers.dart';
 
 class SpinBox extends HookWidget {
   final int initial;
@@ -8,9 +11,18 @@ class SpinBox extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initialValue = useState<int>(initial < 1 ? 1 : initial);
     final controller = useTextEditingController();
     controller.text = initial.toString();
+    controller.addListener(() {
+      var units = 1;
+      if (controller.text.isNotEmpty) {
+        var val = double.tryParse(controller.text);
+        units = val?.toInt() ?? 1;
+      }
+
+      Provider.of<ShoppingListItemChangeNotifier>(context, listen: false)
+          .units = units;
+    });
 
     return Container(
       decoration: BoxDecoration(
