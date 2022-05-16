@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -190,60 +191,71 @@ class ShoppingListDetail extends HookWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 30.0),
                   itemBuilder: (context, index) {
                     final item = items![index];
-                    return _Item(
-                      item: item,
-                      shoppingListId: id,
-                      selected: selectedItems.value.contains(item.id),
-                      onChanged: (val) async {
-                        if (val != null) {
-                          final result = await showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Colors.transparent,
-                            isScrollControlled: true,
-                            builder: (context) {
-                              // Since we can only get the hive.ShoppingList class as a Future
-                              // hence why we have to use a FutureBuilder
-                              return FutureBuilder<hive.ShoppingList>(
-                                future: store,
-                                builder: (context, snapshot) {
-                                  switch (snapshot.connectionState) {
-                                    case ConnectionState.done:
-                                      return Padding(
-                                        padding:
-                                            MediaQuery.of(context).viewInsets,
-                                        child: _ConfirmItemCheck(
-                                          item: item.item,
-                                          storeItem: snapshot.requireData
-                                              .getItem(item.id),
-                                        ),
-                                      );
-                                    default:
-                                      return const Placeholder();
-                                  }
-                                },
-                              );
-                            },
-                          );
 
-                          if (result is Map<String, dynamic>) {
-                            final list = selectedItems.value.toList();
-                            if (!list.contains(item.id)) {
-                              list.add(item.id);
-                              selectedItems.value = list;
+                    hive.ShoppingListItem? storeItem;
+                    return StatefulBuilder(builder: (context, setState) {
+                      store.then((value) {
+                        setState(() {
+                          storeItem = value.getItem(item.id);
+                        });
+                      });
+
+                      return _Item(
+                        item: item,
+                        storeItem: storeItem,
+                        shoppingListId: id,
+                        selected: selectedItems.value.contains(item.id),
+                        onChanged: (val) async {
+                          if (val != null) {
+                            final result = await showModalBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              isScrollControlled: true,
+                              builder: (context) {
+                                // Since we can only get the hive.ShoppingList class as a Future
+                                // hence why we have to use a FutureBuilder
+                                return FutureBuilder<hive.ShoppingList>(
+                                  future: store,
+                                  builder: (context, snapshot) {
+                                    switch (snapshot.connectionState) {
+                                      case ConnectionState.done:
+                                        return Padding(
+                                          padding:
+                                              MediaQuery.of(context).viewInsets,
+                                          child: _ConfirmItemCheck(
+                                            item: item.item,
+                                            storeItem: snapshot.requireData
+                                                .getItem(item.id),
+                                          ),
+                                        );
+                                      default:
+                                        return const Placeholder();
+                                    }
+                                  },
+                                );
+                              },
+                            );
+
+                            if (result is Map<String, dynamic>) {
+                              final list = selectedItems.value.toList();
+                              if (!list.contains(item.id)) {
+                                list.add(item.id);
+                                selectedItems.value = list;
+                              }
+                              // Update hive store for the specific list
+                              final s = await store;
+                              result['id'] = item.id;
+                              final listItem =
+                                  hive.ShoppingListItem.fromJson(result);
+                              s.addItem(listItem);
                             }
-                            // Update hive store for the specific list
-                            final s = await store;
-                            result['id'] = item.id;
-                            final listItem =
-                                hive.ShoppingListItem.fromJson(result);
-                            s.addItem(listItem);
                           }
-                        }
-                      },
-                      onDeleted: (item) {
-                        queryResult.refetch();
-                      },
-                    );
+                        },
+                        onDeleted: (item) {
+                          queryResult.refetch();
+                        },
+                      );
+                    });
                   },
                   itemCount: items.length),
             ),
@@ -393,6 +405,7 @@ class _SelectButton extends StatelessWidget {
 
 class _Item extends StatelessWidget {
   final ShoppingListItem item;
+  final hive.ShoppingListItem? storeItem;
   final int shoppingListId;
   final bool selected;
   final ValueChanged<bool?> onChanged;
@@ -404,7 +417,8 @@ class _Item extends StatelessWidget {
       required this.selected,
       required this.onChanged,
       required this.onDeleted,
-      required this.shoppingListId})
+      required this.shoppingListId,
+      this.storeItem})
       : super(key: key);
 
   @override
@@ -458,82 +472,137 @@ class _Item extends StatelessWidget {
           child: Padding(
             padding:
                 const EdgeInsets.symmetric(vertical: 14.0, horizontal: 8.0),
-            child: Row(mainAxisSize: MainAxisSize.max, children: [
-              Checkbox(
-                value: selected,
-                onChanged: onChanged,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Checkbox(
+                  value: selected,
+                  onChanged: onChanged,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 5.0),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
+                const SizedBox(width: 5.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        item.item.name,
-                        style: TextStyle(
-                            fontSize: 16.0,
-                            decoration:
-                                selected ? TextDecoration.lineThrough : null,
-                            fontWeight: FontWeight.w600),
+                      Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text(
+                            item.item.name,
+                            style: TextStyle(
+                                fontSize: 16.0,
+                                decoration: selected
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8.0),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.date_range,
-                        size: 14.0,
-                        color: Colors.black45,
+                      const SizedBox(height: 8.0),
+                      Row(
+                        children: [
+                          const Icon(
+                            FeatherIcons.calendar,
+                            size: 14.0,
+                            color: Colors.black45,
+                          ),
+                          const SizedBox(width: 5.0),
+                          if (purchase != null)
+                            Expanded(
+                              flex: 1,
+                              child: RichText(
+                                text: TextSpan(
+                                  children: [
+                                    const TextSpan(
+                                        text: 'Last bought ',
+                                        style: TextStyle(color: Colors.grey)),
+                                    WidgetSpan(
+                                      child: Timeago(
+                                          builder: (_, value) => Tooltip(
+                                                child: Text(value,
+                                                    style: const TextStyle(
+                                                        color: Colors.grey,
+                                                        fontWeight:
+                                                            FontWeight.w600)),
+                                                message: DateFormat(
+                                                        "EEE, MMM d, ''y'")
+                                                    .format(purchase!.date),
+                                              ),
+                                          date: purchase!.date),
+                                    ),
+                                    const TextSpan(
+                                        text: ' at ',
+                                        style:
+                                            TextStyle(color: Colors.black45)),
+                                    TextSpan(
+                                      text: NumberFormat('#,##0/=', 'en_US')
+                                          .format(purchaseItem!.total),
+                                      style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontWeight: FontWeight.w600),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ),
+                          if (purchase == null)
+                            const Text('No purchase record',
+                                style: TextStyle(color: Colors.grey))
+                        ],
                       ),
-                      const SizedBox(width: 5.0),
-                      if (purchase != null)
-                        Wrap(children: [
-                          const Text('Last bought ',
-                              style: TextStyle(color: Colors.grey)),
-                          Timeago(
-                              builder: (_, value) => Tooltip(
-                                    child: Text(value,
-                                        style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontWeight: FontWeight.w600)),
-                                    message: DateFormat("EEE, MMM d, ''y'")
-                                        .format(purchase!.date),
+                      if (storeItem != null) ...[
+                        const SizedBox(height: 8.0),
+                        Row(
+                          children: [
+                            const Icon(FeatherIcons.creditCard, size: 14.0),
+                            const SizedBox(width: 5.0),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(color: Colors.black87),
+                                  children: [
+                                    const TextSpan(text: 'Buying at: '),
+                                    TextSpan(
+                                        text:
+                                            '${storeItem!.pricePerUnit * storeItem!.units}/=')
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (storeItem!.quantity != null) ...[
+                          const SizedBox(height: 8.0),
+                          Row(
+                            children: [
+                              const Icon(FeatherIcons.shoppingBag, size: 14.0),
+                              const SizedBox(width: 5.0),
+                              Expanded(
+                                child: RichText(
+                                  text: TextSpan(
+                                    style:
+                                        const TextStyle(color: Colors.black87),
+                                    children: [
+                                      TextSpan(text: '${storeItem!.quantity}'),
+                                      TextSpan(
+                                          text:
+                                              ' ${storeItem!.quantityType ?? ''}'),
+                                    ],
                                   ),
-                              date: purchase!.date),
-                        ]),
-                      if (purchase == null)
-                        const Text('No purchase record',
-                            style: TextStyle(color: Colors.grey))
+                                ),
+                              ),
+                            ],
+                          ),
+                        ]
+                      ]
                     ],
                   ),
-                  if (purchaseItem != null)
-                    Row(
-                      children: [
-                        // const Icon(
-                        // FeatherIcons.creditCard,
-                        // size: 14.0,
-                        // color: Colors.black45,
-                        // ),
-                        const Text('At',
-                            style: TextStyle(color: Colors.black45)),
-                        const SizedBox(width: 5.0),
-                        Text(
-                            NumberFormat('#,##0 /=', 'en_US')
-                                .format(purchaseItem!.total),
-                            style: const TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                ],
-              )
-            ]),
+                )
+              ],
+            ),
           ),
         ),
       ),
