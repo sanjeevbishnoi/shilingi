@@ -305,6 +305,7 @@ class ShoppingListDetail extends HookWidget {
         appBar: AppBar(backgroundColor: mainScaffoldBg, actions: [
           _ShoppingListPopupButton(
             list: list,
+            store: store,
             onItemsAdded: (ids) {
               _addItems(context, ids, queryResult.refetch);
             },
@@ -680,9 +681,13 @@ enum _ShoppingListPopupActions {
 class _ShoppingListPopupButton extends StatelessWidget {
   final ShoppingList? list;
   final ValueChanged<List<int>> onItemsAdded;
+  final Future<hive.ShoppingList> store;
 
   const _ShoppingListPopupButton(
-      {Key? key, required this.list, required this.onItemsAdded})
+      {Key? key,
+      required this.list,
+      required this.onItemsAdded,
+      required this.store})
       : super(key: key);
 
   @override
@@ -693,6 +698,8 @@ class _ShoppingListPopupButton extends StatelessWidget {
           case _ShoppingListPopupActions.delete:
             var result = await _onDelete(context);
             if (result is bool && result) {
+              // remove the data from hive store
+              store.then((value) => value.clear());
               var snackBar = const SnackBar(
                   content: Text('The list has been successfully deleted'));
               ScaffoldMessenger.of(context).showSnackBar(snackBar);

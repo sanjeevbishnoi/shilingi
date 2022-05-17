@@ -33,7 +33,6 @@ class ShoppingList extends HiveObject {
       newItems.removeAt(index);
       items = [...newItems];
       saveList();
-      print('removeItem');
     }
   }
 
@@ -60,9 +59,6 @@ class ShoppingList extends HiveObject {
   static Future<ShoppingList> getList(int id) async {
     final listBox = await ShoppingList.getBox();
     final list = listBox.get(id.toString());
-    // if (list != null) {
-    // list._items.addAll(list.items);
-    // }
 
     return list ?? ShoppingList(id: id);
   }

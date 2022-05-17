@@ -14,6 +14,7 @@ import '../constants/constants.dart';
 import './select_items.dart' show SelectItemsPage;
 import '../gql/gql.dart';
 import './shopping_list_detail.dart';
+import '../models/hive.dart' as store;
 
 class ShoppingListPage extends HookWidget {
   const ShoppingListPage({Key? key}) : super(key: key);
@@ -354,6 +355,8 @@ class _ShoppingList extends StatelessWidget {
       snackBar =
           const SnackBar(content: Text('List has been successfully deleted'));
       onDelete?.call();
+      // Delete from hive store
+      store.ShoppingList(id: list.id).clear();
     }
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
