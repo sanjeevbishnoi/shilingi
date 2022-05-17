@@ -26,6 +26,17 @@ class ShoppingList extends HiveObject {
     saveList();
   }
 
+  void removeItem(int id) {
+    final index = items.indexWhere((element) => element.id == id);
+    if (index != -1) {
+      final newItems = List.from(items);
+      newItems.removeAt(index);
+      items = [...newItems];
+      saveList();
+      print('removeItem');
+    }
+  }
+
   ShoppingListItem? getItem(int id) {
     var index = items.indexWhere((element) => element.id == id);
     if (index == -1) {

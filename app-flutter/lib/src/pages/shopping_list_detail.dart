@@ -226,6 +226,19 @@ class ShoppingListDetail extends HookWidget {
                                             item: item.item,
                                             storeItem: snapshot.requireData
                                                 .getItem(item.id),
+                                            onRemove: () {
+                                              setState(() {
+                                                // 1. Remove from hive store
+                                                snapshot.requireData
+                                                    .removeItem(item.id);
+                                                // 2. Remove from selected list
+                                                final list =
+                                                    selectedItems.value;
+                                                list.remove(item.id);
+                                                selectedItems.value = list;
+                                                Navigator.of(context).pop();
+                                              });
+                                            },
                                           ),
                                         );
                                       default:
@@ -253,6 +266,14 @@ class ShoppingListDetail extends HookWidget {
                         },
                         onDeleted: (item) {
                           queryResult.refetch();
+                          if (selectedItems.value.contains(item.id)) {
+                            final list = selectedItems.value;
+                            list.remove(item.id);
+                            selectedItems.value = list;
+                          }
+                          store.then((list) {
+                            list.removeItem(item.id);
+                          });
                         },
                       );
                     });
@@ -567,7 +588,18 @@ class _Item extends StatelessWidget {
                                     const TextSpan(text: 'Buying at: '),
                                     TextSpan(
                                         text:
-                                            '${storeItem!.pricePerUnit * storeItem!.units}/=')
+                                            '${storeItem!.pricePerUnit * storeItem!.units}/= '),
+                                    if (diff != null && diff != 0) ...[
+                                      TextSpan(
+                                        text: '${diff! > 0 ? '+' : ''}$diff',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: diff! > 0
+                                              ? Colors.redAccent
+                                              : Colors.greenAccent,
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -624,6 +656,19 @@ class _Item extends StatelessWidget {
     }
 
     return item.item.purchases!.edges![0].node;
+  }
+
+  int? get diff {
+    final last = purchaseItem;
+    if (last == null) {
+      return null;
+    }
+
+    if (storeItem == null) {
+      return null;
+    }
+
+    return (storeItem!.units * storeItem!.pricePerUnit - last.total).toInt();
   }
 }
 
@@ -836,8 +881,10 @@ class _ShowApproxTotal extends StatelessWidget {
 class _ConfirmItemCheck extends HookWidget {
   final Item item;
   final hive.ShoppingListItem? storeItem;
+  final VoidCallback onRemove;
 
-  const _ConfirmItemCheck({Key? key, required this.item, this.storeItem})
+  const _ConfirmItemCheck(
+      {Key? key, required this.item, this.storeItem, required this.onRemove})
       : super(key: key);
 
   @override
@@ -953,6 +1000,15 @@ class _ConfirmItemCheck extends HookWidget {
                           },
                           child: const Text('Cancel',
                               style: TextStyle(color: Colors.grey))),
+                      if (storeItem != null) ...[
+                        const SizedBox(width: 10.0),
+                        TextButton(
+                            onPressed: () {
+                              onRemove();
+                            },
+                            child: const Text('Remove',
+                                style: TextStyle(color: Colors.redAccent))),
+                      ],
                       const SizedBox(width: 10.0),
                       Builder(builder: (context) {
                         return ElevatedButton(
