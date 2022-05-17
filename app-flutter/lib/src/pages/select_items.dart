@@ -230,7 +230,26 @@ class SelectItemsPage extends HookWidget {
                                 Navigator.of(context).pop(selectedItems.value);
                               }
                             },
-                            child: Text(buttonString),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(buttonString),
+                                const SizedBox(width: 5.0),
+                                Container(
+                                  width: 30.0,
+                                  height: 30.0,
+                                  padding: const EdgeInsets.all(5.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.lightGreenAccent,
+                                    borderRadius: BorderRadius.circular(30.0),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                        selectedItems.value.length.toString()),
+                                  ),
+                                ),
+                              ],
+                            ),
                             style: ButtonStyle(
                               shape: MaterialStateProperty.all<
                                   RoundedRectangleBorder>(
@@ -367,25 +386,30 @@ class _EmptySearchResult extends HookWidget {
     }
     return Align(
       alignment: Alignment.centerLeft,
-      child: TextButton(
-        onPressed: () {
-          saving.value = true;
-          _createItem(context, onCreate);
-        },
-        child: RichText(
-          textAlign: TextAlign.left,
-          text: TextSpan(
-            style: const TextStyle(color: Colors.black),
-            children: [
-              const TextSpan(
-                  text: 'Item not found. ',
-                  style: TextStyle(color: Colors.black54)),
-              TextSpan(
-                  text: 'Create $searchString',
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-            ],
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          const Text('Item not found.'),
+          const SizedBox(width: 5.0),
+          TextButton(
+            style: ButtonStyle(
+              backgroundColor:
+                  MaterialStateProperty.all<Color>(Colors.lightGreen),
+              foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+              shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+              ),
+            ),
+            onPressed: () {
+              saving.value = true;
+              _createItem(context, onCreate);
+            },
+            child: Text('Create $searchString',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
-        ),
+        ],
       ),
     );
   }
