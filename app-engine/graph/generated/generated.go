@@ -61,23 +61,24 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddItemsToSubLabel      func(childComplexity int, subLabelID int, itemIDs []int) int
-		AddToShoppingList       func(childComplexity int, id int, items []int) int
-		CreateItem              func(childComplexity int, input model.ItemInput) int
-		CreatePurchase          func(childComplexity int, input model.ShoppingInput) int
-		CreateShoppingList      func(childComplexity int, input model.ShoppingListInput) int
-		CreateSubLabel          func(childComplexity int, tagID int, input model.SubLabelInput) int
-		CreateTag               func(childComplexity int, input model.TagInput) int
-		DeleteShoppingList      func(childComplexity int, id int) int
-		DeleteSubLabel          func(childComplexity int, subLabelID int) int
-		DeleteTag               func(childComplexity int, id int) int
-		EditItem                func(childComplexity int, id int, input model.ItemInput) int
-		EditSubLabel            func(childComplexity int, subLabelID int, input model.SubLabelInput) int
-		EditTag                 func(childComplexity int, id int, input model.TagInput) int
-		RemoveFromShoppingList  func(childComplexity int, id int, listItems []int) int
-		RemoveItemsFromSubLabel func(childComplexity int, subLabelID int, itemIDs []int) int
-		TagItems                func(childComplexity int, itemIDs []int, tagID int) int
-		UntagItems              func(childComplexity int, itemIDs []int, tagID int) int
+		AddItemsToSubLabel             func(childComplexity int, subLabelID int, itemIDs []int) int
+		AddToShoppingList              func(childComplexity int, id int, items []int) int
+		CreateItem                     func(childComplexity int, input model.ItemInput) int
+		CreatePurchase                 func(childComplexity int, input model.ShoppingInput) int
+		CreatePurchaseFromShoppingList func(childComplexity int, input *model.CreatePurchaseFromShoppingList) int
+		CreateShoppingList             func(childComplexity int, input model.ShoppingListInput) int
+		CreateSubLabel                 func(childComplexity int, tagID int, input model.SubLabelInput) int
+		CreateTag                      func(childComplexity int, input model.TagInput) int
+		DeleteShoppingList             func(childComplexity int, id int) int
+		DeleteSubLabel                 func(childComplexity int, subLabelID int) int
+		DeleteTag                      func(childComplexity int, id int) int
+		EditItem                       func(childComplexity int, id int, input model.ItemInput) int
+		EditSubLabel                   func(childComplexity int, subLabelID int, input model.SubLabelInput) int
+		EditTag                        func(childComplexity int, id int, input model.TagInput) int
+		RemoveFromShoppingList         func(childComplexity int, id int, listItems []int) int
+		RemoveItemsFromSubLabel        func(childComplexity int, subLabelID int, itemIDs []int) int
+		TagItems                       func(childComplexity int, itemIDs []int, tagID int) int
+		UntagItems                     func(childComplexity int, itemIDs []int, tagID int) int
 	}
 
 	PageInfo struct {
@@ -196,6 +197,7 @@ type MutationResolver interface {
 	DeleteShoppingList(ctx context.Context, id int) (*bool, error)
 	AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingList, error)
 	RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.ShoppingList, error)
+	CreatePurchaseFromShoppingList(ctx context.Context, input *model.CreatePurchaseFromShoppingList) (*ent.Shopping, error)
 }
 type QueryResolver interface {
 	Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error)
@@ -324,6 +326,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreatePurchase(childComplexity, args["input"].(model.ShoppingInput)), true
+
+	case "Mutation.createPurchaseFromShoppingList":
+		if e.complexity.Mutation.CreatePurchaseFromShoppingList == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createPurchaseFromShoppingList_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreatePurchaseFromShoppingList(childComplexity, args["input"].(*model.CreatePurchaseFromShoppingList)), true
 
 	case "Mutation.createShoppingList":
 		if e.complexity.Mutation.CreateShoppingList == nil {
@@ -1165,6 +1179,7 @@ type Mutation {
   deleteShoppingList(id: Int!): Boolean
   addToShoppingList(id: Int!, items: [Int!]!): ShoppingList
   removeFromShoppingList(id: Int!, listItems: [Int!]!): ShoppingList
+  createPurchaseFromShoppingList(input: CreatePurchaseFromShoppingList): Shopping
 }
 `, BuiltIn: false},
 }
@@ -1271,6 +1286,21 @@ func (ec *executionContext) field_Mutation_createItem_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNItemInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐItemInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createPurchaseFromShoppingList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.CreatePurchaseFromShoppingList
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalOCreatePurchaseFromShoppingList2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐCreatePurchaseFromShoppingList(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2717,6 +2747,45 @@ func (ec *executionContext) _Mutation_removeFromShoppingList(ctx context.Context
 	res := resTmp.(*ent.ShoppingList)
 	fc.Result = res
 	return ec.marshalOShoppingList2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShoppingList(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createPurchaseFromShoppingList(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createPurchaseFromShoppingList_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreatePurchaseFromShoppingList(rctx, args["input"].(*model.CreatePurchaseFromShoppingList))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Shopping)
+	fc.Result = res
+	return ec.marshalOShopping2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShopping(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *ent.PageInfo) (ret graphql.Marshaler) {
@@ -6384,6 +6453,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_addToShoppingList(ctx, field)
 		case "removeFromShoppingList":
 			out.Values[i] = ec._Mutation_removeFromShoppingList(ctx, field)
+		case "createPurchaseFromShoppingList":
+			out.Values[i] = ec._Mutation_createPurchaseFromShoppingList(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8303,6 +8374,14 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
+}
+
+func (ec *executionContext) unmarshalOCreatePurchaseFromShoppingList2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐCreatePurchaseFromShoppingList(ctx context.Context, v interface{}) (*model.CreatePurchaseFromShoppingList, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputCreatePurchaseFromShoppingList(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOCursor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐCursor(ctx context.Context, v interface{}) (*ent.Cursor, error) {

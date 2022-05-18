@@ -133,6 +133,7 @@ type ShoppingListEdge {
 }
 
 input CreatePurchaseFromShoppingList {
+  vendor: Int!
   shoppingItem: Int!
   units: Int = 1
   pricePerUnit: Decimal!

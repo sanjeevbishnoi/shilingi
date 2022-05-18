@@ -169,6 +169,11 @@ func (r *mutationResolver) RemoveFromShoppingList(ctx context.Context, id int, l
 	return entops.RemoveFromShoppingList(ctx, id, listItems)
 }
 
+func (r *mutationResolver) CreatePurchaseFromShoppingList(
+	ctx context.Context, input *model.CreatePurchaseFromShoppingList) (*ent.Shopping, error) {
+	return nil, nil
+}
+
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {
 	query := r.cli.Item.Query()
 	if tagID != nil {
