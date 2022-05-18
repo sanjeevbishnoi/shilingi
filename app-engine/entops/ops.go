@@ -537,7 +537,8 @@ func CreatePurchaseFromShoppingList(ctx context.Context, id int, input *model.Cr
 			SetNillableQuantity(itemInput.Quantity).
 			SetNillableQuantityType(itemInput.QuantityType).
 			SetItem(item.Edges.Item).
-			SetShopping(purchase)
+			SetShopping(purchase).
+			AddShoppingList(item)
 	}
 
 	_, err = cli.ShoppingItem.CreateBulk(purchaseItemsCreate...).Save(ctx)
@@ -553,6 +554,8 @@ func CreatePurchaseFromShoppingList(ctx context.Context, id int, input *model.Cr
 			"Unable to create purchase. Kindly try again in a few minutes",
 		)
 	}
+
+	// We need to save the backref from ShoppingListItem
 
 	return purchase, nil
 }

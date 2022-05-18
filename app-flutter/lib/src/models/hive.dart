@@ -53,7 +53,7 @@ class ShoppingList extends HiveObject {
 
   void clear() async {
     listBox ??= await ShoppingList.getBox();
-    listBox!.delete(id);
+    listBox!.delete(id.toString());
   }
 
   static Future<ShoppingList> getList(int id) async {

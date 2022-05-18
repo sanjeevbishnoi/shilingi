@@ -240,6 +240,19 @@ var shoppingDetailQuery = gql(r'''
                 }
               }
             }
+            purchase {
+              id
+              pricePerUnit
+              units
+              brand
+              quantity
+              quantityType
+              total
+              shopping {
+                id
+                date
+              }
+            }
           }
         }
       }
