@@ -52,12 +52,50 @@ Map<String, dynamic> _$PurchaseItemsToJson(PurchaseItems instance) =>
       'shoppingItems': instance.shoppingItems,
     };
 
+PurchaseItemEdge _$PurchaseItemEdgeFromJson(Map<String, dynamic> json) =>
+    PurchaseItemEdge(
+      cursor: json['cursor'] as String?,
+      node: json['node'] == null
+          ? null
+          : PurchaseItem.fromJson(json['node'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$PurchaseItemEdgeToJson(PurchaseItemEdge instance) =>
+    <String, dynamic>{
+      'cursor': instance.cursor,
+      'node': instance.node,
+    };
+
+PurchaseItemConnection _$PurchaseItemConnectionFromJson(
+        Map<String, dynamic> json) =>
+    PurchaseItemConnection(
+      totalCount: json['totalCount'] as int?,
+      pageInfo: json['pageInfo'] == null
+          ? null
+          : PageInfo.fromJson(json['pageInfo'] as Map<String, dynamic>),
+      edges: (json['edges'] as List<dynamic>?)
+          ?.map((e) => PurchaseItemEdge.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$PurchaseItemConnectionToJson(
+        PurchaseItemConnection instance) =>
+    <String, dynamic>{
+      'totalCount': instance.totalCount,
+      'pageInfo': instance.pageInfo,
+      'edges': instance.edges,
+    };
+
 Item _$ItemFromJson(Map<String, dynamic> json) => Item(
       name: json['name'] as String,
       id: json['id'] as int?,
       tags: (json['tags'] as List<dynamic>?)
           ?.map((e) => Tag.fromJson(e as Map<String, dynamic>))
           .toList(),
+      purchases: json['purchases'] == null
+          ? null
+          : PurchaseItemConnection.fromJson(
+              json['purchases'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$ItemToJson(Item instance) {
@@ -73,6 +111,7 @@ Map<String, dynamic> _$ItemToJson(Item instance) {
 
   writeNotNull('id', instance.id);
   writeNotNull('tags', instance.tags);
+  writeNotNull('purchases', instance.purchases);
   return val;
 }
 
@@ -117,7 +156,9 @@ Map<String, dynamic> _$CatalogueToJson(Catalogue instance) => <String, dynamic>{
 Purchase _$PurchaseFromJson(Map<String, dynamic> json) => Purchase(
       id: json['id'] as int?,
       date: DateTime.parse(json['date'] as String),
-      vendor: Vendor.fromJson(json['vendor'] as Map<String, dynamic>),
+      vendor: json['vendor'] == null
+          ? null
+          : Vendor.fromJson(json['vendor'] as Map<String, dynamic>),
       items: (json['items'] as List<dynamic>?)
           ?.map((e) => PurchaseItem.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -169,6 +210,16 @@ Map<String, dynamic> _$VendorToJson(Vendor instance) {
   val['name'] = instance.name;
   return val;
 }
+
+Vendors _$VendorsFromJson(Map<String, dynamic> json) => Vendors(
+      vendors: (json['vendors'] as List<dynamic>)
+          .map((e) => Vendor.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$VendorsToJson(Vendors instance) => <String, dynamic>{
+      'vendors': instance.vendors,
+    };
 
 Tag _$TagFromJson(Map<String, dynamic> json) => Tag(
       name: json['name'] as String,

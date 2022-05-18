@@ -1,9 +1,19 @@
+directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION
+    | FIELD_DEFINITION
+
 type Item implements Node {
   id: ID!
   name: String!
   slug: String!
   tags: [Tag!]!
   sublabel: SubLabel
+  # We would like to perform custom ordering for shopping items
+  purchases(
+    after: Cursor
+    first: Int
+    before: Cursor
+    last: Int
+  ): ShoppingItemConnection @goField(forceResolver: true)
 }
 
 input ItemInput {
@@ -36,6 +46,17 @@ type ShoppingItem implements Node {
   item: Item!
   shopping: Shopping!
   total: Decimal!
+}
+
+type ShoppingItemConnection {
+  totalCount: Int!
+  pageInfo: PageInfo!
+  edges: [ShoppingItemEdge]
+}
+
+type ShoppingItemEdge {
+  node: ShoppingItem
+  cursor: Cursor!
 }
 
 type Shopping implements Node {
@@ -109,4 +130,18 @@ type ShoppingListConnection {
 type ShoppingListEdge {
   node: ShoppingList
   cursor: Cursor!
+}
+
+input CreatePurchaseFromShoppingListInput {
+  vendor: Int!
+  items: [PurchaseShoppingListItemInput!]!
+}
+
+input PurchaseShoppingListItemInput {
+  item: Int!
+  units: Int = 1
+  pricePerUnit: Decimal!
+  quantity: Float
+  quantityType: String
+  brand: String 
 }

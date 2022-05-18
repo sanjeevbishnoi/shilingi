@@ -409,7 +409,7 @@ class DateRangeAnalytics extends HookWidget {
 
     purchases.purchases.forEach((purchase) {
       var entry = SimpleBarEntry<Purchase>(
-          label: purchase.vendor.name,
+          label: purchase.vendor!.name,
           value: purchase.total!,
           items: [purchase]);
       map.update(entry.label, (value) => value + entry, ifAbsent: () => entry);

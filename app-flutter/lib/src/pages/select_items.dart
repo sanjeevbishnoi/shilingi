@@ -4,22 +4,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:ms_undraw/ms_undraw.dart';
+import 'package:intl/intl.dart';
 
 import '../gql/gql.dart';
 import '../constants/constants.dart';
 import '../models/model.dart';
 import '../components/components.dart';
 
+typedef ItemsSelected = Function(List<int>);
+
 class SelectItemsPage extends HookWidget {
   final String title;
-  const SelectItemsPage({Key? key, required this.title}) : super(key: key);
+  final String buttonString;
+  final bool resultsOnPop;
+
+  const SelectItemsPage(
+      {Key? key,
+      required this.title,
+      required this.buttonString,
+      this.resultsOnPop = false})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     var itemsResult = useState<List<Item>>([]);
     var tags = useState<List<Tag>>([]);
     var selectedTags = useState<Set<Tag>>({});
-    var queryResult = useQuery(QueryOptions(document: itemsQueryWithLabels));
+    var queryResult = useQuery(QueryOptions(
+        document: itemsQueryWithLabels,
+        fetchPolicy: FetchPolicy.cacheAndNetwork));
     var selectedItems = useState<List<int>>([]);
     var result = queryResult.result;
     var createButtonPosition = useState<double>(-50.0);
@@ -202,19 +215,41 @@ class SelectItemsPage extends HookWidget {
                         builder: (context) {
                           return ElevatedButton(
                             onPressed: () {
-                              showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  isDismissible: false,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) {
-                                    return _SetTitleModal(
-                                      selectedItems: selectedItems.value,
-                                    );
-                                  });
+                              if (!resultsOnPop) {
+                                showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    isDismissible: false,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) {
+                                      return _SetTitleModal(
+                                        selectedItems: selectedItems.value,
+                                      );
+                                    });
+                              } else {
+                                Navigator.of(context).pop(selectedItems.value);
+                              }
                             },
-                            child: Text(
-                                'Create new list (${selectedItems.value.length})'),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(buttonString),
+                                const SizedBox(width: 5.0),
+                                Container(
+                                  width: 30.0,
+                                  height: 30.0,
+                                  padding: const EdgeInsets.all(5.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.lightGreenAccent,
+                                    borderRadius: BorderRadius.circular(30.0),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                        selectedItems.value.length.toString()),
+                                  ),
+                                ),
+                              ],
+                            ),
                             style: ButtonStyle(
                               shape: MaterialStateProperty.all<
                                   RoundedRectangleBorder>(
@@ -351,25 +386,30 @@ class _EmptySearchResult extends HookWidget {
     }
     return Align(
       alignment: Alignment.centerLeft,
-      child: TextButton(
-        onPressed: () {
-          saving.value = true;
-          _createItem(context, onCreate);
-        },
-        child: RichText(
-          textAlign: TextAlign.left,
-          text: TextSpan(
-            style: const TextStyle(color: Colors.black),
-            children: [
-              const TextSpan(
-                  text: 'Item not found. ',
-                  style: TextStyle(color: Colors.black54)),
-              TextSpan(
-                  text: 'Create $searchString',
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-            ],
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          const Text('Item not found.'),
+          const SizedBox(width: 5.0),
+          TextButton(
+            style: ButtonStyle(
+              backgroundColor:
+                  MaterialStateProperty.all<Color>(Colors.lightGreen),
+              foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+              shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+              ),
+            ),
+            onPressed: () {
+              saving.value = true;
+              _createItem(context, onCreate);
+            },
+            child: Text('Create $searchString',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -523,8 +563,14 @@ class _SetTitleModal extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    var text = useState<String>('');
+    var text = useState<String>(
+        'Shopping ' + DateFormat('EEE h:ma, MMM d').format(DateTime.now()));
     var loading = useState<bool>(false);
+    var controller = useTextEditingController();
+    useEffect(() {
+      controller.text = text.value;
+      return;
+    }, [text]);
 
     return Padding(
       padding: MediaQuery.of(context).viewInsets,
@@ -553,6 +599,7 @@ class _SetTitleModal extends HookWidget {
                 elevation: 2,
                 borderRadius: BorderRadius.circular(20.0),
                 child: TextField(
+                  controller: controller,
                   onChanged: (val) {
                     text.value = val;
                   },
@@ -576,6 +623,14 @@ class _SetTitleModal extends HookWidget {
                         vertical: 12, horizontal: 14.0),
                     filled: true,
                     fillColor: Colors.white,
+                    prefixIcon: text.value.isNotEmpty
+                        ? IconButton(
+                            onPressed: () {
+                              text.value = "";
+                              controller.clear();
+                            },
+                            icon: const Icon(Icons.clear))
+                        : null,
                   ),
                   enabled: !loading.value,
                 ),
@@ -585,7 +640,8 @@ class _SetTitleModal extends HookWidget {
                 onPressed: text.value.isNotEmpty && !loading.value
                     ? () async {
                         loading.value = true;
-                        var result = await _createList(context, text.value);
+                        var result =
+                            await _createList(context, controller.text);
                         if (result.hasException) {
                           var snackBar = const SnackBar(
                               content: Text(

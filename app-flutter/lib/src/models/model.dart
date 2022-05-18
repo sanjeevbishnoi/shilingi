@@ -45,6 +45,33 @@ class PurchaseItems {
 }
 
 @JsonSerializable()
+class PurchaseItemEdge {
+  final String? cursor;
+  final PurchaseItem? node;
+
+  const PurchaseItemEdge({this.cursor, this.node});
+
+  factory PurchaseItemEdge.fromJson(Json json) =>
+      _$PurchaseItemEdgeFromJson(json);
+
+  Json toJson() => _$PurchaseItemEdgeToJson(this);
+}
+
+@JsonSerializable()
+class PurchaseItemConnection {
+  final int? totalCount;
+  final PageInfo? pageInfo;
+  final List<PurchaseItemEdge>? edges;
+
+  const PurchaseItemConnection({this.totalCount, this.pageInfo, this.edges});
+
+  factory PurchaseItemConnection.fromJson(Json json) =>
+      _$PurchaseItemConnectionFromJson(json);
+
+  Json toJson() => _$PurchaseItemConnectionToJson(this);
+}
+
+@JsonSerializable()
 class Item implements Nameable {
   @override
   final String name;
@@ -52,8 +79,10 @@ class Item implements Nameable {
   final int? id;
   @JsonKey(includeIfNull: false)
   final List<Tag>? tags;
+  @JsonKey(includeIfNull: false)
+  final PurchaseItemConnection? purchases;
 
-  const Item({required this.name, this.id, this.tags});
+  const Item({required this.name, this.id, this.tags, this.purchases});
 
   Map<String, dynamic> toJson() => _$ItemToJson(this);
 
@@ -91,17 +120,13 @@ class Purchase {
   final int? id;
   @JsonKey(toJson: DateTimeToJson)
   final DateTime date;
-  final Vendor vendor;
+  final Vendor? vendor;
   final List<PurchaseItem>? items;
   @JsonKey(includeIfNull: false)
   final double? total;
 
   const Purchase(
-      {this.id,
-      required this.date,
-      required this.vendor,
-      this.items,
-      this.total});
+      {this.id, required this.date, this.vendor, this.items, this.total});
 
   factory Purchase.fromJson(Map<String, dynamic> json) =>
       _$PurchaseFromJson(json);
@@ -131,6 +156,17 @@ class Vendor {
 
   factory Vendor.fromJson(Map<String, dynamic> json) => _$VendorFromJson(json);
   Map<String, dynamic> toJson() => _$VendorToJson(this);
+}
+
+@JsonSerializable()
+class Vendors {
+  final List<Vendor> vendors;
+
+  const Vendors({required this.vendors});
+
+  factory Vendors.fromJson(Json json) => _$VendorsFromJson(json);
+
+  Json toJson() => _$VendorsToJson(this);
 }
 
 String DateTimeToJson(DateTime date) {

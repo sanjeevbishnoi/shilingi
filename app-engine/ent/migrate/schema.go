@@ -138,7 +138,7 @@ var (
 				Symbol:     "shopping_list_items_shopping_lists_items",
 				Columns:    []*schema.Column{ShoppingListItemsColumns[3]},
 				RefColumns: []*schema.Column{ShoppingListsColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}

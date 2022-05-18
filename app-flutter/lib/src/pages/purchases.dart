@@ -246,7 +246,7 @@ class _PurchasesPageState extends State<PurchasesPage> {
           "after": model.DateTimeToJson(dateRange[0]),
           "before": model.DateTimeToJson(dateRange[1]),
         },
-        fetchPolicy: FetchPolicy.networkOnly,
+        fetchPolicy: FetchPolicy.cacheAndNetwork,
       ),
     )
         .then((result) {

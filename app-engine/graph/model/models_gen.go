@@ -8,8 +8,22 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type CreatePurchaseFromShoppingListInput struct {
+	Vendor int                              `json:"vendor"`
+	Items  []*PurchaseShoppingListItemInput `json:"items"`
+}
+
 type ItemInput struct {
 	Name string `json:"name"`
+}
+
+type PurchaseShoppingListItemInput struct {
+	Item         int             `json:"item"`
+	Units        *int            `json:"units"`
+	PricePerUnit decimal.Decimal `json:"pricePerUnit"`
+	Quantity     *float64        `json:"quantity"`
+	QuantityType *string         `json:"quantityType"`
+	Brand        *string         `json:"brand"`
 }
 
 type ShoppingInput struct {

@@ -131,3 +131,42 @@ var mutationCreateShoppingList = gql(r'''
       }
     }
 ''');
+
+var mutationDeleteShoppingList = gql(r'''
+    mutation deleteShoppingList($id: Int!) {
+      deleteShoppingList(id: $id)
+    }
+''');
+
+var mutationAddToShoppingList = gql(r'''
+    mutation addToShoppingList($id: Int!, $items: [Int!]!) {
+      addToShoppingList(id: $id, items: $items) {
+        id
+      }
+    }
+''');
+
+var mutationRemoveFromShoppingList = gql(r'''
+    mutation removeFromShoppingList($id: Int!, $listItems: [Int!]!) {
+      removeFromShoppingList(id: $id, listItems: $listItems) {
+        id
+      }
+    }
+''');
+
+var mutationCreateVendor = gql(r'''
+    mutation createVendor($input: VendorInput!) {
+      createVendor(input: $input) {
+        id
+        name
+      }
+    }
+''');
+
+var createPurchaseFromShoppingListMutation = gql(r'''
+    mutation createPurchaseFromShoppingList($id: Int!, $input: CreatePurchaseFromShoppingListInput!) {
+      createPurchaseFromShoppingList(id: $id, input: $input) {
+        id
+      }
+    }
+''');

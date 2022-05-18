@@ -20,6 +20,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/graph/generated"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
 	"github.com/vektah/gqlparser/v2/gqlerror"
+	"go.uber.org/zap"
 )
 
 func (r *mutationResolver) CreateItem(ctx context.Context, input model.ItemInput) (*ent.Item, error) {
@@ -148,6 +149,32 @@ func (r *mutationResolver) DeleteSubLabel(ctx context.Context, subLabelID int) (
 
 func (r *mutationResolver) CreateShoppingList(ctx context.Context, input model.ShoppingListInput) (*ent.ShoppingList, error) {
 	return entops.CreateShoppingList(ctx, input)
+}
+
+func (r *mutationResolver) DeleteShoppingList(ctx context.Context, id int) (*bool, error) {
+	result, err := entops.DeleteShoppingList(ctx, id)
+	return &result, err
+}
+
+func (r *mutationResolver) AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingList, error) {
+	list, err := entops.AddToShoppingList(ctx, id, items)
+	if err != nil {
+		zap.S().Errorf("unable to add to a shopping list: %w", err)
+		return nil, gqlerror.Errorf("One of the items is already connected to a shopping list")
+	}
+	return list, nil
+}
+
+func (r *mutationResolver) RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.ShoppingList, error) {
+	return entops.RemoveFromShoppingList(ctx, id, listItems)
+}
+
+func (r *mutationResolver) CreatePurchaseFromShoppingList(ctx context.Context, id int, input model.CreatePurchaseFromShoppingListInput) (*ent.Shopping, error) {
+	return entops.CreatePurchaseFromShoppingList(ctx, id, &input)
+}
+
+func (r *mutationResolver) CreateVendor(ctx context.Context, input model.VendorInput) (*ent.Vendor, error) {
+	return entops.CreateVendor(ctx, input)
 }
 
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {

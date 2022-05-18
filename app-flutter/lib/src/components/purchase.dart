@@ -45,7 +45,7 @@ class WPurchase extends StatelessWidget {
                         children: [
                           Expanded(
                             child: ListTitleText(
-                              purchase.vendor.name,
+                              purchase.vendor!.name,
                             ),
                           ),
                           const SizedBox(width: 10),

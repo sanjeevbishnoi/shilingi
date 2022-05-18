@@ -2,19 +2,25 @@ import 'package:flutter/material.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:hive/hive.dart';
 
 import './src/pages/pages.dart';
 import './src/constants/constants.dart';
+import 'package:shilingi/src/models/hive.dart';
 
 const apiUrl = String.fromEnvironment('API_URL',
     defaultValue: 'http://localhost:8080/query');
 
-void main() {
+void main() async {
+  await initHiveForFlutter();
+  Hive.registerAdapter(ShoppingListAdapter());
+  Hive.registerAdapter(ShoppingListItemAdapter());
+
   final HttpLink httpLink = HttpLink(apiUrl);
   ValueNotifier<GraphQLClient> client = ValueNotifier(
     GraphQLClient(
       link: httpLink,
-      cache: GraphQLCache(),
+      cache: GraphQLCache(store: HiveStore()),
     ),
   );
 

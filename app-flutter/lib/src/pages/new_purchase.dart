@@ -237,7 +237,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
           d['item'] = item.item.name;
           items.add(d);
         }
-        data['vendor'] = purchase.vendor.toJson();
+        data['vendor'] = purchase.vendor!.toJson();
         data['items'] = items;
         showDialog(
             context: context,

@@ -5,15 +5,20 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/vektah/gqlparser/v2/gqlerror"
+	"go.uber.org/zap"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/schema/utils"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 	"github.com/kingzbauer/shilingi/app-engine/graph/model"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 // CreatePurchase verifies and creates a new purchase
@@ -376,4 +381,204 @@ func CreateShoppingList(ctx context.Context, input model.ShoppingListInput) (*en
 	}
 
 	return shoppingList, nil
+}
+
+// DeleteShoppingList checks whether the shopping list is connect to an existing purchase
+// If such a connection exists, the delete will not succeed
+func DeleteShoppingList(ctx context.Context, id int) (bool, error) {
+	cli := ent.FromContext(ctx)
+	if exists, err := cli.ShoppingList.Query().Where(
+		shoppinglist.ID(id),
+		shoppinglist.HasPurchases(),
+	).Exist(ctx); exists || err != nil {
+		if err == nil {
+			err = gqlerror.Errorf("A shopping list that is already connect to a purchase cannot be deleted")
+		}
+		return false, err
+	}
+
+	if err := cli.ShoppingList.DeleteOneID(id).Exec(ctx); err != nil {
+		zap.S().Errorf("unable to delete a shopping list: %w", err)
+		return false, gqlerror.Errorf("We were an able perform the requested action at the moment")
+	}
+
+	return true, nil
+}
+
+// AddToShoppingList adds items to the shopping list. The function does on attempt
+// make sure that the provided items aren't already part of the shopping list.
+// This for the moment it left as a burden on the client app
+func AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingList, error) {
+	cli := ent.FromContext(ctx)
+	shoppingList, err := cli.ShoppingList.Get(ctx, id)
+	if err != nil {
+		return nil, gqlerror.Errorf("Shopping list not found")
+	}
+	bulkCreate := []*ent.ShoppingListItemCreate{}
+	for _, i := range items {
+		create := cli.ShoppingListItem.Create().
+			SetItemID(i).
+			SetShoppingList(shoppingList)
+		bulkCreate = append(bulkCreate, create)
+	}
+	_, err = cli.ShoppingListItem.CreateBulk(bulkCreate...).Save(ctx)
+	if err != nil {
+		zap.S().Errorf("unable to save list items: %w", err)
+		return nil, gqlerror.Errorf("Uable to update shopping list")
+	}
+
+	return shoppingList, nil
+}
+
+// RemoveFromShoppingList removes a select set of entries from the shopping list
+// only if they aren't already linked to an existing purchase
+func RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.ShoppingList, error) {
+	cli := ent.FromContext(ctx)
+	list, err := cli.ShoppingList.Get(ctx, id)
+	if err != nil {
+		zap.S().Errorf("error: %s", err)
+		return nil, gqlerror.Errorf("Shopping list not found")
+	}
+
+	// Check if there are items which are already linked to a purchase
+	if exists, err := cli.ShoppingListItem.Query().
+		Where(
+			shoppinglistitem.IDIn(listItems...),
+			shoppinglistitem.HasPurchase(),
+		).Exist(ctx); exists || err != nil {
+		if exists {
+			return nil, gqlerror.Errorf("Some of the items are already purchased")
+		}
+		zap.S().Errorf("Unable to query the db: %w", err)
+		return nil, gqlerror.Errorf("Something went wrong. We have been notified of this")
+	}
+
+	count, err := cli.ShoppingListItem.Delete().
+		Where(
+			shoppinglistitem.IDIn(listItems...),
+			shoppinglistitem.HasShoppingListWith(
+				shoppinglist.ID(id),
+			),
+		).Exec(ctx)
+	zap.S().Debugf("Delete %d from shopping list: %d", count, id)
+	if err != nil {
+		zap.S().Errorf("unable to remove items from the shopping list: %w", err)
+		return nil, gqlerror.Errorf("Something went wrong. Kindly try again in a few.")
+	}
+
+	return list, nil
+}
+
+// CreatePurchaseFromShoppingList given a shopping list, it will create the necessary
+// Shopping/Purchase from the list
+func CreatePurchaseFromShoppingList(ctx context.Context, id int, input *model.CreatePurchaseFromShoppingListInput) (*ent.Shopping, error) {
+	cli := ent.FromContext(ctx)
+	// Retrieve the shoppinglist
+	_, err := cli.ShoppingList.Get(ctx, id)
+	if err != nil && ent.IsNotFound(err) {
+		return nil, gqlerror.Errorf("Shopping list item not found")
+	} else if err != nil {
+		zap.S().Errorf("Error while trying to retrieve shopping list: %s", err)
+		return nil, gqlerror.Errorf("Something unexpected happened. We are working to fix it.")
+	}
+
+	itemIDs := make([]int, len(input.Items))
+	for i, item := range input.Items {
+		itemIDs[i] = item.Item
+	}
+
+	// Validate that all of the items provided exist on the list
+	// and that none of the has a purchase linked
+	list, err := cli.ShoppingListItem.Query().
+		Where(
+			shoppinglistitem.HasShoppingListWith(
+				shoppinglist.ID(id),
+			),
+			shoppinglistitem.Not(
+				shoppinglistitem.HasPurchase(),
+			),
+			shoppinglistitem.IDIn(itemIDs...),
+		).
+		WithItem().All(ctx)
+	if err != nil {
+		zap.S().Errorf("error while retrieving shopping list items: %s", err)
+		return nil, gqlerror.Errorf("Something unexpected happened. We are working to fix it.")
+	}
+	// Assert length of retrieved list is equal to the list of items provided from client
+	if len(list) != len(itemIDs) {
+		return nil, gqlerror.Errorf("Some of the provided list entries could not be processed")
+	}
+
+	// 1. Create the purchase
+	purchase, err := cli.Shopping.Create().
+		SetDate(time.Now()).
+		SetVendorID(input.Vendor).
+		Save(ctx)
+	if err != nil {
+		zap.S().Errorf("unable to create purchase: %s", err)
+		return nil, gqlerror.Errorf("Unable to create a purchase at the moment")
+	}
+
+	purchaseItemsCreate := make([]*ent.ShoppingItemCreate, len(list))
+	for i, item := range list {
+		// retrieve input
+		var itemInput *model.PurchaseShoppingListItemInput
+		for _, in := range input.Items {
+			if in.Item == item.ID {
+				itemInput = in
+				break
+			}
+		}
+
+		purchaseItemsCreate[i] = cli.ShoppingItem.Create().
+			SetUnits(*itemInput.Units).
+			SetPricePerUnit(itemInput.PricePerUnit).
+			SetNillableBrand(itemInput.Brand).
+			SetNillableQuantity(itemInput.Quantity).
+			SetNillableQuantityType(itemInput.QuantityType).
+			SetItem(item.Edges.Item).
+			SetShopping(purchase).
+			AddShoppingList(item)
+	}
+
+	_, err = cli.ShoppingItem.CreateBulk(purchaseItemsCreate...).Save(ctx)
+	if err != nil {
+		tx, _ := cli.Tx(ctx)
+		if tx != nil {
+			if err := tx.Rollback(); err != nil {
+				zap.S().Errorf("unable to rollback Tx: %s", err)
+			}
+		}
+		zap.S().Errorf("unable to create shopping items: %s", err)
+		return nil, gqlerror.Errorf(
+			"Unable to create purchase. Kindly try again in a few minutes",
+		)
+	}
+
+	// We need to save the backref from ShoppingListItem
+
+	return purchase, nil
+}
+
+// CreateVendor creates a vendor with the specified name, if vendor already exists,
+// return that
+func CreateVendor(ctx context.Context, input model.VendorInput) (*ent.Vendor, error) {
+	cli := ent.FromContext(ctx)
+	vendorSlug := Slugify(input.Name)
+	v, err := cli.Vendor.Query().
+		Where(
+			vendor.Slug(vendorSlug),
+		).Only(ctx)
+	if ent.IsNotFound(err) {
+		v, err = cli.Vendor.Create().
+			SetName(string(strings.ToUpper(input.Name[:1]) + input.Name[1:])).
+			SetSlug(vendorSlug).
+			Save(ctx)
+	}
+
+	if err != nil {
+		return nil, gqlerror.Errorf("Unable to create vendor. Try again later")
+	}
+
+	return v, nil
 }

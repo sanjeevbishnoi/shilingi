@@ -25,7 +25,10 @@ func (ShoppingList) Fields() []ent.Field {
 // Edges of the ShoppingList.
 func (ShoppingList) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("items", ShoppingListItem.Type),
+		edge.To("items", ShoppingListItem.Type).
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}),
 		edge.From("purchases", Shopping.Type).
 			Ref("shoppingList").
 			Unique(),
