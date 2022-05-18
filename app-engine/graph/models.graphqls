@@ -132,9 +132,13 @@ type ShoppingListEdge {
   cursor: Cursor!
 }
 
-input CreatePurchaseFromShoppingList {
+input CreatePurchaseFromShoppingListInput {
   vendor: Int!
-  shoppingItem: Int!
+  items: [PurchaseShoppingListItemInput!]!
+}
+
+input PurchaseShoppingListItemInput {
+  item: Int!
   units: Int = 1
   pricePerUnit: Decimal!
   quantity: Float

@@ -467,3 +467,9 @@ func RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.
 
 	return list, nil
 }
+
+// CreatePurchaseFromShoppingList given a shopping list, it will create the necessary
+// Shopping/Purchase from the list
+func CreatePurchaseFromShoppingList(ctx context.Context, input *model.CreatePurchaseFromShoppingList) (*ent.Shopping, error) {
+	return nil, nil
+}
