@@ -46,6 +46,6 @@ type Mutation {
   deleteShoppingList(id: Int!): Boolean
   addToShoppingList(id: Int!, items: [Int!]!): ShoppingList
   removeFromShoppingList(id: Int!, listItems: [Int!]!): ShoppingList
-  createPurchaseFromShoppingList(id: Int!, input: CreatePurchaseFromShoppingListInput): Shopping
+  createPurchaseFromShoppingList(id: Int!, input: CreatePurchaseFromShoppingListInput!): Shopping
   createVendor(input: VendorInput!): Vendor
 }
