@@ -561,7 +561,7 @@ class _Item extends StatelessWidget {
                                           date: purchase!.date),
                                     ),
                                     const TextSpan(
-                                        text: ' at ',
+                                        text: ' for ',
                                         style:
                                             TextStyle(color: Colors.black45)),
                                     TextSpan(
@@ -591,7 +591,7 @@ class _Item extends StatelessWidget {
                                 text: TextSpan(
                                   style: const TextStyle(color: Colors.black87),
                                   children: [
-                                    const TextSpan(text: 'Buying at: '),
+                                    const TextSpan(text: 'Buying for: '),
                                     TextSpan(
                                         text:
                                             '${storeItem!.pricePerUnit * storeItem!.units}/= '),
@@ -966,7 +966,7 @@ class _ConfirmItemCheck extends HookWidget {
                         children: [
                           const Padding(
                             padding: EdgeInsets.only(left: 15.0),
-                            child: Text('Units'),
+                            child: Text('Items'),
                           ),
                           Builder(
                             builder: (context) {

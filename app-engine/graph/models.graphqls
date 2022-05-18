@@ -131,3 +131,12 @@ type ShoppingListEdge {
   node: ShoppingList
   cursor: Cursor!
 }
+
+input CreatePurchaseFromShoppingList {
+  shoppingItem: Int!
+  units: Int = 1
+  pricePerUnit: Decimal!
+  quantity: Float
+  quantityType: String
+  brand: String 
+}
