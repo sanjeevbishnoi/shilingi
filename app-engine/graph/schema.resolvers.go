@@ -169,8 +169,7 @@ func (r *mutationResolver) RemoveFromShoppingList(ctx context.Context, id int, l
 	return entops.RemoveFromShoppingList(ctx, id, listItems)
 }
 
-func (r *mutationResolver) CreatePurchaseFromShoppingList(
-	ctx context.Context, input *model.CreatePurchaseFromShoppingList) (*ent.Shopping, error) {
+func (r *mutationResolver) CreatePurchaseFromShoppingList(ctx context.Context, input *model.CreatePurchaseFromShoppingList) (*ent.Shopping, error) {
 	return nil, nil
 }
 

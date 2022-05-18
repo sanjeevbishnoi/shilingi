@@ -1114,6 +1114,7 @@ type ShoppingListEdge {
 }
 
 input CreatePurchaseFromShoppingList {
+  vendor: Int!
   shoppingItem: Int!
   units: Int = 1
   pricePerUnit: Decimal!
@@ -5932,6 +5933,14 @@ func (ec *executionContext) unmarshalInputCreatePurchaseFromShoppingList(ctx con
 
 	for k, v := range asMap {
 		switch k {
+		case "vendor":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("vendor"))
+			it.Vendor, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "shoppingItem":
 			var err error
 

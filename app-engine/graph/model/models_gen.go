@@ -9,6 +9,7 @@ import (
 )
 
 type CreatePurchaseFromShoppingList struct {
+	Vendor       int             `json:"vendor"`
 	ShoppingItem int             `json:"shoppingItem"`
 	Units        *int            `json:"units"`
 	PricePerUnit decimal.Decimal `json:"pricePerUnit"`
