@@ -556,3 +556,26 @@ func CreatePurchaseFromShoppingList(ctx context.Context, id int, input *model.Cr
 
 	return purchase, nil
 }
+
+// CreateVendor creates a vendor with the specified name, if vendor already exists,
+// return that
+func CreateVendor(ctx context.Context, input model.VendorInput) (*ent.Vendor, error) {
+	cli := ent.FromContext(ctx)
+	vendorSlug := Slugify(input.Name)
+	v, err := cli.Vendor.Query().
+		Where(
+			vendor.Slug(vendorSlug),
+		).Only(ctx)
+	if ent.IsNotFound(err) {
+		v, err = cli.Vendor.Create().
+			SetName(string(strings.ToUpper(input.Name[:1]) + input.Name[1:])).
+			SetSlug(vendorSlug).
+			Save(ctx)
+	}
+
+	if err != nil {
+		return nil, gqlerror.Errorf("Unable to create vendor. Try again later")
+	}
+
+	return v, nil
+}

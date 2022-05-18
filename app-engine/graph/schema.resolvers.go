@@ -173,6 +173,10 @@ func (r *mutationResolver) CreatePurchaseFromShoppingList(ctx context.Context, i
 	return entops.CreatePurchaseFromShoppingList(ctx, id, input)
 }
 
+func (r *mutationResolver) CreateVendor(ctx context.Context, input model.VendorInput) (*ent.Vendor, error) {
+	return entops.CreateVendor(ctx, input)
+}
+
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {
 	query := r.cli.Item.Query()
 	if tagID != nil {

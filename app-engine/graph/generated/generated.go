@@ -69,6 +69,7 @@ type ComplexityRoot struct {
 		CreateShoppingList             func(childComplexity int, input model.ShoppingListInput) int
 		CreateSubLabel                 func(childComplexity int, tagID int, input model.SubLabelInput) int
 		CreateTag                      func(childComplexity int, input model.TagInput) int
+		CreateVendor                   func(childComplexity int, input model.VendorInput) int
 		DeleteShoppingList             func(childComplexity int, id int) int
 		DeleteSubLabel                 func(childComplexity int, subLabelID int) int
 		DeleteTag                      func(childComplexity int, id int) int
@@ -198,6 +199,7 @@ type MutationResolver interface {
 	AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingList, error)
 	RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.ShoppingList, error)
 	CreatePurchaseFromShoppingList(ctx context.Context, id int, input *model.CreatePurchaseFromShoppingListInput) (*ent.Shopping, error)
+	CreateVendor(ctx context.Context, input model.VendorInput) (*ent.Vendor, error)
 }
 type QueryResolver interface {
 	Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error)
@@ -374,6 +376,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateTag(childComplexity, args["input"].(model.TagInput)), true
+
+	case "Mutation.createVendor":
+		if e.complexity.Mutation.CreateVendor == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createVendor_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateVendor(childComplexity, args["input"].(model.VendorInput)), true
 
 	case "Mutation.deleteShoppingList":
 		if e.complexity.Mutation.DeleteShoppingList == nil {
@@ -1185,6 +1199,7 @@ type Mutation {
   addToShoppingList(id: Int!, items: [Int!]!): ShoppingList
   removeFromShoppingList(id: Int!, listItems: [Int!]!): ShoppingList
   createPurchaseFromShoppingList(id: Int!, input: CreatePurchaseFromShoppingListInput): Shopping
+  createVendor(input: VendorInput!): Vendor
 }
 `, BuiltIn: false},
 }
@@ -1384,6 +1399,21 @@ func (ec *executionContext) field_Mutation_createTag_args(ctx context.Context, r
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNTagInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐTagInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createVendor_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.VendorInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNVendorInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2800,6 +2830,45 @@ func (ec *executionContext) _Mutation_createPurchaseFromShoppingList(ctx context
 	res := resTmp.(*ent.Shopping)
 	fc.Result = res
 	return ec.marshalOShopping2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐShopping(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createVendor(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createVendor_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateVendor(rctx, args["input"].(model.VendorInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Vendor)
+	fc.Result = res
+	return ec.marshalOVendor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐVendor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *ent.PageInfo) (ret graphql.Marshaler) {
@@ -6500,6 +6569,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_removeFromShoppingList(ctx, field)
 		case "createPurchaseFromShoppingList":
 			out.Values[i] = ec._Mutation_createPurchaseFromShoppingList(ctx, field)
+		case "createVendor":
+			out.Values[i] = ec._Mutation_createVendor(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8161,6 +8232,11 @@ func (ec *executionContext) marshalNVendor2ᚖgithubᚗcomᚋkingzbauerᚋshilin
 	return ec._Vendor(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNVendorInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx context.Context, v interface{}) (model.VendorInput, error) {
+	res, err := ec.unmarshalInputVendorInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNVendorInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx context.Context, v interface{}) (*model.VendorInput, error) {
 	res, err := ec.unmarshalInputVendorInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
@@ -8739,6 +8815,13 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 		return graphql.Null
 	}
 	return graphql.MarshalTime(*v)
+}
+
+func (ec *executionContext) marshalOVendor2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐVendor(ctx context.Context, sel ast.SelectionSet, v *ent.Vendor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Vendor(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
