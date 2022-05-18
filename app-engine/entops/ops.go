@@ -5,6 +5,7 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"go.uber.org/zap"
@@ -470,6 +471,88 @@ func RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.
 
 // CreatePurchaseFromShoppingList given a shopping list, it will create the necessary
 // Shopping/Purchase from the list
-func CreatePurchaseFromShoppingList(ctx context.Context, input *model.CreatePurchaseFromShoppingList) (*ent.Shopping, error) {
-	return nil, nil
+func CreatePurchaseFromShoppingList(ctx context.Context, id int, input *model.CreatePurchaseFromShoppingListInput) (*ent.Shopping, error) {
+	cli := ent.FromContext(ctx)
+	// Retrieve the shoppinglist
+	_, err := cli.ShoppingList.Get(ctx, id)
+	if err != nil && ent.IsNotFound(err) {
+		return nil, gqlerror.Errorf("Shopping list item not found")
+	} else if err != nil {
+		zap.S().Errorf("Error while trying to retrieve shopping list: %s", err)
+		return nil, gqlerror.Errorf("Something unexpected happened. We are working to fix it.")
+	}
+
+	itemIDs := make([]int, len(input.Items))
+	for i, item := range input.Items {
+		itemIDs[i] = item.Item
+	}
+
+	// Validate that all of the items provided exist on the list
+	// and that none of the has a purchase linked
+	list, err := cli.ShoppingListItem.Query().
+		Where(
+			shoppinglistitem.HasShoppingListWith(
+				shoppinglist.ID(id),
+			),
+			shoppinglistitem.Not(
+				shoppinglistitem.HasPurchase(),
+			),
+			shoppinglistitem.IDIn(itemIDs...),
+		).
+		WithItem().All(ctx)
+	if err != nil {
+		zap.S().Errorf("error while retrieving shopping list items: %s", err)
+		return nil, gqlerror.Errorf("Something unexpected happened. We are working to fix it.")
+	}
+	// Assert length of retrieved list is equal to the list of items provided from client
+	if len(list) != len(itemIDs) {
+		return nil, gqlerror.Errorf("Some of the provided list entries could not be processed")
+	}
+
+	// 1. Create the purchase
+	purchase, err := cli.Shopping.Create().
+		SetDate(time.Now()).
+		SetVendorID(input.Vendor).
+		Save(ctx)
+	if err != nil {
+		zap.S().Errorf("unable to create purchase: %s", err)
+		return nil, gqlerror.Errorf("Unable to create a purchase at the moment")
+	}
+
+	purchaseItemsCreate := make([]*ent.ShoppingItemCreate, len(list))
+	for i, item := range list {
+		// retrieve input
+		var itemInput *model.PurchaseShoppingListItemInput
+		for _, in := range input.Items {
+			if in.Item == item.ID {
+				itemInput = in
+				break
+			}
+		}
+
+		purchaseItemsCreate[i] = cli.ShoppingItem.Create().
+			SetUnits(*itemInput.Units).
+			SetPricePerUnit(itemInput.PricePerUnit).
+			SetNillableBrand(itemInput.Brand).
+			SetNillableQuantity(itemInput.Quantity).
+			SetNillableQuantityType(itemInput.QuantityType).
+			SetItem(item.Edges.Item).
+			SetShopping(purchase)
+	}
+
+	_, err = cli.ShoppingItem.CreateBulk(purchaseItemsCreate...).Save(ctx)
+	if err != nil {
+		tx, _ := cli.Tx(ctx)
+		if tx != nil {
+			if err := tx.Rollback(); err != nil {
+				zap.S().Errorf("unable to rollback Tx: %s", err)
+			}
+		}
+		zap.S().Errorf("unable to create shopping items: %s", err)
+		return nil, gqlerror.Errorf(
+			"Unable to create purchase. Kindly try again in a few minutes",
+		)
+	}
+
+	return purchase, nil
 }
