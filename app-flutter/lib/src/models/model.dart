@@ -158,6 +158,17 @@ class Vendor {
   Map<String, dynamic> toJson() => _$VendorToJson(this);
 }
 
+@JsonSerializable()
+class Vendors {
+  final List<Vendor> vendors;
+
+  const Vendors({required this.vendors});
+
+  factory Vendors.fromJson(Json json) => _$VendorsFromJson(json);
+
+  Json toJson() => _$VendorsToJson(this);
+}
+
 String DateTimeToJson(DateTime date) {
   var duration = date.timeZoneOffset;
   if (duration.isNegative) {
