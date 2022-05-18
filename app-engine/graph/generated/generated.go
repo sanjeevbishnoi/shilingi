@@ -1098,6 +1098,15 @@ type ShoppingListEdge {
   node: ShoppingList
   cursor: Cursor!
 }
+
+input CreatePurchaseFromShoppingList {
+  shoppingItem: Int!
+  units: Int = 1
+  pricePerUnit: Decimal!
+  quantity: Float
+  quantityType: String
+  brand: String 
+}
 `, BuiltIn: false},
 	{Name: "graph/relay.graphqls", Input: `scalar Cursor
 
@@ -5840,6 +5849,73 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 // endregion **************************** field.gotpl *****************************
 
 // region    **************************** input.gotpl *****************************
+
+func (ec *executionContext) unmarshalInputCreatePurchaseFromShoppingList(ctx context.Context, obj interface{}) (model.CreatePurchaseFromShoppingList, error) {
+	var it model.CreatePurchaseFromShoppingList
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["units"]; !present {
+		asMap["units"] = 1
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "shoppingItem":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shoppingItem"))
+			it.ShoppingItem, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "units":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("units"))
+			it.Units, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "pricePerUnit":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pricePerUnit"))
+			it.PricePerUnit, err = ec.unmarshalNDecimal2githubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "quantity":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("quantity"))
+			it.Quantity, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "quantityType":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("quantityType"))
+			it.QuantityType, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "brand":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("brand"))
+			it.Brand, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
 
 func (ec *executionContext) unmarshalInputItemInput(ctx context.Context, obj interface{}) (model.ItemInput, error) {
 	var it model.ItemInput
