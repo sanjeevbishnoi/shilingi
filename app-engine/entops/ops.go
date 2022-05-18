@@ -389,7 +389,9 @@ func DeleteShoppingList(ctx context.Context, id int) (bool, error) {
 	cli := ent.FromContext(ctx)
 	if exists, err := cli.ShoppingList.Query().Where(
 		shoppinglist.ID(id),
-		shoppinglist.HasPurchases(),
+		shoppinglist.HasItemsWith(
+			shoppinglistitem.HasPurchase(),
+		),
 	).Exist(ctx); exists || err != nil {
 		if err == nil {
 			err = gqlerror.Errorf("A shopping list that is already connect to a purchase cannot be deleted")
