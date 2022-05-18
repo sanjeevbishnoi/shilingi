@@ -211,6 +211,16 @@ Map<String, dynamic> _$VendorToJson(Vendor instance) {
   return val;
 }
 
+Vendors _$VendorsFromJson(Map<String, dynamic> json) => Vendors(
+      vendors: (json['vendors'] as List<dynamic>)
+          .map((e) => Vendor.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$VendorsToJson(Vendors instance) => <String, dynamic>{
+      'vendors': instance.vendors,
+    };
+
 Tag _$TagFromJson(Map<String, dynamic> json) => Tag(
       name: json['name'] as String,
       id: json['id'] as int?,

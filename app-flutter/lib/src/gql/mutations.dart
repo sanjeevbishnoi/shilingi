@@ -153,3 +153,20 @@ var mutationRemoveFromShoppingList = gql(r'''
       }
     }
 ''');
+
+var mutationCreateVendor = gql(r'''
+    mutation createVendor($input: VendorInput!) {
+      createVendor(input: $input) {
+        id
+        name
+      }
+    }
+''');
+
+var createPurchaseFromShoppingListMutation = gql(r'''
+    mutation createPurchaseFromShoppingList($id: Int!, $input: CreatePurchaseFromShoppingListInput!) {
+      createPurchaseFromShoppingList(id: $id, input: $input) {
+        id
+      }
+    }
+''');

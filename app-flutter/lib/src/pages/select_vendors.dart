@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -15,16 +16,17 @@ class SelectVendorPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final queryResult = useQuery(QueryOptions(document: vendorsQuery));
-    final result = queryResult.result;
+    final queryResult = useQuery(QueryOptions(
+        document: vendorsQuery, fetchPolicy: FetchPolicy.cacheAndNetwork));
+    final result = useState<QueryResult>(queryResult.result);
 
     Widget body;
 
-    if (result.isLoading && result.data == null) {
+    if (result.value.isLoading && result.value.data == null) {
       body = const Center(
         child: CircularProgressIndicator(),
       );
-    } else if (result.hasException) {
+    } else if (result.value.hasException) {
       body = Padding(
         padding: const EdgeInsets.all(30.0),
         child: Center(
@@ -57,37 +59,160 @@ class SelectVendorPage extends HookWidget {
         ),
       );
     } else {
-      final vendors = Vendors.fromJson(result.data!);
+      final vendors = Vendors.fromJson(result.value.data!);
 
-      body = _Body(vendors: vendors.vendors);
+      body = _Body(
+        vendors: vendors.vendors,
+        onRefresh: () async {
+          final results = await queryResult.refetch();
+          if (results != null) {
+            result.value = results;
+          }
+          return;
+        },
+      );
     }
 
     return Scaffold(
       appBar: AppBar(title: Text(title), backgroundColor: mainScaffoldBg),
+      backgroundColor: mainScaffoldBg,
       body: body,
     );
   }
 }
 
-class _Body extends StatelessWidget {
+class _Body extends HookWidget {
   final List<Vendor> vendors;
+  final Future Function() onRefresh;
 
-  const _Body({Key? key, required this.vendors}) : super(key: key);
+  const _Body({Key? key, required this.vendors, required this.onRefresh})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final vendorList = useState<List<Vendor>>(vendors);
+    final searchString = useState<String>('');
+    useEffect(() {
+      vendorList.value = vendors
+          .where((vendor) => vendor.name
+              .toLowerCase()
+              .contains(searchString.value.toLowerCase()))
+          .toList();
+      return null;
+    }, [searchString.value, vendors]);
+
+    var creating = false;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SearchInput(onChanged: (val) {}),
-        const SizedBox(height: 10.0),
-        ListView.builder(
-          itemBuilder: (context, index) {
-            return Text(vendors[index].name);
-          },
-        ),
+        _SearchInput(onChanged: (val) {
+          searchString.value = val;
+        }),
+        const SizedBox(height: 20.0),
+        if (vendorList.value.isNotEmpty)
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () {
+                return onRefresh();
+              },
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 30.0, vertical: 20.0),
+                itemBuilder: (context, index) {
+                  return _VendorEntry(
+                    vendor: vendorList.value[index],
+                    onTap: () {},
+                  );
+                },
+                itemCount: vendorList.value.length,
+              ),
+            ),
+          ),
+        if (vendorList.value.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30.0),
+            child: Row(
+              children: [
+                const Text('Vendor not found.'),
+                const SizedBox(width: 10.0),
+                Expanded(
+                  child: StatefulBuilder(
+                    builder: (context, setState) {
+                      if (creating) {
+                        return Text('Creating ${searchString.value}');
+                      } else {
+                        return ElevatedButton(
+                          onPressed: () async {
+                            setState(() {
+                              creating = true;
+                            });
+                            var result = await _createVendor(
+                                context, searchString.value);
+                            if (result.hasException) {
+                              var snackBar = const SnackBar(
+                                  content: Text(
+                                      'Something unexpected happened, vendor was not created'));
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(snackBar);
+                              Navigator.of(context).pop();
+                            } else {
+                              final vendor =
+                                  Vendor.fromJson(result.data!['createVendor']);
+                              Navigator.of(context).pop(vendor);
+                            }
+                          },
+                          child: RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              children: [
+                                const TextSpan(text: 'Tap to create '),
+                                TextSpan(
+                                    text: searchString.value,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                          style: ButtonStyle(
+                            backgroundColor: MaterialStateProperty.all<Color>(
+                              Colors.black87,
+                            ),
+                            foregroundColor: MaterialStateProperty.all<Color>(
+                              Colors.white,
+                            ),
+                            shape: MaterialStateProperty.all<
+                                RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30.0),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
+  }
+
+  Future<QueryResult> _createVendor(BuildContext context, String name) async {
+    final cli = GraphQLProvider.of(context).value;
+    var result = await cli.mutate(
+      MutationOptions(
+        document: mutationCreateVendor,
+        variables: {
+          'input': {
+            'name': name,
+          },
+        },
+      ),
+    );
+    return result;
   }
 }
 
@@ -101,47 +226,94 @@ class _SearchInput extends HookWidget {
     final showClear = useState<bool>(false);
     final controller = useTextEditingController();
     controller.addListener(() {
-      print('changed text: ${controller.text}');
       showClear.value = controller.text.isNotEmpty;
+      onChanged(controller.text);
     });
 
-    return Container(
-      height: 40.0,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30.0),
-        color: Colors.white,
-      ),
-      child: Row(
-        children: [
-          if (showClear.value)
-            SizedBox(
-              width: 40.0,
-              height: 40.0,
-              child: Center(
-                child: IconButton(
-                  iconSize: 14.0,
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    controller.text = "";
-                    onChanged("");
-                  },
+    return Padding(
+      padding: const EdgeInsets.only(left: 30.0, right: 30.0),
+      child: Container(
+        height: 40.0,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30.0),
+          color: Colors.white,
+        ),
+        child: Row(
+          children: [
+            if (showClear.value)
+              SizedBox(
+                width: 40.0,
+                height: 40.0,
+                child: Center(
+                  child: IconButton(
+                    iconSize: 14.0,
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      controller.text = "";
+                      onChanged("");
+                    },
+                  ),
+                ),
+              ),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  hintText: 'Search',
+                  focusedBorder: InputBorder.none,
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: controller.text.isEmpty ? 14 : 0),
                 ),
               ),
             ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: 'Search',
-                focusedBorder: InputBorder.none,
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                    vertical: 8, horizontal: controller.text.isEmpty ? 14 : 0),
-              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VendorEntry extends StatelessWidget {
+  final VoidCallback onTap;
+  final Vendor vendor;
+
+  const _VendorEntry({Key? key, required this.onTap, required this.vendor})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4.0),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(4.0),
+          onTap: () {
+            Navigator.of(context).pop(vendor);
+          },
+          splashColor: Colors.black12,
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4.0),
+              color: Colors.transparent,
+            ),
+            child: Row(
+              children: [
+                Expanded(child: Text(vendor.name)),
+                const Icon(FeatherIcons.chevronRight),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

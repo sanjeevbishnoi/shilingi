@@ -337,12 +337,32 @@ class ShoppingListDetail extends HookWidget {
                 right: 100.0,
                 bottom: 16.0,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(
+                  onPressed: () async {
+                    var result =
+                        await Navigator.of(context).push(MaterialPageRoute(
                       builder: (context) {
                         return const SelectVendorPage(title: 'Select vendor');
                       },
                     ));
+                    if (result is Vendor) {
+                      final popResult = await showDialog(
+                        context: context,
+                        builder: (context) {
+                          return _ConfirmVendorDialog(
+                            id: id,
+                            vendor: result,
+                            store: store,
+                            selectedItems: selectedItems.value,
+                          );
+                        },
+                      );
+                      if (popResult is bool && popResult) {
+                        // Clear both the store and selected items
+                        selectedItems.value = <int>[];
+                        store.then((s) => s.clear());
+                        queryResult.refetch();
+                      }
+                    }
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1376,6 +1396,135 @@ class _BrandField extends HookWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ConfirmVendorDialog extends HookWidget {
+  final int id;
+  final Vendor vendor;
+  final List<int> selectedItems;
+  final Future<hive.ShoppingList> store;
+
+  const _ConfirmVendorDialog(
+      {Key? key,
+      required this.id,
+      required this.vendor,
+      required this.selectedItems,
+      required this.store})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final vendorState = useState<Vendor>(vendor);
+
+    var loading = false;
+
+    return AlertDialog(
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Selected vendor'),
+          const SizedBox(height: 10.0),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(30.0),
+              onTap: () async {
+                var result = await Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) {
+                    return const SelectVendorPage(title: 'Select vendor');
+                  },
+                ));
+                if (result is Vendor) {
+                  vendorState.value = result;
+                }
+              },
+              splashColor: Colors.black12,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30.0),
+                  border: Border.all(color: Colors.black54),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 6.0, horizontal: 8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(vendorState.value.name),
+                    ),
+                    const Icon(FeatherIcons.chevronDown),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+        ),
+        StatefulBuilder(
+          builder: (context, setState) {
+            return TextButton(
+              onPressed: loading
+                  ? null
+                  : () async {
+                      final input = <String, dynamic>{
+                        'vendor': vendor.id,
+                      };
+                      var s = await store;
+                      input['items'] = s.items
+                          .map<Map<String, dynamic>>((item) => {
+                                'item': item.id,
+                                'units': item.units,
+                                'pricePerUnit': item.pricePerUnit,
+                                if (item.quantity != null)
+                                  'quantity': item.quantity,
+                                if (item.quantityType != null)
+                                  'quantityType': item.quantityType,
+                                if (item.brand != null) 'brand': item.brand,
+                              })
+                          .toList();
+                      setState(() {
+                        loading = true;
+                      });
+                      final cli = GraphQLProvider.of(context).value;
+                      final result = await cli.mutate(
+                        MutationOptions(
+                          document: createPurchaseFromShoppingListMutation,
+                          variables: {
+                            'id': id,
+                            'input': input,
+                          },
+                        ),
+                      );
+                      if (result.hasException) {
+                        final msg = result.exception!.graphqlErrors[0].message;
+                        var snackBar = SnackBar(content: Text(msg));
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        Navigator.of(context).pop(false);
+                      } else {
+                        var snackBar = const SnackBar(
+                            content: Text(
+                                'A purchase has been successfully created'));
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        Navigator.of(context).pop(true);
+                      }
+                    },
+              child: Text(
+                loading ? 'Creating...' : 'Create purchase',
+                style: const TextStyle(color: Colors.greenAccent),
+              ),
+            );
+          },
+        ),
+      ],
+      contentPadding: const EdgeInsets.only(
+          top: 18.0, left: 14.0, right: 14.0, bottom: 4.0),
     );
   }
 }
