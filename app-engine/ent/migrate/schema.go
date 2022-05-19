@@ -112,6 +112,7 @@ var (
 	// ShoppingListItemsColumns holds the columns for the "shopping_list_items" table.
 	ShoppingListItemsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "note", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "item_shopping_list", Type: field.TypeInt, Nullable: true},
 		{Name: "shopping_item_shopping_list", Type: field.TypeInt, Nullable: true},
 		{Name: "shopping_list_items", Type: field.TypeInt, Nullable: true},
@@ -124,19 +125,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "shopping_list_items_items_shoppingList",
-				Columns:    []*schema.Column{ShoppingListItemsColumns[1]},
+				Columns:    []*schema.Column{ShoppingListItemsColumns[2]},
 				RefColumns: []*schema.Column{ItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "shopping_list_items_shopping_items_shoppingList",
-				Columns:    []*schema.Column{ShoppingListItemsColumns[2]},
+				Columns:    []*schema.Column{ShoppingListItemsColumns[3]},
 				RefColumns: []*schema.Column{ShoppingItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "shopping_list_items_shopping_lists_items",
-				Columns:    []*schema.Column{ShoppingListItemsColumns[3]},
+				Columns:    []*schema.Column{ShoppingListItemsColumns[4]},
 				RefColumns: []*schema.Column{ShoppingListsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

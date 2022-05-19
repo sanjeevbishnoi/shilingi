@@ -2996,6 +2996,7 @@ type ShoppingListItemMutation struct {
 	op                  Op
 	typ                 string
 	id                  *int
+	note                *string
 	clearedFields       map[string]struct{}
 	shoppingList        *int
 	clearedshoppingList bool
@@ -3085,6 +3086,55 @@ func (m *ShoppingListItemMutation) ID() (id int, exists bool) {
 		return
 	}
 	return *m.id, true
+}
+
+// SetNote sets the "note" field.
+func (m *ShoppingListItemMutation) SetNote(s string) {
+	m.note = &s
+}
+
+// Note returns the value of the "note" field in the mutation.
+func (m *ShoppingListItemMutation) Note() (r string, exists bool) {
+	v := m.note
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNote returns the old "note" field's value of the ShoppingListItem entity.
+// If the ShoppingListItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ShoppingListItemMutation) OldNote(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldNote is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldNote requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNote: %w", err)
+	}
+	return oldValue.Note, nil
+}
+
+// ClearNote clears the value of the "note" field.
+func (m *ShoppingListItemMutation) ClearNote() {
+	m.note = nil
+	m.clearedFields[shoppinglistitem.FieldNote] = struct{}{}
+}
+
+// NoteCleared returns if the "note" field was cleared in this mutation.
+func (m *ShoppingListItemMutation) NoteCleared() bool {
+	_, ok := m.clearedFields[shoppinglistitem.FieldNote]
+	return ok
+}
+
+// ResetNote resets all changes to the "note" field.
+func (m *ShoppingListItemMutation) ResetNote() {
+	m.note = nil
+	delete(m.clearedFields, shoppinglistitem.FieldNote)
 }
 
 // SetShoppingListID sets the "shoppingList" edge to the ShoppingList entity by id.
@@ -3223,7 +3273,10 @@ func (m *ShoppingListItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ShoppingListItemMutation) Fields() []string {
-	fields := make([]string, 0, 0)
+	fields := make([]string, 0, 1)
+	if m.note != nil {
+		fields = append(fields, shoppinglistitem.FieldNote)
+	}
 	return fields
 }
 
@@ -3231,6 +3284,10 @@ func (m *ShoppingListItemMutation) Fields() []string {
 // return value indicates that this field was not set, or was not defined in the
 // schema.
 func (m *ShoppingListItemMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case shoppinglistitem.FieldNote:
+		return m.Note()
+	}
 	return nil, false
 }
 
@@ -3238,6 +3295,10 @@ func (m *ShoppingListItemMutation) Field(name string) (ent.Value, bool) {
 // returned if the mutation operation is not UpdateOne, or the query to the
 // database failed.
 func (m *ShoppingListItemMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case shoppinglistitem.FieldNote:
+		return m.OldNote(ctx)
+	}
 	return nil, fmt.Errorf("unknown ShoppingListItem field %s", name)
 }
 
@@ -3246,6 +3307,13 @@ func (m *ShoppingListItemMutation) OldField(ctx context.Context, name string) (e
 // type.
 func (m *ShoppingListItemMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case shoppinglistitem.FieldNote:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNote(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ShoppingListItem field %s", name)
 }
@@ -3267,13 +3335,19 @@ func (m *ShoppingListItemMutation) AddedField(name string) (ent.Value, bool) {
 // the field is not defined in the schema, or if the type mismatched the field
 // type.
 func (m *ShoppingListItemMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown ShoppingListItem numeric field %s", name)
 }
 
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *ShoppingListItemMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(shoppinglistitem.FieldNote) {
+		fields = append(fields, shoppinglistitem.FieldNote)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -3286,12 +3360,22 @@ func (m *ShoppingListItemMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *ShoppingListItemMutation) ClearField(name string) error {
+	switch name {
+	case shoppinglistitem.FieldNote:
+		m.ClearNote()
+		return nil
+	}
 	return fmt.Errorf("unknown ShoppingListItem nullable field %s", name)
 }
 
 // ResetField resets all changes in the mutation for the field with the given name.
 // It returns an error if the field is not defined in the schema.
 func (m *ShoppingListItemMutation) ResetField(name string) error {
+	switch name {
+	case shoppinglistitem.FieldNote:
+		m.ResetNote()
+		return nil
+	}
 	return fmt.Errorf("unknown ShoppingListItem field %s", name)
 }
 

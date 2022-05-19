@@ -30,6 +30,26 @@ func (sliu *ShoppingListItemUpdate) Where(ps ...predicate.ShoppingListItem) *Sho
 	return sliu
 }
 
+// SetNote sets the "note" field.
+func (sliu *ShoppingListItemUpdate) SetNote(s string) *ShoppingListItemUpdate {
+	sliu.mutation.SetNote(s)
+	return sliu
+}
+
+// SetNillableNote sets the "note" field if the given value is not nil.
+func (sliu *ShoppingListItemUpdate) SetNillableNote(s *string) *ShoppingListItemUpdate {
+	if s != nil {
+		sliu.SetNote(*s)
+	}
+	return sliu
+}
+
+// ClearNote clears the value of the "note" field.
+func (sliu *ShoppingListItemUpdate) ClearNote() *ShoppingListItemUpdate {
+	sliu.mutation.ClearNote()
+	return sliu
+}
+
 // SetShoppingListID sets the "shoppingList" edge to the ShoppingList entity by ID.
 func (sliu *ShoppingListItemUpdate) SetShoppingListID(id int) *ShoppingListItemUpdate {
 	sliu.mutation.SetShoppingListID(id)
@@ -156,6 +176,11 @@ func (sliu *ShoppingListItemUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (sliu *ShoppingListItemUpdate) check() error {
+	if v, ok := sliu.mutation.Note(); ok {
+		if err := shoppinglistitem.NoteValidator(v); err != nil {
+			return &ValidationError{Name: "note", err: fmt.Errorf("ent: validator failed for field \"note\": %w", err)}
+		}
+	}
 	if _, ok := sliu.mutation.ShoppingListID(); sliu.mutation.ShoppingListCleared() && !ok {
 		return errors.New("ent: clearing a required unique edge \"shoppingList\"")
 	}
@@ -182,6 +207,19 @@ func (sliu *ShoppingListItemUpdate) sqlSave(ctx context.Context) (n int, err err
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := sliu.mutation.Note(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: shoppinglistitem.FieldNote,
+		})
+	}
+	if sliu.mutation.NoteCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: shoppinglistitem.FieldNote,
+		})
 	}
 	if sliu.mutation.ShoppingListCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -305,6 +343,26 @@ type ShoppingListItemUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ShoppingListItemMutation
+}
+
+// SetNote sets the "note" field.
+func (sliuo *ShoppingListItemUpdateOne) SetNote(s string) *ShoppingListItemUpdateOne {
+	sliuo.mutation.SetNote(s)
+	return sliuo
+}
+
+// SetNillableNote sets the "note" field if the given value is not nil.
+func (sliuo *ShoppingListItemUpdateOne) SetNillableNote(s *string) *ShoppingListItemUpdateOne {
+	if s != nil {
+		sliuo.SetNote(*s)
+	}
+	return sliuo
+}
+
+// ClearNote clears the value of the "note" field.
+func (sliuo *ShoppingListItemUpdateOne) ClearNote() *ShoppingListItemUpdateOne {
+	sliuo.mutation.ClearNote()
+	return sliuo
 }
 
 // SetShoppingListID sets the "shoppingList" edge to the ShoppingList entity by ID.
@@ -440,6 +498,11 @@ func (sliuo *ShoppingListItemUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (sliuo *ShoppingListItemUpdateOne) check() error {
+	if v, ok := sliuo.mutation.Note(); ok {
+		if err := shoppinglistitem.NoteValidator(v); err != nil {
+			return &ValidationError{Name: "note", err: fmt.Errorf("ent: validator failed for field \"note\": %w", err)}
+		}
+	}
 	if _, ok := sliuo.mutation.ShoppingListID(); sliuo.mutation.ShoppingListCleared() && !ok {
 		return errors.New("ent: clearing a required unique edge \"shoppingList\"")
 	}
@@ -483,6 +546,19 @@ func (sliuo *ShoppingListItemUpdateOne) sqlSave(ctx context.Context) (_node *Sho
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := sliuo.mutation.Note(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: shoppinglistitem.FieldNote,
+		})
+	}
+	if sliuo.mutation.NoteCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: shoppinglistitem.FieldNote,
+		})
 	}
 	if sliuo.mutation.ShoppingListCleared() {
 		edge := &sqlgraph.EdgeSpec{

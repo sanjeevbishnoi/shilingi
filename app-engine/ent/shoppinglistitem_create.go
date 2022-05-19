@@ -22,6 +22,20 @@ type ShoppingListItemCreate struct {
 	hooks    []Hook
 }
 
+// SetNote sets the "note" field.
+func (slic *ShoppingListItemCreate) SetNote(s string) *ShoppingListItemCreate {
+	slic.mutation.SetNote(s)
+	return slic
+}
+
+// SetNillableNote sets the "note" field if the given value is not nil.
+func (slic *ShoppingListItemCreate) SetNillableNote(s *string) *ShoppingListItemCreate {
+	if s != nil {
+		slic.SetNote(*s)
+	}
+	return slic
+}
+
 // SetShoppingListID sets the "shoppingList" edge to the ShoppingList entity by ID.
 func (slic *ShoppingListItemCreate) SetShoppingListID(id int) *ShoppingListItemCreate {
 	slic.mutation.SetShoppingListID(id)
@@ -133,6 +147,11 @@ func (slic *ShoppingListItemCreate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (slic *ShoppingListItemCreate) check() error {
+	if v, ok := slic.mutation.Note(); ok {
+		if err := shoppinglistitem.NoteValidator(v); err != nil {
+			return &ValidationError{Name: "note", err: fmt.Errorf(`ent: validator failed for field "note": %w`, err)}
+		}
+	}
 	if _, ok := slic.mutation.ShoppingListID(); !ok {
 		return &ValidationError{Name: "shoppingList", err: errors.New("ent: missing required edge \"shoppingList\"")}
 	}
@@ -166,6 +185,14 @@ func (slic *ShoppingListItemCreate) createSpec() (*ShoppingListItem, *sqlgraph.C
 			},
 		}
 	)
+	if value, ok := slic.mutation.Note(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: shoppinglistitem.FieldNote,
+		})
+		_node.Note = value
+	}
 	if nodes := slic.mutation.ShoppingListIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,

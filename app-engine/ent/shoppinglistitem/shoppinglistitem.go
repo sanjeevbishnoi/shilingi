@@ -7,6 +7,8 @@ const (
 	Label = "shopping_list_item"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldNote holds the string denoting the note field in the database.
+	FieldNote = "note"
 	// EdgeShoppingList holds the string denoting the shoppinglist edge name in mutations.
 	EdgeShoppingList = "shoppingList"
 	// EdgeItem holds the string denoting the item edge name in mutations.
@@ -41,6 +43,7 @@ const (
 // Columns holds all SQL columns for shoppinglistitem fields.
 var Columns = []string{
 	FieldID,
+	FieldNote,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "shopping_list_items"
@@ -65,3 +68,8 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// NoteValidator is a validator for the "note" field. It is called by the builders before save.
+	NoteValidator func(string) error
+)

@@ -359,6 +359,19 @@ func (sliq *ShoppingListItemQuery) WithPurchase(opts ...func(*ShoppingItemQuery)
 
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		Note string `json:"note,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.ShoppingListItem.Query().
+//		GroupBy(shoppinglistitem.FieldNote).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
+//
 func (sliq *ShoppingListItemQuery) GroupBy(field string, fields ...string) *ShoppingListItemGroupBy {
 	group := &ShoppingListItemGroupBy{config: sliq.config}
 	group.fields = append([]string{field}, fields...)
@@ -373,6 +386,17 @@ func (sliq *ShoppingListItemQuery) GroupBy(field string, fields ...string) *Shop
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		Note string `json:"note,omitempty"`
+//	}
+//
+//	client.ShoppingListItem.Query().
+//		Select(shoppinglistitem.FieldNote).
+//		Scan(ctx, &v)
+//
 func (sliq *ShoppingListItemQuery) Select(fields ...string) *ShoppingListItemSelect {
 	sliq.fields = append(sliq.fields, fields...)
 	return &ShoppingListItemSelect{ShoppingListItemQuery: sliq}

@@ -10,6 +10,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglist"
+	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
@@ -91,6 +92,12 @@ func init() {
 	shoppinglist.DefaultUpdateTime = shoppinglistDescUpdateTime.Default.(func() time.Time)
 	// shoppinglist.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
 	shoppinglist.UpdateDefaultUpdateTime = shoppinglistDescUpdateTime.UpdateDefault.(func() time.Time)
+	shoppinglistitemFields := schema.ShoppingListItem{}.Fields()
+	_ = shoppinglistitemFields
+	// shoppinglistitemDescNote is the schema descriptor for note field.
+	shoppinglistitemDescNote := shoppinglistitemFields[0].Descriptor()
+	// shoppinglistitem.NoteValidator is a validator for the "note" field. It is called by the builders before save.
+	shoppinglistitem.NoteValidator = shoppinglistitemDescNote.Validators[0].(func(string) error)
 	sublabelMixin := schema.SubLabel{}.Mixin()
 	sublabelMixinFields0 := sublabelMixin[0].Fields()
 	_ = sublabelMixinFields0
