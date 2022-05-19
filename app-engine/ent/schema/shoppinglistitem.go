@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
 )
 
 // ShoppingListItem holds the schema definition for the ShoppingListItem entity.
@@ -12,7 +13,12 @@ type ShoppingListItem struct {
 
 // Fields of the ShoppingListItem.
 func (ShoppingListItem) Fields() []ent.Field {
-	return nil
+	return []ent.Field{
+		field.String("note").
+			Optional().
+			Comment("Additional details about the shopping list entry").
+			MaxLen(255),
+	}
 }
 
 // Edges of the ShoppingListItem.

@@ -48,4 +48,5 @@ type Mutation {
   removeFromShoppingList(id: Int!, listItems: [Int!]!): ShoppingList
   createPurchaseFromShoppingList(id: Int!, input: CreatePurchaseFromShoppingListInput!): Shopping
   createVendor(input: VendorInput!): Vendor
+  updateShoppingListItem(id: Int!, input: UpdateShoppingListItemInput!): ShoppingListItem
 }
