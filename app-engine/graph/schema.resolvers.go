@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -175,6 +176,10 @@ func (r *mutationResolver) CreatePurchaseFromShoppingList(ctx context.Context, i
 
 func (r *mutationResolver) CreateVendor(ctx context.Context, input model.VendorInput) (*ent.Vendor, error) {
 	return entops.CreateVendor(ctx, input)
+}
+
+func (r *mutationResolver) UpdateShoppingListItem(ctx context.Context, id int, input model.UpdateShoppingListItemInput) (*ent.ShoppingListItem, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error) {

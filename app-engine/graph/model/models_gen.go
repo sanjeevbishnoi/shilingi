@@ -58,6 +58,10 @@ type TagInput struct {
 	Name string `json:"name"`
 }
 
+type UpdateShoppingListItemInput struct {
+	Note *string `json:"note"`
+}
+
 type VendorInput struct {
 	Name string `json:"name"`
 }
