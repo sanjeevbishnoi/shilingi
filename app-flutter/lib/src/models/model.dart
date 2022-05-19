@@ -147,9 +147,10 @@ class Purchases {
 }
 
 @JsonSerializable()
-class Vendor {
+class Vendor implements Nameable {
   @JsonKey(includeIfNull: false)
   final int? id;
+  @override
   final String name;
 
   const Vendor({required this.name, this.id});

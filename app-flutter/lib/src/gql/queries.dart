@@ -239,6 +239,10 @@ var shoppingDetailQuery = gql(r'''
                   }
                 }
               }
+              tags {
+                id
+                name
+              }
             }
             purchase {
               id

@@ -9,6 +9,7 @@ import 'package:shilingi/src/pages/pages.dart';
 import 'package:timeago_flutter/timeago_flutter.dart';
 import 'package:badges/badges.dart';
 import 'package:provider/provider.dart';
+import 'package:grouped_list/grouped_list.dart';
 
 import '../constants/constants.dart';
 import '../gql/gql.dart';
@@ -216,120 +217,129 @@ class ShoppingListDetail extends HookWidget {
                 onRefresh: () {
                   return queryResult.refetch();
                 },
-                child: ListView.builder(
-                    padding: const EdgeInsets.only(
-                        left: 30.0, right: 30.0, bottom: 70.0),
-                    itemBuilder: (context, index) {
-                      final item = items![index];
+                child: GroupedListView<ShoppingListItem, String>(
+                  elements: items,
+                  groupBy: (item) {
+                    if (item.item.tags?.isNotEmpty ?? false) {
+                      return item.item.tags![0].name;
+                    }
+                    return "uncategorized";
+                  },
+                  groupSeparatorBuilder: (group) => Padding(
+                    padding: const EdgeInsets.only(bottom: 5.0),
+                    child: Text(
+                      group.toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.black45,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.0),
+                    ),
+                  ),
+                  itemBuilder: (context, item) {
+                    return FutureBuilder<hive.ShoppingList>(
+                      future: store,
+                      builder: (context, snapshot) {
+                        hive.ShoppingListItem? storeItem;
+                        if (snapshot.connectionState == ConnectionState.done) {
+                          storeItem = snapshot.requireData.getItem(item.id);
+                        }
 
-                      return FutureBuilder<hive.ShoppingList>(
-                        future: store,
-                        builder: (context, snapshot) {
-                          hive.ShoppingListItem? storeItem;
-                          if (snapshot.connectionState ==
-                              ConnectionState.done) {
-                            storeItem = snapshot.requireData.getItem(item.id);
-                          }
+                        return item.purchase == null
+                            ? _Item(
+                                item: item,
+                                storeItem: storeItem,
+                                shoppingListId: id,
+                                selected: selectedItems.value.contains(item.id),
+                                onChanged: (val) async {
+                                  if (val != null) {
+                                    final result = await showModalBottomSheet(
+                                      context: context,
+                                      backgroundColor: Colors.transparent,
+                                      isScrollControlled: true,
+                                      builder: (context) {
+                                        // Since we can only get the hive.ShoppingList class as a Future
+                                        // hence why we have to use a FutureBuilder
+                                        return FutureBuilder<hive.ShoppingList>(
+                                          future: store,
+                                          builder: (context, snapshot) {
+                                            switch (snapshot.connectionState) {
+                                              case ConnectionState.done:
+                                                return Padding(
+                                                  padding:
+                                                      MediaQuery.of(context)
+                                                          .viewInsets,
+                                                  child: _ConfirmItemCheck(
+                                                    item: item.item,
+                                                    storeItem: snapshot
+                                                        .requireData
+                                                        .getItem(item.id),
+                                                    onRemove: () {
+                                                      // 1. Remove from hive store
+                                                      snapshot.requireData
+                                                          .removeItem(item.id);
+                                                      // 2. Remove from selected list
+                                                      final list =
+                                                          selectedItems.value;
+                                                      list.remove(item.id);
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                      selectedItems.value =
+                                                          list;
+                                                      selectedItems
+                                                          .notifyListeners();
+                                                    },
+                                                  ),
+                                                );
+                                              default:
+                                                return const Placeholder();
+                                            }
+                                          },
+                                        );
+                                      },
+                                    );
 
-                          return item.purchase == null
-                              ? _Item(
-                                  item: item,
-                                  storeItem: storeItem,
-                                  shoppingListId: id,
-                                  selected:
-                                      selectedItems.value.contains(item.id),
-                                  onChanged: (val) async {
-                                    if (val != null) {
-                                      final result = await showModalBottomSheet(
-                                        context: context,
-                                        backgroundColor: Colors.transparent,
-                                        isScrollControlled: true,
-                                        builder: (context) {
-                                          // Since we can only get the hive.ShoppingList class as a Future
-                                          // hence why we have to use a FutureBuilder
-                                          return FutureBuilder<
-                                              hive.ShoppingList>(
-                                            future: store,
-                                            builder: (context, snapshot) {
-                                              switch (
-                                                  snapshot.connectionState) {
-                                                case ConnectionState.done:
-                                                  return Padding(
-                                                    padding:
-                                                        MediaQuery.of(context)
-                                                            .viewInsets,
-                                                    child: _ConfirmItemCheck(
-                                                      item: item.item,
-                                                      storeItem: snapshot
-                                                          .requireData
-                                                          .getItem(item.id),
-                                                      onRemove: () {
-                                                        // 1. Remove from hive store
-                                                        snapshot.requireData
-                                                            .removeItem(
-                                                                item.id);
-                                                        // 2. Remove from selected list
-                                                        final list =
-                                                            selectedItems.value;
-                                                        list.remove(item.id);
-                                                        Navigator.of(context)
-                                                            .pop();
-                                                        selectedItems.value =
-                                                            list;
-                                                        selectedItems
-                                                            .notifyListeners();
-                                                      },
-                                                    ),
-                                                  );
-                                                default:
-                                                  return const Placeholder();
-                                              }
-                                            },
-                                          );
-                                        },
-                                      );
-
-                                      if (result is Map<String, dynamic>) {
-                                        final list =
-                                            selectedItems.value.toList();
-                                        if (!list.contains(item.id)) {
-                                          list.add(item.id);
-                                          selectedItems.value = list;
-                                        }
-                                        // Update hive store for the specific list
-                                        final s = await store;
-                                        result['id'] = item.id;
-                                        final listItem =
-                                            hive.ShoppingListItem.fromJson(
-                                                result);
-                                        s.addItem(listItem);
-                                        // some fields might have changed, we will need to force a
-                                        // widget rebuild here.
-                                        // Ideally we should probably use a provider in this instance
-                                        // since it will be easier to detect fields that are inside nexted objects
-                                        // TODO: We could probably set the hive ShoppingList class to extend
-                                        // ChangeNotifier as well
-                                        selectedItems.notifyListeners();
+                                    if (result is Map<String, dynamic>) {
+                                      final list = selectedItems.value.toList();
+                                      if (!list.contains(item.id)) {
+                                        list.add(item.id);
+                                        selectedItems.value = list;
                                       }
+                                      // Update hive store for the specific list
+                                      final s = await store;
+                                      result['id'] = item.id;
+                                      final listItem =
+                                          hive.ShoppingListItem.fromJson(
+                                              result);
+                                      s.addItem(listItem);
+                                      // some fields might have changed, we will need to force a
+                                      // widget rebuild here.
+                                      // Ideally we should probably use a provider in this instance
+                                      // since it will be easier to detect fields that are inside nexted objects
+                                      // TODO: We could probably set the hive ShoppingList class to extend
+                                      // ChangeNotifier as well
+                                      selectedItems.notifyListeners();
                                     }
-                                  },
-                                  onDeleted: (item) {
-                                    queryResult.refetch();
-                                    if (selectedItems.value.contains(item.id)) {
-                                      final list = selectedItems.value;
-                                      list.remove(item.id);
-                                      selectedItems.value = list;
-                                    }
-                                    store.then((list) {
-                                      list.removeItem(item.id);
-                                    });
-                                  },
-                                )
-                              : _PurchasedItem(item: item);
-                        },
-                      );
-                    },
-                    itemCount: items.length),
+                                  }
+                                },
+                                onDeleted: (item) {
+                                  queryResult.refetch();
+                                  if (selectedItems.value.contains(item.id)) {
+                                    final list = selectedItems.value;
+                                    list.remove(item.id);
+                                    selectedItems.value = list;
+                                  }
+                                  store.then((list) {
+                                    list.removeItem(item.id);
+                                  });
+                                },
+                              )
+                            : _PurchasedItem(item: item);
+                      },
+                    );
+                  },
+                  padding: const EdgeInsets.only(
+                      left: 30.0, right: 30.0, bottom: 70.0),
+                ),
               ),
             ),
           ],

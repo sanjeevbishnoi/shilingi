@@ -8,6 +8,7 @@ import 'package:ms_undraw/ms_undraw.dart';
 import '../gql/gql.dart';
 import '../models/model.dart';
 import '../constants/constants.dart';
+import '../components/components.dart';
 
 class SelectVendorPage extends HookWidget {
   final String title;
@@ -116,16 +117,18 @@ class _Body extends HookWidget {
               onRefresh: () {
                 return onRefresh();
               },
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 30.0, vertical: 20.0),
-                itemBuilder: (context, index) {
-                  return _VendorEntry(
-                    vendor: vendorList.value[index],
-                    onTap: () {},
-                  );
-                },
-                itemCount: vendorList.value.length,
+              child: CustomAZListView(
+                data: vendorList.value,
+                children: [
+                  for (var vendor in vendorList.value)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 30.0, right: 30.0),
+                      child: _VendorEntry(
+                        vendor: vendor,
+                        onTap: () {},
+                      ),
+                    )
+                ],
               ),
             ),
           ),
