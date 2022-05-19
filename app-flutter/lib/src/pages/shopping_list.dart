@@ -347,8 +347,9 @@ class _ShoppingList extends StatelessWidget {
     }));
     SnackBar snackBar;
     if (result.hasException) {
-      snackBar = const SnackBar(
-        content: Text('Unable to delete list. Try again later'),
+      final msg = result.exception!.graphqlErrors[0].message;
+      snackBar = SnackBar(
+        content: Text(msg),
         backgroundColor: Colors.redAccent,
       );
     } else {
