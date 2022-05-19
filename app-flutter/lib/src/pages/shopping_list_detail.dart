@@ -157,7 +157,7 @@ class ShoppingListDetail extends HookWidget {
               scrollDirection: Axis.horizontal,
               child: Container(
                 padding:
-                    const EdgeInsets.only(top: 5.0, left: 5.0, right: 14.0),
+                    const EdgeInsets.only(top: 8.0, left: 5.0, right: 14.0),
                 height: 45.0,
                 child: Wrap(
                   spacing: 6.0,
