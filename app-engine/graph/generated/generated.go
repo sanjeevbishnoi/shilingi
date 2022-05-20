@@ -45,7 +45,6 @@ type ResolverRoot interface {
 	Query() QueryResolver
 	Shopping() ShoppingResolver
 	ShoppingItem() ShoppingItemResolver
-	ShoppingListItem() ShoppingListItemResolver
 }
 
 type DirectiveRoot struct {
@@ -221,9 +220,6 @@ type ShoppingResolver interface {
 }
 type ShoppingItemResolver interface {
 	Total(ctx context.Context, obj *ent.ShoppingItem) (*decimal.Decimal, error)
-}
-type ShoppingListItemResolver interface {
-	Note(ctx context.Context, obj *ent.ShoppingListItem) (*string, error)
 }
 
 type executableSchema struct {
@@ -4636,14 +4632,14 @@ func (ec *executionContext) _ShoppingListItem_note(ctx context.Context, field gr
 		Object:     "ShoppingListItem",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ShoppingListItem().Note(rctx, obj)
+		return obj.Note, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4652,9 +4648,9 @@ func (ec *executionContext) _ShoppingListItem_note(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SubLabel_id(ctx context.Context, field graphql.CollectedField, obj *ent.SubLabel) (ret graphql.Marshaler) {
@@ -7303,16 +7299,7 @@ func (ec *executionContext) _ShoppingListItem(ctx context.Context, sel ast.Selec
 				return res
 			})
 		case "note":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShoppingListItem_note(ctx, field, obj)
-				return res
-			})
+			out.Values[i] = ec._ShoppingListItem_note(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

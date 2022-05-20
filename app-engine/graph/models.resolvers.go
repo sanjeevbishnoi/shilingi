@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/kingzbauer/shilingi/app-engine/ent"
@@ -54,10 +53,6 @@ func (r *shoppingItemResolver) Total(ctx context.Context, obj *ent.ShoppingItem)
 	return &val, nil
 }
 
-func (r *shoppingListItemResolver) Note(ctx context.Context, obj *ent.ShoppingListItem) (*string, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 // Item returns generated.ItemResolver implementation.
 func (r *Resolver) Item() generated.ItemResolver { return &itemResolver{r} }
 
@@ -67,12 +62,6 @@ func (r *Resolver) Shopping() generated.ShoppingResolver { return &shoppingResol
 // ShoppingItem returns generated.ShoppingItemResolver implementation.
 func (r *Resolver) ShoppingItem() generated.ShoppingItemResolver { return &shoppingItemResolver{r} }
 
-// ShoppingListItem returns generated.ShoppingListItemResolver implementation.
-func (r *Resolver) ShoppingListItem() generated.ShoppingListItemResolver {
-	return &shoppingListItemResolver{r}
-}
-
 type itemResolver struct{ *Resolver }
 type shoppingResolver struct{ *Resolver }
 type shoppingItemResolver struct{ *Resolver }
-type shoppingListItemResolver struct{ *Resolver }
