@@ -19,6 +19,7 @@ import './select_items.dart' show SelectItemsPage;
 import '../components/components.dart';
 import './shopping_list_helpers/change_notifiers.dart';
 import './select_vendors.dart';
+import './shopping_list_helpers/edit_note_widgets.dart';
 
 enum _FilterState {
   all,
@@ -760,7 +761,9 @@ class _Item extends StatelessWidget {
                       ]
                     ],
                   ),
-                )
+                ),
+                const SizedBox(width: 5.0),
+                _ItemPopupMenuButton(item: item),
               ],
             ),
           ),
@@ -1629,7 +1632,6 @@ class _ConfirmVendorDialog extends HookWidget {
                         ScaffoldMessenger.of(context).showSnackBar(snackBar);
                         Navigator.of(context).pop(false);
                       } else {
-                        print('${result.data}');
                         var snackBar = const SnackBar(
                             content: Text(
                                 'A purchase has been successfully created'));
@@ -1648,5 +1650,173 @@ class _ConfirmVendorDialog extends HookWidget {
       contentPadding: const EdgeInsets.only(
           top: 18.0, left: 14.0, right: 14.0, bottom: 4.0),
     );
+  }
+}
+
+enum _ItemPopupActions {
+  addNote,
+}
+
+class _ItemPopupMenuButton extends StatelessWidget {
+  final ShoppingListItem item;
+
+  const _ItemPopupMenuButton({Key? key, required this.item}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_ItemPopupActions>(
+      onSelected: (action) {
+        switch (action) {
+          case _ItemPopupActions.addNote:
+            showModalBottomSheet(
+              isScrollControlled: true,
+              context: context,
+              builder: (context) {
+                return Padding(
+                  padding: MediaQuery.of(context).viewInsets,
+                  child: _EditItemNote(item: item),
+                );
+              },
+              backgroundColor: Colors.transparent,
+            );
+            break;
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          child: Row(
+            children: const [
+              Icon(FeatherIcons.fileText),
+              SizedBox(width: 5.0),
+              Text('Add note'),
+            ],
+          ),
+          value: _ItemPopupActions.addNote,
+        ),
+      ],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+    );
+  }
+}
+
+class _EditItemNote extends HookWidget {
+  final ShoppingListItem item;
+
+  const _EditItemNote({Key? key, required this.item}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = useTextEditingController(text: item.note);
+    final saving = useState<bool>(false);
+    final text = useState<String>('');
+    controller.addListener(() {
+      text.value = controller.text;
+    });
+
+    return Padding(
+      padding: const EdgeInsets.all(6.0),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8.0),
+          color: mainScaffoldBg,
+          border: Border.all(color: Colors.greenAccent),
+        ),
+        child: SizedBox(
+          height: 150.0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Expanded(
+                flex: 1,
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 50.0),
+                      child: TextFormField(
+                        maxLength: 255,
+                        enabled: !saving.value,
+                        controller: controller,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          border: const OutlineInputBorder(
+                              borderSide: BorderSide.none),
+                          hintText: 'Type in your note for ${item.item.name}',
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 50.0,
+                        height: 40.0,
+                        decoration: EditNoteCornerDecoration(),
+                        child: const Padding(
+                          padding: EdgeInsets.only(left: 16, top: 8),
+                          child: Text('Note',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: saving.value || text.value.isEmpty
+                        ? null
+                        : () async {
+                            saving.value = true;
+                            await _save(context, controller.text);
+                            saving.value = false;
+                          },
+                    child: Text(saving.value ? 'Saving...' : 'Save',
+                        style: TextStyle(
+                            color: saving.value || text.value.isEmpty
+                                ? Colors.grey
+                                : Colors.greenAccent)),
+                  ),
+                  const SizedBox(width: 10.0),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<QueryResult?> _save(BuildContext context, String note) async {
+    final cli = GraphQLProvider.of(context).value;
+    var result = await cli.mutate(
+      MutationOptions(
+        document: updateShoppingListItem,
+        variables: {
+          'id': item.id,
+          'input': {
+            'note': note,
+          },
+        },
+      ),
+    );
+
+    SnackBar snackBar;
+    if (result.hasException) {
+      snackBar = SnackBar(
+        content: Text(result.exception!.graphqlErrors[0].message),
+        backgroundColor: Colors.redAccent,
+      );
+    } else {
+      snackBar =
+          const SnackBar(content: Text('The note has been saved successfully'));
+    }
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    return result;
   }
 }

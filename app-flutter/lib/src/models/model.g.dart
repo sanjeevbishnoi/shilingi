@@ -298,6 +298,7 @@ ShoppingListItem _$ShoppingListItemFromJson(Map<String, dynamic> json) =>
       purchase: json['purchase'] == null
           ? null
           : PurchaseItem.fromJson(json['purchase'] as Map<String, dynamic>),
+      note: json['note'] as String?,
     );
 
 Map<String, dynamic> _$ShoppingListItemToJson(ShoppingListItem instance) =>
@@ -305,6 +306,7 @@ Map<String, dynamic> _$ShoppingListItemToJson(ShoppingListItem instance) =>
       'id': instance.id,
       'item': instance.item,
       'purchase': instance.purchase,
+      'note': instance.note,
     };
 
 ShoppingList _$ShoppingListFromJson(Map<String, dynamic> json) => ShoppingList(
