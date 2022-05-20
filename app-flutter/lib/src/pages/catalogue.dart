@@ -77,17 +77,26 @@ class _CataloguePageState extends State<CataloguePage> {
         title: Text('${_selectedItems.length} selected'),
         actions: [
           PopupMenuButton(
-            onSelected: (selected) {
+            onSelected: (selected) async {
               switch (selected) {
                 case Popup.label:
                   var args = SelectLabelSettings(
-                      itemIds: _selectedItems.map<int>((e) => e.id!).toList());
-                  Navigator.of(context).push(
+                    itemIds: _selectedItems.map<int>((e) => e.id!).toList(),
+                    genericPop: true,
+                  );
+                  final result = await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const SelectLabelPage(),
                       settings: RouteSettings(arguments: args),
                     ),
                   );
+                  if (result is bool && result) {
+                    setState(
+                      () {
+                        _selectedItems.clear();
+                      },
+                    );
+                  }
               }
             },
             itemBuilder: (context) => [
