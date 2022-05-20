@@ -147,9 +147,10 @@ class Purchases {
 }
 
 @JsonSerializable()
-class Vendor {
+class Vendor implements Nameable {
   @JsonKey(includeIfNull: false)
   final int? id;
+  @override
   final String name;
 
   const Vendor({required this.name, this.id});
@@ -260,8 +261,10 @@ class ShoppingListItem {
   final int id;
   final Item item;
   final PurchaseItem? purchase;
+  final String? note;
 
-  const ShoppingListItem({required this.id, required this.item, this.purchase});
+  const ShoppingListItem(
+      {required this.id, required this.item, this.purchase, this.note});
 
   factory ShoppingListItem.fromJson(Json json) =>
       _$ShoppingListItemFromJson(json);

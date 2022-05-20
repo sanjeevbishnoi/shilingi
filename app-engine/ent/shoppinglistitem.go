@@ -15,9 +15,12 @@ import (
 
 // ShoppingListItem is the model entity for the ShoppingListItem schema.
 type ShoppingListItem struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// Note holds the value of the "note" field.
+	// Additional details about the shopping list entry
+	Note string `json:"note,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ShoppingListItemQuery when eager-loading is set.
 	Edges                       ShoppingListItemEdges `json:"edges"`
@@ -88,6 +91,8 @@ func (*ShoppingListItem) scanValues(columns []string) ([]interface{}, error) {
 		switch columns[i] {
 		case shoppinglistitem.FieldID:
 			values[i] = new(sql.NullInt64)
+		case shoppinglistitem.FieldNote:
+			values[i] = new(sql.NullString)
 		case shoppinglistitem.ForeignKeys[0]: // item_shopping_list
 			values[i] = new(sql.NullInt64)
 		case shoppinglistitem.ForeignKeys[1]: // shopping_item_shopping_list
@@ -115,6 +120,12 @@ func (sli *ShoppingListItem) assignValues(columns []string, values []interface{}
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			sli.ID = int(value.Int64)
+		case shoppinglistitem.FieldNote:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field note", values[i])
+			} else if value.Valid {
+				sli.Note = value.String
+			}
 		case shoppinglistitem.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field item_shopping_list", value)
@@ -179,6 +190,8 @@ func (sli *ShoppingListItem) String() string {
 	var builder strings.Builder
 	builder.WriteString("ShoppingListItem(")
 	builder.WriteString(fmt.Sprintf("id=%v", sli.ID))
+	builder.WriteString(", note=")
+	builder.WriteString(sli.Note)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -584,3 +584,19 @@ func CreateVendor(ctx context.Context, input model.VendorInput) (*ent.Vendor, er
 
 	return v, nil
 }
+
+// UpdateShoppingListItem updates the editable fields in a shopping list item, namely `note` field
+func UpdateShoppingListItem(ctx context.Context, id int, input model.UpdateShoppingListItemInput) (*ent.ShoppingListItem, error) {
+	cli := ent.FromContext(ctx)
+
+	item, err := cli.ShoppingListItem.UpdateOneID(id).SetNillableNote(input.Note).Save(ctx)
+	if ent.IsNotFound(err) {
+		return nil, gqlerror.Errorf("The specified item could not be found")
+	} else if ent.IsValidationError(err) {
+		return nil, gqlerror.Errorf("Kindly check your input and try again")
+	} else if err != nil {
+		return nil, gqlerror.Errorf("An unexpected error occurred. Kindly try again in a few minutes")
+	}
+
+	return item, nil
+}

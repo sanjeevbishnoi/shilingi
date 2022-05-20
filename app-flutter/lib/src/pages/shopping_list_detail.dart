@@ -9,6 +9,7 @@ import 'package:shilingi/src/pages/pages.dart';
 import 'package:timeago_flutter/timeago_flutter.dart';
 import 'package:badges/badges.dart';
 import 'package:provider/provider.dart';
+import 'package:grouped_list/grouped_list.dart';
 
 import '../constants/constants.dart';
 import '../gql/gql.dart';
@@ -18,6 +19,7 @@ import './select_items.dart' show SelectItemsPage;
 import '../components/components.dart';
 import './shopping_list_helpers/change_notifiers.dart';
 import './select_vendors.dart';
+import './shopping_list_helpers/edit_note_widgets.dart';
 
 enum _FilterState {
   all,
@@ -216,120 +218,129 @@ class ShoppingListDetail extends HookWidget {
                 onRefresh: () {
                   return queryResult.refetch();
                 },
-                child: ListView.builder(
-                    padding: const EdgeInsets.only(
-                        left: 30.0, right: 30.0, bottom: 70.0),
-                    itemBuilder: (context, index) {
-                      final item = items![index];
+                child: GroupedListView<ShoppingListItem, String>(
+                  elements: items,
+                  groupBy: (item) {
+                    if (item.item.tags?.isNotEmpty ?? false) {
+                      return item.item.tags![0].name;
+                    }
+                    return "uncategorized";
+                  },
+                  groupSeparatorBuilder: (group) => Padding(
+                    padding: const EdgeInsets.only(bottom: 5.0),
+                    child: Text(
+                      group.toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.black45,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.0),
+                    ),
+                  ),
+                  itemBuilder: (context, item) {
+                    return FutureBuilder<hive.ShoppingList>(
+                      future: store,
+                      builder: (context, snapshot) {
+                        hive.ShoppingListItem? storeItem;
+                        if (snapshot.connectionState == ConnectionState.done) {
+                          storeItem = snapshot.requireData.getItem(item.id);
+                        }
 
-                      return FutureBuilder<hive.ShoppingList>(
-                        future: store,
-                        builder: (context, snapshot) {
-                          hive.ShoppingListItem? storeItem;
-                          if (snapshot.connectionState ==
-                              ConnectionState.done) {
-                            storeItem = snapshot.requireData.getItem(item.id);
-                          }
+                        return item.purchase == null
+                            ? _Item(
+                                item: item,
+                                storeItem: storeItem,
+                                shoppingListId: id,
+                                selected: selectedItems.value.contains(item.id),
+                                onChanged: (val) async {
+                                  if (val != null) {
+                                    final result = await showModalBottomSheet(
+                                      context: context,
+                                      backgroundColor: Colors.transparent,
+                                      isScrollControlled: true,
+                                      builder: (context) {
+                                        // Since we can only get the hive.ShoppingList class as a Future
+                                        // hence why we have to use a FutureBuilder
+                                        return FutureBuilder<hive.ShoppingList>(
+                                          future: store,
+                                          builder: (context, snapshot) {
+                                            switch (snapshot.connectionState) {
+                                              case ConnectionState.done:
+                                                return Padding(
+                                                  padding:
+                                                      MediaQuery.of(context)
+                                                          .viewInsets,
+                                                  child: _ConfirmItemCheck(
+                                                    item: item.item,
+                                                    storeItem: snapshot
+                                                        .requireData
+                                                        .getItem(item.id),
+                                                    onRemove: () {
+                                                      // 1. Remove from hive store
+                                                      snapshot.requireData
+                                                          .removeItem(item.id);
+                                                      // 2. Remove from selected list
+                                                      final list =
+                                                          selectedItems.value;
+                                                      list.remove(item.id);
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                      selectedItems.value =
+                                                          list;
+                                                      selectedItems
+                                                          .notifyListeners();
+                                                    },
+                                                  ),
+                                                );
+                                              default:
+                                                return const Placeholder();
+                                            }
+                                          },
+                                        );
+                                      },
+                                    );
 
-                          return item.purchase == null
-                              ? _Item(
-                                  item: item,
-                                  storeItem: storeItem,
-                                  shoppingListId: id,
-                                  selected:
-                                      selectedItems.value.contains(item.id),
-                                  onChanged: (val) async {
-                                    if (val != null) {
-                                      final result = await showModalBottomSheet(
-                                        context: context,
-                                        backgroundColor: Colors.transparent,
-                                        isScrollControlled: true,
-                                        builder: (context) {
-                                          // Since we can only get the hive.ShoppingList class as a Future
-                                          // hence why we have to use a FutureBuilder
-                                          return FutureBuilder<
-                                              hive.ShoppingList>(
-                                            future: store,
-                                            builder: (context, snapshot) {
-                                              switch (
-                                                  snapshot.connectionState) {
-                                                case ConnectionState.done:
-                                                  return Padding(
-                                                    padding:
-                                                        MediaQuery.of(context)
-                                                            .viewInsets,
-                                                    child: _ConfirmItemCheck(
-                                                      item: item.item,
-                                                      storeItem: snapshot
-                                                          .requireData
-                                                          .getItem(item.id),
-                                                      onRemove: () {
-                                                        // 1. Remove from hive store
-                                                        snapshot.requireData
-                                                            .removeItem(
-                                                                item.id);
-                                                        // 2. Remove from selected list
-                                                        final list =
-                                                            selectedItems.value;
-                                                        list.remove(item.id);
-                                                        Navigator.of(context)
-                                                            .pop();
-                                                        selectedItems.value =
-                                                            list;
-                                                        selectedItems
-                                                            .notifyListeners();
-                                                      },
-                                                    ),
-                                                  );
-                                                default:
-                                                  return const Placeholder();
-                                              }
-                                            },
-                                          );
-                                        },
-                                      );
-
-                                      if (result is Map<String, dynamic>) {
-                                        final list =
-                                            selectedItems.value.toList();
-                                        if (!list.contains(item.id)) {
-                                          list.add(item.id);
-                                          selectedItems.value = list;
-                                        }
-                                        // Update hive store for the specific list
-                                        final s = await store;
-                                        result['id'] = item.id;
-                                        final listItem =
-                                            hive.ShoppingListItem.fromJson(
-                                                result);
-                                        s.addItem(listItem);
-                                        // some fields might have changed, we will need to force a
-                                        // widget rebuild here.
-                                        // Ideally we should probably use a provider in this instance
-                                        // since it will be easier to detect fields that are inside nexted objects
-                                        // TODO: We could probably set the hive ShoppingList class to extend
-                                        // ChangeNotifier as well
-                                        selectedItems.notifyListeners();
+                                    if (result is Map<String, dynamic>) {
+                                      final list = selectedItems.value.toList();
+                                      if (!list.contains(item.id)) {
+                                        list.add(item.id);
+                                        selectedItems.value = list;
                                       }
+                                      // Update hive store for the specific list
+                                      final s = await store;
+                                      result['id'] = item.id;
+                                      final listItem =
+                                          hive.ShoppingListItem.fromJson(
+                                              result);
+                                      s.addItem(listItem);
+                                      // some fields might have changed, we will need to force a
+                                      // widget rebuild here.
+                                      // Ideally we should probably use a provider in this instance
+                                      // since it will be easier to detect fields that are inside nexted objects
+                                      // TODO: We could probably set the hive ShoppingList class to extend
+                                      // ChangeNotifier as well
+                                      selectedItems.notifyListeners();
                                     }
-                                  },
-                                  onDeleted: (item) {
-                                    queryResult.refetch();
-                                    if (selectedItems.value.contains(item.id)) {
-                                      final list = selectedItems.value;
-                                      list.remove(item.id);
-                                      selectedItems.value = list;
-                                    }
-                                    store.then((list) {
-                                      list.removeItem(item.id);
-                                    });
-                                  },
-                                )
-                              : _PurchasedItem(item: item);
-                        },
-                      );
-                    },
-                    itemCount: items.length),
+                                  }
+                                },
+                                onDeleted: (item) {
+                                  queryResult.refetch();
+                                  if (selectedItems.value.contains(item.id)) {
+                                    final list = selectedItems.value;
+                                    list.remove(item.id);
+                                    selectedItems.value = list;
+                                  }
+                                  store.then((list) {
+                                    list.removeItem(item.id);
+                                  });
+                                },
+                              )
+                            : _PurchasedItem(item: item);
+                      },
+                    );
+                  },
+                  padding: const EdgeInsets.only(
+                      left: 30.0, right: 30.0, bottom: 70.0),
+                ),
               ),
             ),
           ],
@@ -750,7 +761,9 @@ class _Item extends StatelessWidget {
                       ]
                     ],
                   ),
-                )
+                ),
+                const SizedBox(width: 5.0),
+                _ItemPopupMenuButton(item: item),
               ],
             ),
           ),
@@ -1619,7 +1632,6 @@ class _ConfirmVendorDialog extends HookWidget {
                         ScaffoldMessenger.of(context).showSnackBar(snackBar);
                         Navigator.of(context).pop(false);
                       } else {
-                        print('${result.data}');
                         var snackBar = const SnackBar(
                             content: Text(
                                 'A purchase has been successfully created'));
@@ -1638,5 +1650,173 @@ class _ConfirmVendorDialog extends HookWidget {
       contentPadding: const EdgeInsets.only(
           top: 18.0, left: 14.0, right: 14.0, bottom: 4.0),
     );
+  }
+}
+
+enum _ItemPopupActions {
+  addNote,
+}
+
+class _ItemPopupMenuButton extends StatelessWidget {
+  final ShoppingListItem item;
+
+  const _ItemPopupMenuButton({Key? key, required this.item}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_ItemPopupActions>(
+      onSelected: (action) {
+        switch (action) {
+          case _ItemPopupActions.addNote:
+            showModalBottomSheet(
+              isScrollControlled: true,
+              context: context,
+              builder: (context) {
+                return Padding(
+                  padding: MediaQuery.of(context).viewInsets,
+                  child: _EditItemNote(item: item),
+                );
+              },
+              backgroundColor: Colors.transparent,
+            );
+            break;
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          child: Row(
+            children: const [
+              Icon(FeatherIcons.fileText),
+              SizedBox(width: 5.0),
+              Text('Add note'),
+            ],
+          ),
+          value: _ItemPopupActions.addNote,
+        ),
+      ],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+    );
+  }
+}
+
+class _EditItemNote extends HookWidget {
+  final ShoppingListItem item;
+
+  const _EditItemNote({Key? key, required this.item}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = useTextEditingController(text: item.note);
+    final saving = useState<bool>(false);
+    final text = useState<String>('');
+    controller.addListener(() {
+      text.value = controller.text;
+    });
+
+    return Padding(
+      padding: const EdgeInsets.all(6.0),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8.0),
+          color: mainScaffoldBg,
+          border: Border.all(color: Colors.greenAccent),
+        ),
+        child: SizedBox(
+          height: 150.0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Expanded(
+                flex: 1,
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 50.0),
+                      child: TextFormField(
+                        maxLength: 255,
+                        enabled: !saving.value,
+                        controller: controller,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          border: const OutlineInputBorder(
+                              borderSide: BorderSide.none),
+                          hintText: 'Type in your note for ${item.item.name}',
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 50.0,
+                        height: 40.0,
+                        decoration: EditNoteCornerDecoration(),
+                        child: const Padding(
+                          padding: EdgeInsets.only(left: 16, top: 8),
+                          child: Text('Note',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: saving.value || text.value.isEmpty
+                        ? null
+                        : () async {
+                            saving.value = true;
+                            await _save(context, controller.text);
+                            saving.value = false;
+                          },
+                    child: Text(saving.value ? 'Saving...' : 'Save',
+                        style: TextStyle(
+                            color: saving.value || text.value.isEmpty
+                                ? Colors.grey
+                                : Colors.greenAccent)),
+                  ),
+                  const SizedBox(width: 10.0),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<QueryResult?> _save(BuildContext context, String note) async {
+    final cli = GraphQLProvider.of(context).value;
+    var result = await cli.mutate(
+      MutationOptions(
+        document: updateShoppingListItem,
+        variables: {
+          'id': item.id,
+          'input': {
+            'note': note,
+          },
+        },
+      ),
+    );
+
+    SnackBar snackBar;
+    if (result.hasException) {
+      snackBar = SnackBar(
+        content: Text(result.exception!.graphqlErrors[0].message),
+        backgroundColor: Colors.redAccent,
+      );
+    } else {
+      snackBar =
+          const SnackBar(content: Text('The note has been saved successfully'));
+    }
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    return result;
   }
 }

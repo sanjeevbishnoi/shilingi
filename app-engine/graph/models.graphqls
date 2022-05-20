@@ -110,6 +110,7 @@ type ShoppingListItem implements Node {
   id: ID!
   item: Item!
   purchase: ShoppingItem
+  note: String
 }
 
 input ShoppingListInput {
@@ -119,6 +120,10 @@ input ShoppingListInput {
 
 input ShoppingListItemInput {
   item: Int!
+}
+
+input UpdateShoppingListItemInput {
+  note: String
 }
 
 type ShoppingListConnection {

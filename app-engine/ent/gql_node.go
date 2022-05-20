@@ -357,8 +357,17 @@ func (sli *ShoppingListItem) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     sli.ID,
 		Type:   "ShoppingListItem",
-		Fields: make([]*Field, 0),
+		Fields: make([]*Field, 1),
 		Edges:  make([]*Edge, 3),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(sli.Note); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "string",
+		Name:  "note",
+		Value: string(buf),
 	}
 	node.Edges[0] = &Edge{
 		Type: "ShoppingList",

@@ -170,3 +170,46 @@ var createPurchaseFromShoppingListMutation = gql(r'''
       }
     }
 ''');
+var updateShoppingListItem = gql(r'''
+    mutation updateShoppingListItem($id: Int!, $input: UpdateShoppingListItemInput!) {
+      updateShoppingListItem(id: $id, input: $input) {
+        id
+        note
+        item {
+          id
+          name
+          purchases(first: 1) {
+            edges {
+              node {
+                id
+                total
+                pricePerUnit
+                units
+                shopping {
+                  id
+                  date
+                }
+              }
+            }
+          }
+          tags {
+            id
+            name
+          }
+        }
+        purchase {
+          id
+          pricePerUnit
+          units
+          brand
+          quantity
+          quantityType
+          total
+          shopping {
+            id
+            date
+          }
+        }
+      }
+    }
+''');

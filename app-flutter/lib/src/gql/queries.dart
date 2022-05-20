@@ -222,6 +222,7 @@ var shoppingDetailQuery = gql(r'''
           updateTime
           items {
             id
+            note
             item {
               id
               name
@@ -238,6 +239,10 @@ var shoppingDetailQuery = gql(r'''
                     }
                   }
                 }
+              }
+              tags {
+                id
+                name
               }
             }
             purchase {
