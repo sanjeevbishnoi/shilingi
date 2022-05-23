@@ -429,6 +429,9 @@ func AddToShoppingList(ctx context.Context, id int, items []int) (*ent.ShoppingL
 		return nil, gqlerror.Errorf("Uable to update shopping list")
 	}
 
+	// We need to update the shopping list updated date here
+	cli.ShoppingList.UpdateOne(shoppingList).Save(ctx)
+
 	return shoppingList, nil
 }
 
@@ -467,6 +470,9 @@ func RemoveFromShoppingList(ctx context.Context, id int, listItems []int) (*ent.
 		zap.S().Errorf("unable to remove items from the shopping list: %w", err)
 		return nil, gqlerror.Errorf("Something went wrong. Kindly try again in a few.")
 	}
+
+	// We need to update the shopping list updated date here
+	cli.ShoppingList.UpdateOne(list).Save(ctx)
 
 	return list, nil
 }
