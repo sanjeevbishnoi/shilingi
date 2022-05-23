@@ -77,7 +77,7 @@ class SelectLabelPage extends StatelessWidget {
                               future.then((result) {
                                 if (result.data != null) {
                                   if (args.genericPop) {
-                                    Navigator.of(context).pop();
+                                    Navigator.of(context).pop(true);
                                   } else {
                                     Navigator.popUntil(context,
                                         ModalRoute.withName(cataloguePage));

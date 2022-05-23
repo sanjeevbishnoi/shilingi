@@ -105,6 +105,8 @@ class ShoppingListDetail extends HookWidget {
     } else {
       list = ShoppingList.fromJson(result.data!['node']);
       var items = list.items;
+      final purchaseLength =
+          items?.where((item) => item.purchase != null).length ?? 0;
       all = items!.length;
 
       switch (filterState.value) {
@@ -174,7 +176,7 @@ class ShoppingListDetail extends HookWidget {
                     ),
                     _SelectButton(
                       selected: filterState.value == _FilterState.completed,
-                      text: 'Completed',
+                      text: 'Checked',
                       onPressed: () {
                         filterState.value = _FilterState.completed;
                       },
@@ -182,11 +184,11 @@ class ShoppingListDetail extends HookWidget {
                     ),
                     _SelectButton(
                       selected: filterState.value == _FilterState.uncompleted,
-                      text: 'Uncompleted',
+                      text: 'Unchecked',
                       onPressed: () {
                         filterState.value = _FilterState.uncompleted;
                       },
-                      count: all - selectedItems.value.length,
+                      count: all - selectedItems.value.length - purchaseLength,
                     ),
                     _SelectButton(
                       selected: filterState.value == _FilterState.bought,
@@ -194,10 +196,7 @@ class ShoppingListDetail extends HookWidget {
                       onPressed: () {
                         filterState.value = _FilterState.bought;
                       },
-                      count: items
-                          .where((item) => item.purchase != null)
-                          .toList()
-                          .length,
+                      count: purchaseLength,
                     ),
                   ],
                 ),
@@ -219,6 +218,7 @@ class ShoppingListDetail extends HookWidget {
                   return queryResult.refetch();
                 },
                 child: GroupedListView<ShoppingListItem, String>(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   elements: items,
                   groupBy: (item) {
                     if (item.item.tags?.isNotEmpty ?? false) {
@@ -443,11 +443,17 @@ class ShoppingListDetail extends HookWidget {
         ),
         floatingActionButton: list != null
             ? FloatingActionButton(
-                onPressed: () {
+                onPressed: () async {
+                  final st = await store;
+
                   showModalBottomSheet(
                       context: context,
                       builder: (context) {
-                        return _ShowApproxTotal(list: list!);
+                        return _ShowApproxTotal(
+                          list: list!,
+                          selectedItems: selectedItems.value,
+                          store: st,
+                        );
                       },
                       backgroundColor: Colors.transparent);
                 },
@@ -1030,8 +1036,15 @@ class _ShoppingListPopupButton extends StatelessWidget {
 
 class _ShowApproxTotal extends StatelessWidget {
   final ShoppingList list;
+  final List<int> selectedItems;
+  final hive.ShoppingList store;
 
-  const _ShowApproxTotal({Key? key, required this.list}) : super(key: key);
+  const _ShowApproxTotal(
+      {Key? key,
+      required this.list,
+      required this.selectedItems,
+      required this.store})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -1060,21 +1073,51 @@ class _ShowApproxTotal extends StatelessWidget {
                 ),
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                const Text('Approx. Total',
-                    style: TextStyle(color: Colors.grey)),
-                const SizedBox(width: 10.0),
-                Text('Ksh ' + _format.format(total),
-                    style: const TextStyle(
-                        fontSize: 20.0, fontWeight: FontWeight.w600)),
+                _MetricCard(
+                    title: 'Approx Total',
+                    value: 'Ksh ' + _format.format(total)),
+                _MetricCard(
+                    title: 'Checked', value: 'Ksh ' + _format.format(checked)),
+                _MetricCard(
+                    title: 'Bought', value: 'Ksh ' + _format.format(bought)),
               ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  double get bought {
+    var total = 0.0;
+
+    final purchases = list.items
+            ?.where((item) => item.purchase != null)
+            .map<PurchaseItem>((e) => e.purchase!)
+            .toList() ??
+        [];
+
+    for (final purchase in purchases) {
+      total += purchase.total;
+    }
+
+    return total;
+  }
+
+  double get checked {
+    var total = 0.0;
+
+    for (var id in selectedItems) {
+      var item = store.getItem(id);
+      if (item != null) {
+        total += item.units * item.pricePerUnit;
+      }
+    }
+
+    return total;
   }
 
   double get total {
@@ -1087,6 +1130,27 @@ class _ShowApproxTotal extends StatelessWidget {
     });
 
     return total;
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final String title;
+  final String value;
+
+  const _MetricCard({Key? key, required this.title, required this.value})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(color: Colors.grey)),
+        Text(value,
+            style:
+                const TextStyle(fontSize: 20.0, fontWeight: FontWeight.w600)),
+      ],
+    );
   }
 }
 
@@ -1353,13 +1417,37 @@ class _SearchListItemsField extends HookWidget {
 
     return Container(
       height: 40.0,
-      padding: const EdgeInsets.only(right: 5.0),
+      padding: const EdgeInsets.only(left: 5.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(50.0),
         border: Border.all(color: Colors.grey),
       ),
       child: Row(
         children: [
+          const SizedBox(
+            width: 40.0,
+            height: 40.0,
+            child: Center(
+              child: Icon(FeatherIcons.search, size: 18.0),
+            ),
+          ),
+          Expanded(
+            child: TextField(
+              // onChanged: (val) {
+              // controller.text = val;
+              // },
+              controller: controller,
+              // onChanged: onChanged,
+              decoration: const InputDecoration(
+                hintText: 'Search list',
+                focusedBorder: InputBorder.none,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.only(top: 8, bottom: 8, right: 14),
+              ),
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ),
           if (text.value.isNotEmpty)
             SizedBox(
               width: 40.0,
@@ -1374,24 +1462,6 @@ class _SearchListItemsField extends HookWidget {
                 ),
               ),
             ),
-          Expanded(
-            child: TextField(
-              // onChanged: (val) {
-              // controller.text = val;
-              // },
-              controller: controller,
-              // onChanged: onChanged,
-              decoration: InputDecoration(
-                hintText: 'Search list',
-                focusedBorder: InputBorder.none,
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                    vertical: 8, horizontal: controller.text.isEmpty ? 14 : 0),
-              ),
-              style: const TextStyle(color: Colors.black54),
-            ),
-          ),
         ],
       ),
     );
@@ -1812,11 +1882,13 @@ class _EditItemNote extends HookWidget {
         content: Text(result.exception!.graphqlErrors[0].message),
         backgroundColor: Colors.redAccent,
       );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     } else {
       snackBar =
           const SnackBar(content: Text('The note has been saved successfully'));
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      Navigator.of(context).pop();
     }
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
     return result;
   }
 }

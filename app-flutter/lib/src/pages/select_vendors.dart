@@ -19,15 +19,15 @@ class SelectVendorPage extends HookWidget {
   Widget build(BuildContext context) {
     final queryResult = useQuery(QueryOptions(
         document: vendorsQuery, fetchPolicy: FetchPolicy.cacheAndNetwork));
-    final result = useState<QueryResult>(queryResult.result);
+    final result = queryResult.result;
 
     Widget body;
 
-    if (result.value.isLoading && result.value.data == null) {
+    if (result.isLoading && result.data == null) {
       body = const Center(
         child: CircularProgressIndicator(),
       );
-    } else if (result.value.hasException) {
+    } else if (result.hasException) {
       body = Padding(
         padding: const EdgeInsets.all(30.0),
         child: Center(
@@ -60,15 +60,12 @@ class SelectVendorPage extends HookWidget {
         ),
       );
     } else {
-      final vendors = Vendors.fromJson(result.value.data!);
+      final vendors = Vendors.fromJson(result.data!);
 
       body = _Body(
         vendors: vendors.vendors,
         onRefresh: () async {
-          final results = await queryResult.refetch();
-          if (results != null) {
-            result.value = results;
-          }
+          queryResult.refetch();
           return;
         },
       );
@@ -243,6 +240,26 @@ class _SearchInput extends HookWidget {
         ),
         child: Row(
           children: [
+            const SizedBox(
+              width: 40.0,
+              height: 40.0,
+              child: Center(
+                child: Icon(FeatherIcons.search, size: 18.0),
+              ),
+            ),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  hintText: 'Search',
+                  focusedBorder: InputBorder.none,
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding:
+                      EdgeInsets.only(top: 8, bottom: 8, right: 14.0),
+                ),
+              ),
+            ),
             if (showClear.value)
               SizedBox(
                 width: 40.0,
@@ -258,20 +275,6 @@ class _SearchInput extends HookWidget {
                   ),
                 ),
               ),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  hintText: 'Search',
-                  focusedBorder: InputBorder.none,
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: controller.text.isEmpty ? 14 : 0),
-                ),
-              ),
-            ),
           ],
         ),
       ),

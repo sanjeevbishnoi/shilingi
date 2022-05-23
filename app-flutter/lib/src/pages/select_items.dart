@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:ms_undraw/ms_undraw.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 
 import '../gql/gql.dart';
 import '../constants/constants.dart';
@@ -505,6 +506,27 @@ class _SearchCategorySelect extends HookWidget {
       ),
       child: Row(
         children: [
+          const SizedBox(
+            width: 40.0,
+            height: 40.0,
+            child: Center(
+              child: Icon(FeatherIcons.search, size: 18.0),
+            ),
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              decoration: const InputDecoration(
+                hintText: 'Search',
+                focusedBorder: InputBorder.none,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.only(top: 8, bottom: 8.0, left: 0.0),
+              ),
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ),
           if (text.isNotEmpty)
             SizedBox(
               width: 40.0,
@@ -520,21 +542,6 @@ class _SearchCategorySelect extends HookWidget {
                 ),
               ),
             ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              decoration: InputDecoration(
-                hintText: 'Search',
-                focusedBorder: InputBorder.none,
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                    vertical: 8, horizontal: text.isEmpty ? 14 : 0),
-              ),
-              style: const TextStyle(color: Colors.black54),
-            ),
-          ),
           const VerticalDivider(color: Colors.grey),
           PopupMenuButton<Tag>(
             onSelected: onTagSelected,
