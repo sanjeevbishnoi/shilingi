@@ -56,12 +56,16 @@ class _AnalyticsHeaderMonth extends StatelessWidget {
 }
 
 class _AnalyticsHeaderDateRange extends StatelessWidget {
-  final DateTime start;
-  final DateTime end;
-
   const _AnalyticsHeaderDateRange(
       {Key? key, required this.start, required this.end})
       : super(key: key);
+
+  final DateTime start;
+  final DateTime end;
+
+  int get _diffInDays {
+    return end.difference(start).inDays;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,14 +82,18 @@ class _AnalyticsHeaderDateRange extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                     color: Colors.black54,
                     fontSize: 14)),
-            const SizedBox(width: 5.0),
-            const Icon(Icons.arrow_right),
-            const SizedBox(width: 5.0),
-            Text(DateFormat('EEE, MMM d').format(end),
-                style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black54,
-                    fontSize: 14)),
+            if (_diffInDays > 1) ...[
+              const SizedBox(width: 5.0),
+              const Icon(Icons.arrow_right),
+              const SizedBox(width: 5.0),
+              Text(
+                  DateFormat('EEE, MMM d')
+                      .format(end.subtract(const Duration(days: 1))),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black54,
+                      fontSize: 14)),
+            ]
           ],
         )
       ],
@@ -170,7 +178,7 @@ class DateRangeAnalytics extends HookWidget {
               children: [
                 UnDraw(
                     height: 150.0,
-                    illustration: UnDrawIllustration.warning,
+                    illustration: UnDrawIllustration.analytics,
                     color: Colors.redAccent),
                 const Text('No data to show', style: TextStyle(fontSize: 18.0)),
               ],

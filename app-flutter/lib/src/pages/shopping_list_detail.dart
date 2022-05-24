@@ -121,6 +121,7 @@ class ShoppingListDetail extends HookWidget {
         case _FilterState.uncompleted:
           items = items
               .where((item) => !selectedItems.value.contains(item.id))
+              .where((item) => item.purchase == null)
               .toList();
           break;
         case _FilterState.bought:
