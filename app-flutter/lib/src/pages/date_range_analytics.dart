@@ -109,13 +109,14 @@ class DateRangeAnalytics extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settings = useState<AnalyticsForSettings>(analyticsFor);
     var total = 0.0;
     final purchasesQueryResult = useQuery(
       QueryOptions(
         document: purchasesExpandedQuery,
         variables: {
-          'after': DateTimeToJson(analyticsFor.start),
-          'before': DateTimeToJson(analyticsFor.end),
+          'after': DateTimeToJson(settings.value.start),
+          'before': DateTimeToJson(settings.value.end),
         },
       ),
     );
@@ -163,8 +164,8 @@ class DateRangeAnalytics extends HookWidget {
     } else {
       var purchases = Purchases.fromJson(result.data!);
       var byLabel = doGrouping.value
-          ? _doMerging(purchases, analyticsFor, groups.value)
-          : _filterByTag(purchases, analyticsFor);
+          ? _doMerging(purchases, settings.value, groups.value)
+          : _filterByTag(purchases, settings.value);
       var byVendor = _filterByVendor(purchases);
       var byItem = _filterByItem(purchases);
 
@@ -200,7 +201,7 @@ class DateRangeAnalytics extends HookWidget {
             return [
               SliverAppBar(
                 leading: const Icon(Icons.analytics),
-                title: AnalyticsHeader(analyticsFor: analyticsFor),
+                title: AnalyticsHeader(analyticsFor: settings.value),
                 floating: true,
                 titleSpacing: 0.0,
                 backgroundColor: Colors.lightGreen,
