@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_function_literals_in_foreach_calls
 import 'package:flutter/material.dart';
+import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 
 import 'package:intl/intl.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -13,14 +14,16 @@ import '../gql/queries.dart';
 import '../models/model.dart';
 import './analytics_sub_pages/purchase_items_entries.dart';
 import '../components/analytics/simple_bar.dart';
+import '../components/month_dropdown.dart';
 
 var _format = NumberFormat('#,##0', 'en_US');
 
 class AnalyticsHeader extends StatelessWidget {
-  final AnalyticsForSettings analyticsFor;
-
-  const AnalyticsHeader({Key? key, required this.analyticsFor})
+  const AnalyticsHeader({Key? key, required this.analyticsFor, this.onChanged})
       : super(key: key);
+
+  final AnalyticsForSettings analyticsFor;
+  final ValueChanged<DateTime>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +33,10 @@ class AnalyticsHeader extends StatelessWidget {
       children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (analyticsFor.analyticsFor == AnalyticsFor.month)
-            _AnalyticsHeaderMonth(month: analyticsFor.month!),
+            _AnalyticsHeaderMonth(
+                month: analyticsFor.month!,
+                year: analyticsFor.year ?? DateTime.now().year,
+                onChanged: onChanged),
           if (analyticsFor.analyticsFor == AnalyticsFor.dateRange)
             _AnalyticsHeaderDateRange(
                 start: analyticsFor.start, end: analyticsFor.end),
@@ -40,18 +46,106 @@ class AnalyticsHeader extends StatelessWidget {
   }
 }
 
-class _AnalyticsHeaderMonth extends StatelessWidget {
-  final int month;
-
-  const _AnalyticsHeaderMonth({Key? key, required this.month})
+class _AnalyticsHeaderMonth extends HookWidget {
+  const _AnalyticsHeaderMonth(
+      {Key? key, required this.month, required this.year, this.onChanged})
       : super(key: key);
+
+  final int month;
+  final int year;
+  final ValueChanged<DateTime>? onChanged;
 
   @override
   Widget build(BuildContext context) {
-    var date = DateTime(DateTime.now().year, month, 1);
-    var text = DateFormat('MMMM').format(date);
-    return Text('Analytics for $text',
-        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 20));
+    var date = DateTime(year, month, 1);
+    var dateValue = useState<DateTime>(date);
+    var text = DateFormat('MMM yyy').format(dateValue.value);
+    final link = useState<LayerLink>(LayerLink());
+    final overlayEntry = useState<OverlayEntry?>(null);
+
+    var rightEnabled = true;
+    final now = DateTime.now();
+    if (dateValue.value.month == now.month &&
+        dateValue.value.year == now.year) {
+      rightEnabled = false;
+    }
+
+    return GestureDetector(
+      child: CompositedTransformTarget(
+        link: link.value,
+        child: WillPopScope(
+          onWillPop: () async {
+            if (overlayEntry.value != null) {
+              overlayEntry.value!.remove();
+              overlayEntry.value = null;
+              return false;
+            }
+            return true;
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: () {
+                  final d = dateValue.value;
+                  dateValue.value = DateTime(d.year, d.month - 1, 1);
+                  if (onChanged != null) onChanged!(dateValue.value);
+                },
+                icon: const Icon(FeatherIcons.chevronLeft),
+              ),
+              const SizedBox(width: 5.0),
+              Text(
+                text,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+              ),
+              const SizedBox(width: 5.0),
+              IconButton(
+                onPressed: rightEnabled
+                    ? () {
+                        final d = dateValue.value;
+                        dateValue.value = DateTime(d.year, d.month + 1, 1);
+                        if (onChanged != null) onChanged!(dateValue.value);
+                      }
+                    : null,
+                icon: const Icon(FeatherIcons.chevronRight),
+              ),
+            ],
+          ),
+        ),
+      ),
+      onTap: () {
+        final box = context.findRenderObject() as RenderBox;
+        final offset = box.localToGlobal(Offset.zero);
+
+        final overlay = Overlay.of(context);
+        overlayEntry.value = OverlayEntry(
+          builder: (context) => MonthPicker(
+            year: dateValue.value.year,
+            month: dateValue.value.month,
+            link: link.value,
+            offset: offset,
+            onRemove: () {
+              if (overlayEntry.value != null) {
+                overlayEntry.value!.remove();
+                overlayEntry.value = null;
+              }
+            },
+            onValue: (DateTime d) {
+              dateValue.value = d;
+              if (overlayEntry.value != null) {
+                overlayEntry.value!.remove();
+                overlayEntry.value = null;
+              }
+              if (onChanged != null) {
+                onChanged!(d);
+              }
+            },
+          ),
+        );
+        overlay!.insert(overlayEntry.value!);
+      },
+    );
   }
 }
 
@@ -126,6 +220,8 @@ class DateRangeAnalytics extends HookWidget {
     var groups = useState(<String, List<String>>{});
     var doGrouping = useState(false);
 
+    bool purchasesEmpty = true;
+
     if (result.isLoading && result.data == null) {
       body = const Center(
         child: CircularProgressIndicator(),
@@ -187,6 +283,7 @@ class DateRangeAnalytics extends HookWidget {
           ),
         );
       } else {
+        purchasesEmpty = false;
         for (var purchase in purchases.purchases) {
           total += purchase.total!;
         }
@@ -201,7 +298,15 @@ class DateRangeAnalytics extends HookWidget {
             return [
               SliverAppBar(
                 leading: const Icon(Icons.analytics),
-                title: AnalyticsHeader(analyticsFor: settings.value),
+                title: AnalyticsHeader(
+                  analyticsFor: settings.value,
+                  onChanged: (d) {
+                    settings.value = AnalyticsForSettings(
+                        analyticsFor: AnalyticsFor.month,
+                        month: d.month,
+                        year: d.year);
+                  },
+                ),
                 floating: true,
                 titleSpacing: 0.0,
                 backgroundColor: Colors.lightGreen,
@@ -320,6 +425,22 @@ class DateRangeAnalytics extends HookWidget {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
+        appBar: purchasesEmpty
+            ? AppBar(
+                backgroundColor: mainScaffoldBg,
+                leading: const Icon(Icons.analytics),
+                title: AnalyticsHeader(
+                  analyticsFor: settings.value,
+                  onChanged: (d) {
+                    settings.value = AnalyticsForSettings(
+                        analyticsFor: AnalyticsFor.month,
+                        month: d.month,
+                        year: d.year);
+                  },
+                ),
+                titleSpacing: 0.0,
+              )
+            : null,
         backgroundColor: mainScaffoldBg,
         body: body,
       ),

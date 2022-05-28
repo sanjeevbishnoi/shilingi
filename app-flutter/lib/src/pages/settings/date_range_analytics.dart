@@ -6,6 +6,7 @@ enum AnalyticsFor {
 class AnalyticsForSettings {
   final AnalyticsFor analyticsFor;
   final int? month;
+  final int? year;
   final DateTime? after;
   final DateTime? before;
   DateTime? _start;
@@ -13,7 +14,11 @@ class AnalyticsForSettings {
   bool _calculated = false;
 
   AnalyticsForSettings(
-      {required this.analyticsFor, this.month, this.after, this.before});
+      {required this.analyticsFor,
+      this.month,
+      this.year,
+      this.after,
+      this.before});
 
   DateTime get start {
     if (_start != null) return _start!;
@@ -31,9 +36,11 @@ class AnalyticsForSettings {
     if (_calculated) return;
     switch (analyticsFor) {
       case AnalyticsFor.month:
-        _start = DateTime(DateTime.now().year, month!, 1);
+        final _y = year ?? DateTime.now().year;
+
+        _start = DateTime(_y, month!, 1);
         var _month = month == 12 ? 1 : month! + 1;
-        var _year = month == 12 ? DateTime.now().year + 1 : DateTime.now().year;
+        var _year = month == 12 ? _y + 1 : _y;
         _end = DateTime(_year, _month, 1);
         _calculated = true;
         break;
