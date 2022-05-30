@@ -267,7 +267,6 @@ class SimpleBarEntry<E> {
       value: value + other.value,
       items: [...items, ...other.items],
       children: children,
-      type: SimpleBarEntryType.group,
     );
   }
 
@@ -367,7 +366,6 @@ class StatSectionWrapper<E> extends StatelessWidget {
     var result = entries.reduce((value, element) => value + element);
     var total = result.value;
 
-    // TODO: Implement this
     // var initialCount = _count > entries.length ? entries.length : _count;
 
     return AnimatedSize(

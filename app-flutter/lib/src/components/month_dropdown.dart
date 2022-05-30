@@ -72,12 +72,14 @@ class MonthPicker extends HookWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          color: Colors.greenAccent,
+                          color: Colors.black87,
                           child: Padding(
                             padding: const EdgeInsets.only(left: 20.0),
                             child: Row(
                               children: [
-                                const Expanded(child: Text('Date')),
+                                const Expanded(
+                                    child: Text('Date',
+                                        style: TextStyle(color: Colors.white))),
                                 TextButton(
                                   onPressed: () {
                                     final now = DateTime.now();
@@ -86,7 +88,7 @@ class MonthPicker extends HookWidget {
                                   child: const Text(
                                     'THIS MONTH',
                                     style: TextStyle(
-                                        color: Colors.black87,
+                                        color: Colors.white,
                                         fontWeight: FontWeight.w600),
                                   ),
                                   style: ButtonStyle(
@@ -99,7 +101,10 @@ class MonthPicker extends HookWidget {
                                 IconButton(
                                     iconSize: 14.0,
                                     onPressed: onRemove,
-                                    icon: const Icon(FeatherIcons.x)),
+                                    icon: const Icon(
+                                      FeatherIcons.x,
+                                      color: Colors.white,
+                                    )),
                               ],
                             ),
                           ),
