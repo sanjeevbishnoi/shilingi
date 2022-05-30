@@ -15,6 +15,7 @@ import '../models/model.dart';
 import './analytics_sub_pages/purchase_items_entries.dart';
 import '../components/analytics/simple_bar.dart';
 import '../components/month_dropdown.dart';
+import '../utils/flutter_hooks.dart';
 
 var _format = NumberFormat('#,##0', 'en_US');
 
@@ -217,8 +218,6 @@ class DateRangeAnalytics extends HookWidget {
     final result = purchasesQueryResult.result;
     final refetch = purchasesQueryResult.refetch;
     Widget body;
-    var groups = useState(<String, List<String>>{});
-    var doGrouping = useState(false);
 
     bool purchasesEmpty = true;
 
@@ -259,11 +258,6 @@ class DateRangeAnalytics extends HookWidget {
       );
     } else {
       var purchases = Purchases.fromJson(result.data!);
-      var byLabel = doGrouping.value
-          ? _doMerging(purchases, settings.value, groups.value)
-          : _filterByTag(purchases, settings.value);
-      var byVendor = _filterByVendor(purchases);
-      var byItem = _filterByItem(purchases);
 
       if (purchases.purchases.isEmpty) {
         body = Padding(
@@ -356,65 +350,26 @@ class DateRangeAnalytics extends HookWidget {
           },
           body: TabBarView(
             children: [
-              TabBarChild(
-                hasGroups: groups.value.isNotEmpty,
-                grouped: doGrouping.value,
-                child: StatSectionWrapper(
-                  entries: byLabel,
-                  truncate: true,
-                  onRoutePop: () {
-                    refetch();
-                  },
-                  onMerge: (item1, item2) {
-                    final children = <String>[];
-                    var grps = groups.value;
-
-                    for (var entry in <SimpleBarEntry>[item1, item2]) {
-                      switch (entry.type) {
-                        case SimpleBarEntryType.label:
-                          children.add(entry.label);
-                          break;
-                        case SimpleBarEntryType.group:
-                          // We need to remove it from the groups
-                          final entries = grps.remove(entry.label);
-                          if (entries != null) {
-                            children.addAll(entries);
-                          }
-                          break;
-                      }
-                    }
-                    grps['${item1.label} + ${item2.label}'] = children;
-                    doGrouping.value = true;
-                    // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
-                    groups.notifyListeners();
-                  },
-                  groups: groups,
-                ),
+              TabBarChild<PurchaseItem>(
+                key: const ValueKey('tag'),
+                entries: purchases,
                 onRefresh: onRefresh,
-                toggleGrouping: () {
-                  doGrouping.value = !doGrouping.value;
-                },
-                clearGroups: () {
-                  groups.value.clear();
-                  // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
-                  groups.notifyListeners();
-                },
+                filterType: _FilterType.tag,
+                analyticsFor: settings.value,
               ),
-              TabBarChild(
-                grouped: doGrouping.value,
-                child: StatSectionWrapper(entries: byVendor, truncate: true),
+              TabBarChild<Purchase>(
+                key: const ValueKey('vendor'),
+                entries: purchases,
                 onRefresh: onRefresh,
-                toggleGrouping: () {
-                  doGrouping.value = !doGrouping.value;
-                },
+                filterType: _FilterType.vendor,
+                analyticsFor: settings.value,
               ),
-              TabBarChild(
-                grouped: doGrouping.value,
-                child: StatSectionWrapper(entries: byItem, truncate: true),
+              TabBarChild<PurchaseItem>(
+                key: const ValueKey('item'),
+                entries: purchases,
                 onRefresh: onRefresh,
-                toggleGrouping: () {
-                  doGrouping.value = !doGrouping.value;
-                },
+                filterType: _FilterType.item,
+                analyticsFor: settings.value,
               ),
             ],
           ),
@@ -446,8 +401,238 @@ class DateRangeAnalytics extends HookWidget {
       ),
     );
   }
+}
 
-  SortedList<SimpleBarEntry<PurchaseItem>> _doMerging(Purchases purchases,
+class TagTotal {
+  final String name;
+  final int? id;
+  final double total;
+
+  const TagTotal({required this.name, this.id, required this.total});
+
+  TagTotal operator +(TagTotal other) {
+    return TagTotal(name: name, total: total + other.total);
+  }
+}
+
+enum _FilterType {
+  tag,
+  vendor,
+  item,
+}
+
+class TabBarChild<E> extends HookWidget {
+  const TabBarChild({
+    Key? key,
+    required this.onRefresh,
+    required this.entries,
+    required this.filterType,
+    required this.analyticsFor,
+  }) : super(key: key);
+
+  final RefreshCallback onRefresh;
+  final Purchases entries;
+  final _FilterType filterType;
+  final AnalyticsForSettings analyticsFor;
+
+  SortedList<SimpleBarEntry<E>> _doFilter(
+      bool doGrouping, Map<String, List<String>> groups) {
+    switch (filterType) {
+      case _FilterType.tag:
+        return doGrouping
+            ? _doTagMerging(entries, analyticsFor, groups)
+                as SortedList<SimpleBarEntry<E>>
+            : _filterByTag(entries, analyticsFor)
+                as SortedList<SimpleBarEntry<E>>;
+      case _FilterType.vendor:
+        return doGrouping
+            ? _doVendorMerging(entries, groups) as SortedList<SimpleBarEntry<E>>
+            : _filterByVendor(entries) as SortedList<SimpleBarEntry<E>>;
+      case _FilterType.item:
+        return doGrouping
+            ? _doItemMerging(entries, groups) as SortedList<SimpleBarEntry<E>>
+            : _filterByItem(entries) as SortedList<SimpleBarEntry<E>>;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final doGroupingValue = useState<bool>(false);
+    final doGrouping = doGroupingValue.value;
+    final groupsValue = useState<Map<String, List<String>>>({});
+    final groups = groupsValue.value;
+    useAutomaticKeepAlive();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return RefreshIndicator(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: constraints.maxHeight,
+                minHeight: constraints.minHeight),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 10, right: 10),
+                child: Column(
+                  children: [
+                    // Actions
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (groups.isNotEmpty)
+                          ElevatedButton(
+                            onPressed: () {
+                              doGroupingValue.value = !doGrouping;
+                            },
+                            child:
+                                Text(doGrouping ? 'Ungroup' : 'Show groupings'),
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all<Color>(
+                                  Colors.white),
+                              shape: MaterialStateProperty.all<
+                                      RoundedRectangleBorder>(
+                                  RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                              )),
+                            ),
+                          ),
+                        if (groups.isNotEmpty) ...[
+                          const SizedBox(width: 5),
+                          ElevatedButton(
+                            onPressed: () {
+                              groupsValue.value = {};
+                            },
+                            child: const Text('Clear groups'),
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all<Color>(
+                                  Colors.white),
+                              shape: MaterialStateProperty.all<
+                                      RoundedRectangleBorder>(
+                                  RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                              )),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    StatSectionWrapper(
+                      entries: _doFilter(doGrouping, groups),
+                      truncate: true,
+                      onRoutePop: () {
+                        onRefresh();
+                      },
+                      onMerge: (item1, item2) {
+                        final children = <String>[];
+
+                        for (var entry in <SimpleBarEntry>[item1, item2]) {
+                          switch (entry.type) {
+                            case SimpleBarEntryType.label:
+                              children.add(entry.label);
+                              break;
+                            case SimpleBarEntryType.group:
+                              // We need to remove it from the groups
+                              final entries = groups.remove(entry.label);
+                              if (entries != null) {
+                                children.addAll(entries);
+                              }
+                              break;
+                          }
+                        }
+                        groups['${item1.label} + ${item2.label}'] = children;
+                        var g = <String, List<String>>{};
+                        g.addAll(groups);
+                        groupsValue.value = g;
+                        doGroupingValue.value = true;
+                        // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+                        groupsValue.notifyListeners();
+                      },
+                      groups: groupsValue,
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ),
+          onRefresh: onRefresh,
+        );
+      },
+    );
+  }
+
+  SortedList<SimpleBarEntry<PurchaseItem>> _filterByTag(
+      Purchases purchases, AnalyticsForSettings analyticsFor) {
+    var result =
+        SortedList<SimpleBarEntry<PurchaseItem>>((a, b) => a.compareTo(b));
+    var map = <String, SimpleBarEntry<PurchaseItem>>{};
+
+    purchases.purchases.forEach((purchase) {
+      purchase.items!.forEach((purchaseItem) {
+        var entry = LabelsSimpleBarEntry(
+            labelId: 0,
+            label: 'uncategorized',
+            value: purchaseItem.total,
+            items: [purchaseItem],
+            analyticsFor: analyticsFor);
+        // Retrieve the tag for the item
+        if (purchaseItem.item?.tags?.isNotEmpty ?? false) {
+          entry = LabelsSimpleBarEntry(
+              labelId: purchaseItem.item!.tags![0].id!,
+              label: purchaseItem.item!.tags![0].name,
+              value: purchaseItem.total,
+              items: [purchaseItem],
+              analyticsFor: analyticsFor);
+        }
+        map.update(entry.label, (value) => value + entry,
+            ifAbsent: () => entry);
+      });
+    });
+
+    map.values.forEach((entry) => result.add(entry));
+    return result;
+  }
+
+  SortedList<SimpleBarEntry<Purchase>> _filterByVendor(Purchases purchases) {
+    var result = SortedList<SimpleBarEntry<Purchase>>((a, b) => a.compareTo(b));
+    var map = <String, SimpleBarEntry<Purchase>>{};
+
+    purchases.purchases.forEach((purchase) {
+      var entry = SimpleBarEntry<Purchase>(
+        label: purchase.vendor!.name,
+        value: purchase.total!,
+        items: [purchase],
+        type: SimpleBarEntryType.label,
+      );
+      map.update(entry.label, (value) => value + entry, ifAbsent: () => entry);
+    });
+
+    map.values.forEach(
+      (entry) => result.add(entry),
+    );
+
+    return result;
+  }
+
+  SortedList<SimpleBarEntry<PurchaseItem>> _filterByItem(Purchases purchases) {
+    var result = SortedList<SimpleBarEntry<PurchaseItem>>(
+      (a, b) => a.compareTo(b),
+    );
+    var map = <int, SimpleBarEntry<PurchaseItem>>{};
+
+    purchases.purchases.forEach((purchase) {
+      purchase.items!.forEach((item) {
+        var entry = SimpleBarEntry(
+            label: item.item!.name, value: item.total, items: [item]);
+        map.update(item.item!.id!, (value) => value + entry,
+            ifAbsent: (() => entry));
+      });
+    });
+
+    map.values.forEach((element) => result.add(element));
+    return result;
+  }
+
+  SortedList<SimpleBarEntry<PurchaseItem>> _doTagMerging(Purchases purchases,
       AnalyticsForSettings analyticsFor, Map<String, List<String>> groups) {
     var result =
         SortedList<SimpleBarEntry<PurchaseItem>>((a, b) => a.compareTo(b));
@@ -501,166 +686,103 @@ class DateRangeAnalytics extends HookWidget {
     return result;
   }
 
-  SortedList<SimpleBarEntry<PurchaseItem>> _filterByTag(
-      Purchases purchases, AnalyticsForSettings analyticsFor) {
+  SortedList<SimpleBarEntry<Purchase>> _doVendorMerging(
+      Purchases purchases, Map<String, List<String>> groups) {
+    var result = SortedList<SimpleBarEntry<Purchase>>((a, b) => a.compareTo(b));
+    var map = <String, SimpleBarEntry<Purchase>>{};
+    var grouped = <String, SimpleBarEntry<Purchase>>{};
+
+    purchases.purchases.forEach(
+      (purchase) {
+        var found = false;
+        for (var group in groups.entries) {
+          if (group.value.contains(purchase.vendor!.name)) {
+            grouped.update(
+              group.key,
+              (existing) => SimpleBarEntry(
+                label: group.key,
+                value: existing.value + purchase.total!,
+                items: [...existing.items, purchase],
+                type: SimpleBarEntryType.group,
+              ),
+              ifAbsent: () => SimpleBarEntry(
+                label: group.key,
+                value: purchase.total!,
+                items: [purchase],
+              ),
+            );
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          final entry = SimpleBarEntry(
+            label: purchase.vendor!.name,
+            value: purchase.total!,
+            items: [purchase],
+            type: SimpleBarEntryType.label,
+          );
+          map.update(entry.label, (existing) => existing + entry,
+              ifAbsent: () => entry);
+        }
+      },
+    );
+    map.values.forEach((entry) => result.add(entry));
+    grouped.values.forEach((entry) => result.add(entry));
+    return result;
+  }
+
+  SortedList<SimpleBarEntry<PurchaseItem>> _doItemMerging(
+      Purchases purchases, Groups groups) {
     var result =
         SortedList<SimpleBarEntry<PurchaseItem>>((a, b) => a.compareTo(b));
     var map = <String, SimpleBarEntry<PurchaseItem>>{};
+    var grouped = <String, SimpleBarEntry<PurchaseItem>>{};
 
-    purchases.purchases.forEach((purchase) {
-      purchase.items!.forEach((purchaseItem) {
-        var entry = LabelsSimpleBarEntry(
-            labelId: 0,
-            label: 'uncategorized',
-            value: purchaseItem.total,
-            items: [purchaseItem],
-            analyticsFor: analyticsFor);
-        // Retrieve the tag for the item
-        if (purchaseItem.item?.tags?.isNotEmpty ?? false) {
-          entry = LabelsSimpleBarEntry(
-              labelId: purchaseItem.item!.tags![0].id!,
-              label: purchaseItem.item!.tags![0].name,
-              value: purchaseItem.total,
-              items: [purchaseItem],
-              analyticsFor: analyticsFor);
-        }
-        map.update(entry.label, (value) => value + entry,
-            ifAbsent: () => entry);
-      });
-    });
-
-    map.values.forEach((entry) => result.add(entry));
-    return result;
-  }
-
-  SortedList<SimpleBarEntry<Purchase>> _filterByVendor(Purchases purchases) {
-    var result = SortedList<SimpleBarEntry<Purchase>>((a, b) => a.compareTo(b));
-    var map = <String, SimpleBarEntry<Purchase>>{};
-
-    purchases.purchases.forEach((purchase) {
-      var entry = SimpleBarEntry<Purchase>(
-          label: purchase.vendor!.name,
-          value: purchase.total!,
-          items: [purchase]);
-      map.update(entry.label, (value) => value + entry, ifAbsent: () => entry);
-    });
-
-    map.values.forEach(
-      (entry) => result.add(entry),
-    );
-
-    return result;
-  }
-
-  SortedList<SimpleBarEntry<PurchaseItem>> _filterByItem(Purchases purchases) {
-    var result = SortedList<SimpleBarEntry<PurchaseItem>>(
-      (a, b) => a.compareTo(b),
-    );
-    var map = <int, SimpleBarEntry<PurchaseItem>>{};
-
-    purchases.purchases.forEach((purchase) {
-      purchase.items!.forEach((item) {
-        var entry = SimpleBarEntry(
-            label: item.item!.name, value: item.total, items: [item]);
-        map.update(item.item!.id!, (value) => value + entry,
-            ifAbsent: (() => entry));
-      });
-    });
-
-    map.values.forEach((element) => result.add(element));
-    return result;
-  }
-}
-
-class TagTotal {
-  final String name;
-  final int? id;
-  final double total;
-
-  const TagTotal({required this.name, this.id, required this.total});
-
-  TagTotal operator +(TagTotal other) {
-    return TagTotal(name: name, total: total + other.total);
-  }
-}
-
-class TabBarChild extends StatelessWidget {
-  final Widget child;
-  final RefreshCallback onRefresh;
-  final bool grouped;
-  final VoidCallback toggleGrouping;
-  final bool hasGroups;
-  final VoidCallback? clearGroups;
-
-  const TabBarChild(
-      {Key? key,
-      required this.child,
-      required this.onRefresh,
-      required this.grouped,
-      required this.toggleGrouping,
-      this.hasGroups = false,
-      this.clearGroups})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return RefreshIndicator(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-                maxHeight: constraints.maxHeight,
-                minHeight: constraints.minHeight),
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 10, right: 10),
-                child: Column(
-                  children: [
-                    // Actions
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        if (hasGroups)
-                          ElevatedButton(
-                            onPressed: toggleGrouping,
-                            child: Text(grouped ? 'Ungroup' : 'Show groupings'),
-                            style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.all<Color>(
-                                  Colors.white),
-                              shape: MaterialStateProperty.all<
-                                      RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                              )),
-                            ),
-                          ),
-                        if (hasGroups && clearGroups != null) ...[
-                          const SizedBox(width: 5),
-                          ElevatedButton(
-                            onPressed: clearGroups!,
-                            child: const Text('Clear groups'),
-                            style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.all<Color>(
-                                  Colors.white),
-                              shape: MaterialStateProperty.all<
-                                      RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                              )),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    child,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          onRefresh: onRefresh,
+    purchases.purchases.forEach(
+      (purchase) {
+        purchase.items!.forEach(
+          (item) {
+            var found = false;
+            for (var group in groups.entries) {
+              if (group.value.contains(item.item!.name)) {
+                grouped.update(
+                  group.key,
+                  (existing) => SimpleBarEntry(
+                    label: group.key,
+                    value: item.total + existing.value,
+                    items: [...existing.items, item],
+                    type: SimpleBarEntryType.group,
+                  ),
+                  ifAbsent: () => SimpleBarEntry(
+                    label: group.key,
+                    value: item.total,
+                    items: [
+                      item,
+                    ],
+                  ),
+                );
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              var entry = SimpleBarEntry(
+                label: item.item!.name,
+                value: item.total,
+                items: [item],
+              );
+              map.update(item.item!.name, (value) => value + entry,
+                  ifAbsent: () => entry);
+            }
+          },
         );
       },
     );
+    map.values.forEach((entry) => result.add(entry));
+    grouped.values.forEach((entry) => result.add(entry));
+    return result;
   }
 }
+
+typedef Groups = Map<String, List<String>>;
