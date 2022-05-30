@@ -49,6 +49,7 @@ class CustomAZListView<E extends Nameable> extends HookWidget {
     }, [data, hash]);
 
     return AzListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: padding,
       data: azData.value,
       itemCount: children.length,
