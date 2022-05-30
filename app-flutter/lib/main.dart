@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
         initialRoute: '/',
         routes: {
           purchasesPage: (context) => const PurchasesPage(),
-          newPurchasePage: (context) => const NewPurchasePage(),
+          newPurchasePage: (context) => const NewPurchasePage2(),
           PurchaseDetailsPage.routeName: (context) =>
               const PurchaseDetailsPage(),
           cataloguePage: (context) => const CataloguePage(),
