@@ -54,6 +54,7 @@ dependencies:
   badges: ^2.0.2
   provider: ^6.0.2
   grouped_list: ^5.0.1
+  uuid: 3.0.6
 
 dev_dependencies:
   flutter_test:

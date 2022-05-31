@@ -5,24 +5,31 @@ import 'package:provider/provider.dart';
 import '../pages/shopping_list_helpers/change_notifiers.dart';
 
 class SpinBox extends HookWidget {
-  final int initial;
+  const SpinBox({Key? key, this.initial = 1, this.onChanged}) : super(key: key);
 
-  const SpinBox({Key? key, this.initial = 1}) : super(key: key);
+  final int initial;
+  final ValueChanged<int>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     final controller = useTextEditingController();
     controller.text = initial.toString();
-    controller.addListener(() {
-      var units = 1;
-      if (controller.text.isNotEmpty) {
-        var val = double.tryParse(controller.text);
-        units = val?.toInt() ?? 1;
-      }
+    controller.addListener(
+      () {
+        var units = 1;
+        if (controller.text.isNotEmpty) {
+          var val = double.tryParse(controller.text);
+          units = val?.toInt() ?? 1;
+        }
 
-      Provider.of<ShoppingListItemChangeNotifier>(context, listen: false)
-          .units = units;
-    });
+        if (onChanged != null) {
+          onChanged!(units);
+        } else {
+          Provider.of<ShoppingListItemChangeNotifier>(context, listen: false)
+              .units = units;
+        }
+      },
+    );
 
     return Container(
       decoration: BoxDecoration(
