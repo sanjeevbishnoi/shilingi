@@ -26,13 +26,12 @@ input ShoppingItemInput {
   units: Int = 1
   brand: String 
   pricePerUnit: Decimal!
-  # Add a validator for checking the provided id for an item exists
-  item: String!
+  item: Int!
 }
 
 input ShoppingInput {
   date: Time
-  vendor: VendorInput!
+  vendor: VendorIDInput!
   items: [ShoppingItemInput!]!
 }
 
@@ -72,6 +71,10 @@ type Vendor implements Node {
   name: String!
   slug: String!
   purchases: [Shopping!]!
+}
+
+input VendorIDInput {
+  id: Int!
 }
 
 input VendorInput  {

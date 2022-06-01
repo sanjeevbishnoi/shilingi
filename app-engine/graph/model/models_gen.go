@@ -28,7 +28,7 @@ type PurchaseShoppingListItemInput struct {
 
 type ShoppingInput struct {
 	Date   *time.Time           `json:"date"`
-	Vendor *VendorInput         `json:"vendor"`
+	Vendor *VendorIDInput       `json:"vendor"`
 	Items  []*ShoppingItemInput `json:"items"`
 }
 
@@ -38,7 +38,7 @@ type ShoppingItemInput struct {
 	Units        *int            `json:"units"`
 	Brand        *string         `json:"brand"`
 	PricePerUnit decimal.Decimal `json:"pricePerUnit"`
-	Item         string          `json:"item"`
+	Item         int             `json:"item"`
 }
 
 type ShoppingListInput struct {
@@ -60,6 +60,10 @@ type TagInput struct {
 
 type UpdateShoppingListItemInput struct {
 	Note *string `json:"note"`
+}
+
+type VendorIDInput struct {
+	ID int `json:"id"`
 }
 
 type VendorInput struct {

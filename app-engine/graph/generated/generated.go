@@ -1057,13 +1057,12 @@ input ShoppingItemInput {
   units: Int = 1
   brand: String 
   pricePerUnit: Decimal!
-  # Add a validator for checking the provided id for an item exists
-  item: String!
+  item: Int!
 }
 
 input ShoppingInput {
   date: Time
-  vendor: VendorInput!
+  vendor: VendorIDInput!
   items: [ShoppingItemInput!]!
 }
 
@@ -1103,6 +1102,10 @@ type Vendor implements Node {
   name: String!
   slug: String!
   purchases: [Shopping!]!
+}
+
+input VendorIDInput {
+  id: Int!
 }
 
 input VendorInput  {
@@ -6340,7 +6343,7 @@ func (ec *executionContext) unmarshalInputShoppingInput(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("vendor"))
-			it.Vendor, err = ec.unmarshalNVendorInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx, v)
+			it.Vendor, err = ec.unmarshalNVendorIDInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorIDInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6415,7 +6418,7 @@ func (ec *executionContext) unmarshalInputShoppingItemInput(ctx context.Context,
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("item"))
-			it.Item, err = ec.unmarshalNString2string(ctx, v)
+			it.Item, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6539,6 +6542,29 @@ func (ec *executionContext) unmarshalInputUpdateShoppingListItemInput(ctx contex
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("note"))
 			it.Note, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputVendorIDInput(ctx context.Context, obj interface{}) (model.VendorIDInput, error) {
+	var it model.VendorIDInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -8479,14 +8505,14 @@ func (ec *executionContext) marshalNVendor2ᚖgithubᚗcomᚋkingzbauerᚋshilin
 	return ec._Vendor(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNVendorIDInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorIDInput(ctx context.Context, v interface{}) (*model.VendorIDInput, error) {
+	res, err := ec.unmarshalInputVendorIDInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNVendorInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx context.Context, v interface{}) (model.VendorInput, error) {
 	res, err := ec.unmarshalInputVendorInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNVendorInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx context.Context, v interface{}) (*model.VendorInput, error) {
-	res, err := ec.unmarshalInputVendorInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
