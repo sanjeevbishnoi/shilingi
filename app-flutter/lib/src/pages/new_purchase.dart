@@ -66,7 +66,6 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
                           },
                     icon: const Icon(
                       Icons.save,
-                      color: Colors.white,
                     ),
                   );
                 },
@@ -74,6 +73,7 @@ class _NewPurchasePageState extends State<NewPurchasePage> {
             },
           ),
         ],
+        backgroundColor: mainScaffoldBg,
       ),
       backgroundColor: mainScaffoldBg,
       resizeToAvoidBottomInset: true,

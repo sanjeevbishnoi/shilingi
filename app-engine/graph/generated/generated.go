@@ -92,6 +92,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Items                 func(childComplexity int, tagID *int, negate *bool) int
+		ItemsByID             func(childComplexity int, ids []int) int
 		Node                  func(childComplexity int, id int) int
 		Purchases             func(childComplexity int, before time.Time, after time.Time) int
 		ShoppingItems         func(childComplexity int, after time.Time, before time.Time, itemID int) int
@@ -206,6 +207,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Items(ctx context.Context, tagID *int, negate *bool) ([]*ent.Item, error)
+	ItemsByID(ctx context.Context, ids []int) ([]*ent.Item, error)
 	ShoppingItems(ctx context.Context, after time.Time, before time.Time, itemID int) ([]*ent.ShoppingItem, error)
 	ShoppingItemsByTag(ctx context.Context, after time.Time, before time.Time, tagID int) ([]*ent.ShoppingItem, error)
 	UntaggedShoppingItems(ctx context.Context, after time.Time, before time.Time) ([]*ent.ShoppingItem, error)
@@ -563,6 +565,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Items(childComplexity, args["tagID"].(*int), args["negate"].(*bool)), true
+
+	case "Query.itemsByID":
+		if e.complexity.Query.ItemsByID == nil {
+			break
+		}
+
+		args, err := ec.field_Query_itemsByID_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ItemsByID(childComplexity, args["ids"].([]int)), true
 
 	case "Query.node":
 		if e.complexity.Query.Node == nil {
@@ -1190,6 +1204,8 @@ type Query {
   # label
   # Providing negate without a tagID doesn't have any effect
   items(tagID: Int, negate: Boolean): [Item!]!
+  # Retrieve items matching the provided ids
+  itemsByID(ids: [Int!]!): [Item!]!
   shoppingItems(after: Time!, before: Time!, itemID: Int!): [ShoppingItem!]!
   # Returns shopping items acquired between the date range that are tagged by 
   # tagID
@@ -1699,6 +1715,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_itemsByID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []int
+	if tmp, ok := rawArgs["ids"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ids"))
+		arg0, err = ec.unmarshalNInt2ᚕintᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ids"] = arg0
 	return args, nil
 }
 
@@ -3122,6 +3153,48 @@ func (ec *executionContext) _Query_items(ctx context.Context, field graphql.Coll
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().Items(rctx, args["tagID"].(*int), args["negate"].(*bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.Item)
+	fc.Result = res
+	return ec.marshalNItem2ᚕᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋentᚐItemᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_itemsByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_itemsByID_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ItemsByID(rctx, args["ids"].([]int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6790,6 +6863,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_items(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "itemsByID":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_itemsByID(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

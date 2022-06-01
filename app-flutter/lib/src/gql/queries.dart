@@ -263,3 +263,64 @@ var shoppingDetailQuery = gql(r'''
       }
     }
 ''');
+
+var savedNewPurchaseWithVendorQuery = gql(r'''
+    query savedNewPurchaseWithVendor($vendorId: Int!, $itemIds: [Int!]!) {
+      node(id: $vendorId)  {
+        ... on Vendor {
+          id
+          name
+        }
+      }
+
+      itemsByID(ids: $itemIds) {
+        id
+        name
+        purchases(first: 1) {
+          edges {
+            node {
+              id
+              total
+              pricePerUnit
+              units
+              shopping {
+                id
+                date
+              }
+            }
+          }
+        }
+        tags {
+          id
+          name
+        }
+      }
+    }
+''');
+
+var savedNewPurchaseQuery = gql(r'''
+    query savedNewPurchaseWithVendor($itemIds: [Int!]!) {
+      itemsByID(ids: $itemIds) {
+        id
+        name
+        purchases(first: 1) {
+          edges {
+            node {
+              id
+              total
+              pricePerUnit
+              units
+              shopping {
+                id
+                date
+              }
+            }
+          }
+        }
+        tags {
+          id
+          name
+        }
+      }
+    }
+''');

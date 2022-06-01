@@ -11,6 +11,8 @@ type Query {
   # label
   # Providing negate without a tagID doesn't have any effect
   items(tagID: Int, negate: Boolean): [Item!]!
+  # Retrieve items matching the provided ids
+  itemsByID(ids: [Int!]!): [Item!]!
   shoppingItems(after: Time!, before: Time!, itemID: Int!): [ShoppingItem!]!
   # Returns shopping items acquired between the date range that are tagged by 
   # tagID

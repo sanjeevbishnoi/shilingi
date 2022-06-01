@@ -205,6 +205,14 @@ func (r *queryResolver) Items(ctx context.Context, tagID *int, negate *bool) ([]
 		All(ctx)
 }
 
+func (r *queryResolver) ItemsByID(ctx context.Context, ids []int) ([]*ent.Item, error) {
+	return r.cli.Item.Query().
+		Where(
+			item.IDIn(ids...),
+		).
+		All(ctx)
+}
+
 func (r *queryResolver) ShoppingItems(ctx context.Context, after time.Time, before time.Time, itemID int) ([]*ent.ShoppingItem, error) {
 	return r.cli.ShoppingItem.Query().
 		Where(

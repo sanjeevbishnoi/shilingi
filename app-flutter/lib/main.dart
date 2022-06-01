@@ -7,6 +7,7 @@ import 'package:hive/hive.dart';
 import './src/pages/pages.dart';
 import './src/constants/constants.dart';
 import 'package:shilingi/src/models/hive.dart';
+import './src/pages/new_purchase/data_models.dart';
 
 const apiUrl = String.fromEnvironment('API_URL',
     defaultValue: 'http://localhost:8080/query');
@@ -15,6 +16,8 @@ void main() async {
   await initHiveForFlutter();
   Hive.registerAdapter(ShoppingListAdapter());
   Hive.registerAdapter(ShoppingListItemAdapter());
+  Hive.registerAdapter(NewPurchaseModelAdapter());
+  Hive.registerAdapter(ItemModelAdapter());
 
   final HttpLink httpLink = HttpLink(apiUrl);
   ValueNotifier<GraphQLClient> client = ValueNotifier(
@@ -48,7 +51,7 @@ class MyApp extends StatelessWidget {
         initialRoute: '/',
         routes: {
           purchasesPage: (context) => const PurchasesPage(),
-          newPurchasePage: (context) => const NewPurchasePage(),
+          newPurchasePage: (context) => const NewPurchasePage2(),
           PurchaseDetailsPage.routeName: (context) =>
               const PurchaseDetailsPage(),
           cataloguePage: (context) => const CataloguePage(),
