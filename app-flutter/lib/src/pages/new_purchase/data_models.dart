@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'package:uuid/uuid.dart';
 import 'package:hive/hive.dart';
+import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:gql/ast.dart';
 
 import '../../models/model.dart';
+import '../../gql/gql.dart';
 
 part 'data_models.g.dart';
 
@@ -149,6 +152,9 @@ class NewPurchaseModel extends ChangeNotifier {
 
   Vendor? _vendor;
 
+  /// Stores the new purchase data
+  Box<NewPurchaseModel>? _box;
+
   /// The following fields are saved in Hive
   @HiveField(0)
   DateTime? _date;
@@ -158,6 +164,81 @@ class NewPurchaseModel extends ChangeNotifier {
 
   @HiveField(2)
   int? vendorId;
+
+  static Future<NewPurchaseModel> maybeRestore(
+      BuildContext context, Vendor? vendor, DateTime? date) async {
+    // Open box
+    final box = await Hive.openBox<NewPurchaseModel>(newPurchaseBoxName);
+    var model = box.get(defaultPurchaseId) ??
+        NewPurchaseModel(vendor: vendor, date: date);
+    model.box = box;
+
+    if (model.vendor != null || model.items.isNotEmpty) {
+      // We can fetch data for vendor and/or items
+      DocumentNode document;
+      Map<String, dynamic> variables;
+      if (model.vendor != null) {
+        document = savedNewPurchaseWithVendorQuery;
+        variables = {
+          'vendorId': model.vendor!.id,
+          'itemIds': [
+            for (var item in model.items) item.itemId,
+          ],
+        };
+      } else {
+        document = savedNewPurchaseQuery;
+        variables = {
+          'itemIds': [
+            for (var item in model.items) item.itemId,
+          ],
+        };
+      }
+
+      final cli = GraphQLProvider.of(context).value;
+      var result = await cli.query(
+        QueryOptions(
+          document: document,
+          variables: variables,
+        ),
+      );
+      if (result.hasException) {
+        model = NewPurchaseModel(vendor: vendor, date: date);
+        const snackBar =
+            SnackBar(content: Text('Unable to load your saved data'));
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      } else {
+        if (model.vendor != null) {
+          final vendor = Vendor.fromJson(result.data!['node']);
+          model.vendor = vendor;
+        }
+        final d = {'items': result.data!['itemsByID']};
+        final items = Items.fromJson(d);
+        for (var item in items.items) {
+          final index =
+              model.items.indexWhere((model) => model.itemId == item.id);
+          if (index != -1) {
+            var m = model.items[index];
+            var newM = ItemModel(
+              itemId: m.itemId,
+              amount: m.amount,
+              units: m.units,
+              uuid: m.uuid,
+              item: item,
+              isAmountPerItem: m.isAmountPerItem,
+              quantity: m.quantity,
+              quantityType: m.quantityType,
+              brand: m.brand,
+            );
+            model.items[index] = newM;
+          }
+        }
+      }
+    }
+
+    return model;
+  }
+
+  set box(Box<NewPurchaseModel> box) => _box = box;
 
   Vendor? get vendor => _vendor;
   set vendor(Vendor? vendor) {
