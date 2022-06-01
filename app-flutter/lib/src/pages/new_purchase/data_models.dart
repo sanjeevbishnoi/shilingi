@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
 import 'package:uuid/uuid.dart';
+import 'package:hive/hive.dart';
 
 import '../../models/model.dart';
 
+part 'data_models.g.dart';
+
 const _uuid = Uuid();
+const newPurchaseBoxName = "newpurchase";
+// We can only save a single purchase entry at the moment
+const defaultPurchaseId = "newpurchase";
 
 class PurchaseItemModel extends ChangeNotifier {
   PurchaseItemModel({
@@ -133,6 +139,7 @@ class PurchaseItemModel extends ChangeNotifier {
   }
 }
 
+@HiveType(typeId: 2)
 class NewPurchaseModel extends ChangeNotifier {
   NewPurchaseModel(
       {Vendor? vendor, DateTime? date, List<ItemModel> items = const []})
@@ -141,8 +148,16 @@ class NewPurchaseModel extends ChangeNotifier {
         _items = items;
 
   Vendor? _vendor;
+
+  /// The following fields are saved in Hive
+  @HiveField(0)
   DateTime? _date;
+
+  @HiveField(1)
   List<ItemModel> _items;
+
+  @HiveField(2)
+  int? vendorId;
 
   Vendor? get vendor => _vendor;
   set vendor(Vendor? vendor) {
@@ -193,6 +208,7 @@ class NewPurchaseModel extends ChangeNotifier {
   }
 }
 
+@HiveType(typeId: 3)
 class ItemModel {
   const ItemModel({
     required this.itemId,
@@ -206,14 +222,22 @@ class ItemModel {
     this.item,
   });
 
+  @HiveField(0)
   final String uuid;
   final Item? item;
+  @HiveField(1)
   final int itemId;
+  @HiveField(2)
   final double amount;
+  @HiveField(3)
   final int units;
+  @HiveField(4)
   final double? quantity;
+  @HiveField(5)
   final String? quantityType;
+  @HiveField(6)
   final String? brand;
+  @HiveField(7)
   final bool isAmountPerItem;
 
   double get total => units * amount;
