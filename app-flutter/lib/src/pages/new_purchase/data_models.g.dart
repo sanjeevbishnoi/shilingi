@@ -8,7 +8,7 @@ part of 'data_models.dart';
 
 class NewPurchaseModelAdapter extends TypeAdapter<NewPurchaseModel> {
   @override
-  final int typeId = 2;
+  final int typeId = 3;
 
   @override
   NewPurchaseModel read(BinaryReader reader) {
@@ -47,7 +47,7 @@ class NewPurchaseModelAdapter extends TypeAdapter<NewPurchaseModel> {
 
 class ItemModelAdapter extends TypeAdapter<ItemModel> {
   @override
-  final int typeId = 3;
+  final int typeId = 4;
 
   @override
   ItemModel read(BinaryReader reader) {

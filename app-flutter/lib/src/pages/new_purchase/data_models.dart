@@ -142,7 +142,7 @@ class PurchaseItemModel extends ChangeNotifier {
   }
 }
 
-@HiveType(typeId: 2)
+@HiveType(typeId: 3)
 class NewPurchaseModel extends ChangeNotifier {
   NewPurchaseModel(
       {Vendor? vendor, DateTime? date, List<ItemModel> items = const []})
@@ -240,26 +240,38 @@ class NewPurchaseModel extends ChangeNotifier {
 
   set box(Box<NewPurchaseModel> box) => _box = box;
 
+  Future<Box<NewPurchaseModel>> _getBox() async {
+    if (_box != null) {
+      return _box!;
+    }
+    _box = await Hive.openBox<NewPurchaseModel>(newPurchaseBoxName);
+    return _box!;
+  }
+
   Vendor? get vendor => _vendor;
   set vendor(Vendor? vendor) {
     _vendor = vendor;
+    persistToStorage();
     notifyListeners();
   }
 
   DateTime? get date => _date;
   set date(DateTime? date) {
     _date = date;
+    persistToStorage();
     notifyListeners();
   }
 
   List<ItemModel> get items => _items;
   set items(List<ItemModel> items) {
     _items = items;
+    persistToStorage();
     notifyListeners();
   }
 
   void addItem(ItemModel item) {
     _items = [...items, item];
+    persistToStorage();
     notifyListeners();
   }
 
@@ -271,12 +283,14 @@ class NewPurchaseModel extends ChangeNotifier {
     final index = _items.indexWhere((i) => item.uuid == i.uuid);
     if (index != -1) {
       _items[index] = item;
+      persistToStorage();
       notifyListeners();
     }
   }
 
   void removeItem(int index) {
     _items = [...items.sublist(0, index), ...items.sublist(index + 1)];
+    persistToStorage();
     notifyListeners();
   }
 
@@ -287,9 +301,14 @@ class NewPurchaseModel extends ChangeNotifier {
     });
     return total;
   }
+
+  void persistToStorage() async {
+    final box = await _getBox();
+    box.put(defaultPurchaseId, this);
+  }
 }
 
-@HiveType(typeId: 3)
+@HiveType(typeId: 4)
 class ItemModel {
   const ItemModel({
     required this.itemId,
