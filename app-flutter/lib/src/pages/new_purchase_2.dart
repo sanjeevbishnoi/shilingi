@@ -67,7 +67,8 @@ class NewPurchasePage2 extends HookWidget {
               return SafeArea(
                 child: Scaffold(
                   appBar: AppBar(
-                    title: const Text('New purchase'),
+                    title: const Text('New purchase',
+                        style: TextStyle(fontSize: 16.0)),
                     backgroundColor: mainScaffoldBg,
                     actions: [
                       IconButton(
@@ -75,6 +76,31 @@ class NewPurchasePage2 extends HookWidget {
                         icon: const Icon(FeatherIcons.plusCircle),
                         color: Colors.greenAccent,
                         iconSize: 18.0,
+                      ),
+                      Consumer<NewPurchaseModel>(
+                        builder: (context, model, child) {
+                          return IconButton(
+                            onPressed: model.canDelete
+                                ? () async {
+                                    final confirmation = await showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return const _ConfirmModal(
+                                            text:
+                                                'Are you sure you want to clear everything?',
+                                            confirmText: 'Yes, clear',
+                                            cancelText: 'Cancel');
+                                      },
+                                    );
+                                    if (confirmation is bool && confirmation) {
+                                      model.clear();
+                                    }
+                                  }
+                                : null,
+                            icon: const Icon(Icons.cleaning_services_rounded),
+                            iconSize: 18.0,
+                          );
+                        },
                       ),
                       Consumer<NewPurchaseModel>(
                         builder: (context, value, child) {

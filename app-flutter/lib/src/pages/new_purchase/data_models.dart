@@ -312,6 +312,10 @@ class NewPurchaseModel extends ChangeNotifier {
     return _items.isNotEmpty && vendorId != null;
   }
 
+  bool get canDelete {
+    return vendorId != null || _items.isNotEmpty;
+  }
+
   Json toJson() {
     return {
       'date': DateTimeToJson(_date!),
@@ -335,6 +339,11 @@ class NewPurchaseModel extends ChangeNotifier {
   void clear() async {
     final box = await _getBox();
     box.delete(defaultPurchaseId);
+    _vendor = null;
+    vendorId = null;
+    _date = DateTime.now();
+    _items = [];
+    notifyListeners();
   }
 }
 
