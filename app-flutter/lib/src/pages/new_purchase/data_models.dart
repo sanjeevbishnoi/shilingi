@@ -173,14 +173,14 @@ class NewPurchaseModel extends ChangeNotifier {
         NewPurchaseModel(vendor: vendor, date: date);
     model.box = box;
 
-    if (model.vendor != null || model.items.isNotEmpty) {
+    if (model.vendorId != null || model.items.isNotEmpty) {
       // We can fetch data for vendor and/or items
       DocumentNode document;
       Map<String, dynamic> variables;
-      if (model.vendor != null) {
+      if (model.vendorId != null) {
         document = savedNewPurchaseWithVendorQuery;
         variables = {
-          'vendorId': model.vendor!.id,
+          'vendorId': model.vendorId,
           'itemIds': [
             for (var item in model.items) item.itemId,
           ],
@@ -207,7 +207,7 @@ class NewPurchaseModel extends ChangeNotifier {
             SnackBar(content: Text('Unable to load your saved data'));
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       } else {
-        if (model.vendor != null) {
+        if (model.vendorId != null) {
           final vendor = Vendor.fromJson(result.data!['node']);
           model.vendor = vendor;
         }
@@ -251,6 +251,7 @@ class NewPurchaseModel extends ChangeNotifier {
   Vendor? get vendor => _vendor;
   set vendor(Vendor? vendor) {
     _vendor = vendor;
+    vendorId = vendor!.id;
     persistToStorage();
     notifyListeners();
   }
