@@ -6,6 +6,7 @@ import 'package:ms_undraw/ms_undraw.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import 'package:date_field/date_field.dart';
+import 'package:graphql_flutter/graphql_flutter.dart';
 
 import '../models/model.dart';
 import '../constants/constants.dart';
@@ -13,6 +14,7 @@ import './select_vendors.dart';
 import './select_item.dart';
 import '../components/numeric.dart';
 import './new_purchase/data_models.dart';
+import '../gql/gql.dart';
 
 const _textFieldBg = Color(0XFFFAFAFA);
 var _format = NumberFormat('#,##0', 'en_US');
@@ -60,156 +62,215 @@ class NewPurchasePage2 extends HookWidget {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           return ChangeNotifierProvider<NewPurchaseModel>.value(
-              value: snapshot.data!,
-              builder: (context, child) {
-                return SafeArea(
-                  child: Scaffold(
-                    appBar: AppBar(
-                      title: const Text('New purchase'),
-                      backgroundColor: mainScaffoldBg,
-                      actions: [
-                        IconButton(
-                          onPressed: () => _newItemModal(context),
-                          icon: const Icon(FeatherIcons.plusCircle),
-                          color: Colors.greenAccent,
-                          iconSize: 18.0,
-                        ),
-                        TextButton(
-                            onPressed: () {},
-                            child: const Text('SAVE',
-                                style: TextStyle(color: Colors.black87))),
-                      ],
-                    ),
+            value: snapshot.data!,
+            builder: (context, child) {
+              return SafeArea(
+                child: Scaffold(
+                  appBar: AppBar(
+                    title: const Text('New purchase'),
                     backgroundColor: mainScaffoldBg,
-                    body: Padding(
-                      padding: const EdgeInsets.only(left: 30.0, right: 30.0),
-                      child: Consumer<NewPurchaseModel>(
-                        builder: (context, model, child) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 15.0),
-                              _VendorInput(
-                                vendor: model.vendor,
-                                onChanged: (vendor) {
-                                  Provider.of<NewPurchaseModel>(context,
-                                          listen: false)
-                                      .vendor = vendor;
-                                },
-                              ),
-                              const SizedBox(height: 16.0),
-                              DateTimeFormField(
-                                mode: DateTimeFieldPickerMode.date,
-                                decoration: InputDecoration(
-                                  suffixIcon: const Icon(Icons.event_note),
-                                  filled: true,
-                                  fillColor: const Color(0xFFF3F3F3),
-                                  border: UnderlineInputBorder(
-                                    borderSide: BorderSide.none,
-                                    borderRadius: BorderRadius.circular(20.0),
-                                  ),
-                                  labelText: 'Date of purchase',
-                                ),
-                                validator: (date) {
-                                  if (date == null) {
-                                    return 'When did you make this purchase?';
-                                  }
-                                  return null;
-                                },
-                                onDateSelected: (d) {
-                                  Provider.of<NewPurchaseModel>(context,
-                                          listen: false)
-                                      .date = d;
-                                },
-                                initialValue: model.date,
-                              ),
-                              const SizedBox(height: 16.0),
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Added',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(width: 10.0),
-                                  Text(
-                                    model.items.length.toString() +
-                                        ' item' +
-                                        (model.items.length > 1 ? 's' : ''),
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
-                                  Expanded(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        const Text('Total'),
-                                        const SizedBox(width: 10.0),
-                                        Text(
-                                          _format.format(model.total),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16.0,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16.0),
-                              if (model.items.isNotEmpty)
-                                Expanded(
-                                  child: ListView.builder(
-                                      itemBuilder: (context, index) {
-                                        return Dismissible(
-                                          key:
-                                              ValueKey(model.items[index].uuid),
-                                          child: _ItemModelWidget(
-                                            model: model.items[index],
-                                          ),
-                                          background: Container(
-                                            margin: const EdgeInsets.only(
-                                                bottom: 16.0),
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 14.0,
-                                                horizontal: 14.0),
-                                            decoration: BoxDecoration(
-                                              color: Colors.redAccent,
-                                              borderRadius:
-                                                  BorderRadius.circular(8.0),
-                                            ),
-                                            child: Row(
-                                              children: const [
-                                                Icon(FeatherIcons.trash),
-                                                SizedBox(width: 10.0),
-                                                Text('Remove'),
-                                              ],
-                                            ),
-                                          ),
-                                          direction:
-                                              DismissDirection.startToEnd,
-                                          onDismissed: (direction) {
-                                            Provider.of<NewPurchaseModel>(
-                                              context,
-                                              listen: false,
-                                            ).removeItem(index);
-                                          },
-                                        );
+                    actions: [
+                      IconButton(
+                        onPressed: () => _newItemModal(context),
+                        icon: const Icon(FeatherIcons.plusCircle),
+                        color: Colors.greenAccent,
+                        iconSize: 18.0,
+                      ),
+                      Consumer<NewPurchaseModel>(
+                        builder: (context, value, child) {
+                          return TextButton(
+                            onPressed: value.isValid
+                                ? () async {
+                                    final confirmation = await showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return const _ConfirmModal(
+                                            text: 'Are you done?',
+                                            confirmText: 'Yes, save',
+                                            cancelText: 'Cancel');
                                       },
-                                      itemCount: model.items.length),
-                                ),
-                              if (model.items.isEmpty)
-                                _EmptyItemList(
-                                  onTap: () => _newItemModal(context),
-                                ),
-                            ],
+                                    );
+                                    if (confirmation is bool && confirmation) {
+                                      final provider =
+                                          Provider.of<NewPurchaseModel>(context,
+                                              listen: false);
+                                      final variables = {
+                                        'input': provider.toJson(),
+                                      };
+                                      final cli =
+                                          GraphQLProvider.of(context).value;
+                                      final result = await cli.mutate(
+                                        MutationOptions(
+                                            document: mutationCreatePurchase,
+                                            variables: variables),
+                                      );
+                                      if (result.hasException) {
+                                        var gqlErrors =
+                                            result.exception!.graphqlErrors;
+                                        String errorMessage;
+                                        if (gqlErrors.isNotEmpty) {
+                                          errorMessage = gqlErrors[0].message;
+                                        } else {
+                                          errorMessage =
+                                              'Unable to save purchase';
+                                        }
+                                        var snackBar = SnackBar(
+                                            content: Text(errorMessage),
+                                            backgroundColor: Colors.redAccent);
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(snackBar);
+                                      } else {
+                                        const snackBar = SnackBar(
+                                          content: Text(
+                                              'Purchase has been saved successfully'),
+                                        );
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(snackBar);
+                                        provider.clear();
+                                        Navigator.of(context).pop();
+                                      }
+                                    }
+                                  }
+                                : null,
+                            child: Text(
+                              'SAVE',
+                              style: TextStyle(
+                                  color: value.isValid
+                                      ? Colors.black87
+                                      : Colors.grey),
+                            ),
                           );
                         },
                       ),
+                    ],
+                  ),
+                  backgroundColor: mainScaffoldBg,
+                  body: Padding(
+                    padding: const EdgeInsets.only(left: 30.0, right: 30.0),
+                    child: Consumer<NewPurchaseModel>(
+                      builder: (context, model, child) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 15.0),
+                            _VendorInput(
+                              vendor: model.vendor,
+                              onChanged: (vendor) {
+                                Provider.of<NewPurchaseModel>(context,
+                                        listen: false)
+                                    .vendor = vendor;
+                              },
+                            ),
+                            const SizedBox(height: 16.0),
+                            DateTimeFormField(
+                              mode: DateTimeFieldPickerMode.date,
+                              decoration: InputDecoration(
+                                suffixIcon: const Icon(Icons.event_note),
+                                filled: true,
+                                fillColor: const Color(0xFFF3F3F3),
+                                border: UnderlineInputBorder(
+                                  borderSide: BorderSide.none,
+                                  borderRadius: BorderRadius.circular(20.0),
+                                ),
+                                labelText: 'Date of purchase',
+                              ),
+                              validator: (date) {
+                                if (date == null) {
+                                  return 'When did you make this purchase?';
+                                }
+                                return null;
+                              },
+                              onDateSelected: (d) {
+                                Provider.of<NewPurchaseModel>(context,
+                                        listen: false)
+                                    .date = d;
+                              },
+                              initialValue: model.date,
+                            ),
+                            const SizedBox(height: 16.0),
+                            Row(
+                              children: [
+                                const Text(
+                                  'Added',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(width: 10.0),
+                                Text(
+                                  model.items.length.toString() +
+                                      ' item' +
+                                      (model.items.length > 1 ? 's' : ''),
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                                Expanded(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      const Text('Total'),
+                                      const SizedBox(width: 10.0),
+                                      Text(
+                                        _format.format(model.total),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16.0,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16.0),
+                            if (model.items.isNotEmpty)
+                              Expanded(
+                                child: ListView.builder(
+                                    itemBuilder: (context, index) {
+                                      return Dismissible(
+                                        key: ValueKey(model.items[index].uuid),
+                                        child: _ItemModelWidget(
+                                          model: model.items[index],
+                                        ),
+                                        background: Container(
+                                          margin: const EdgeInsets.only(
+                                              bottom: 16.0),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 14.0, horizontal: 14.0),
+                                          decoration: BoxDecoration(
+                                            color: Colors.redAccent,
+                                            borderRadius:
+                                                BorderRadius.circular(8.0),
+                                          ),
+                                          child: Row(
+                                            children: const [
+                                              Icon(FeatherIcons.trash),
+                                              SizedBox(width: 10.0),
+                                              Text('Remove'),
+                                            ],
+                                          ),
+                                        ),
+                                        direction: DismissDirection.startToEnd,
+                                        onDismissed: (direction) {
+                                          Provider.of<NewPurchaseModel>(
+                                            context,
+                                            listen: false,
+                                          ).removeItem(index);
+                                        },
+                                      );
+                                    },
+                                    itemCount: model.items.length),
+                              ),
+                            if (model.items.isEmpty)
+                              _EmptyItemList(
+                                onTap: () => _newItemModal(context),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                   ),
-                );
-              },);
+                ),
+              );
+            },
+          );
         }
         return const LoadingPage();
       },
@@ -899,6 +960,54 @@ class LoadingPage extends StatelessWidget {
         body: const Center(
           child: CircularProgressIndicator(),
         ),
+      ),
+    );
+  }
+}
+
+class _ConfirmModal extends StatelessWidget {
+  const _ConfirmModal({
+    Key? key,
+    this.title,
+    required this.text,
+    required this.confirmText,
+    required this.cancelText,
+  }) : super(key: key);
+
+  final String? title;
+  final String text;
+  final String confirmText;
+  final String cancelText;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: title != null ? Text(title!) : null,
+      content: Text(text),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(false);
+          },
+          child: Text(
+            cancelText,
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(true);
+          },
+          child: Text(
+            confirmText,
+            style: const TextStyle(),
+          ),
+        ),
+      ],
+      contentPadding: const EdgeInsets.only(
+        left: 24.0,
+        right: 24.0,
+        top: 24.0,
       ),
     );
   }

@@ -307,6 +307,35 @@ class NewPurchaseModel extends ChangeNotifier {
     final box = await _getBox();
     box.put(defaultPurchaseId, this);
   }
+
+  bool get isValid {
+    return _items.isNotEmpty && vendorId != null;
+  }
+
+  Json toJson() {
+    return {
+      'date': DateTimeToJson(_date!),
+      'vendor': {
+        'id': vendorId,
+      },
+      'items': [
+        for (var item in _items)
+          {
+            'units': item.units,
+            'pricePerUnit': item.amount,
+            'item': item.itemId,
+            if (item.quantity != null) 'quantity': item.quantity,
+            if (item.quantityType != null) 'quantityType': item.quantityType,
+            if (item.brand != null) 'brand': item.brand,
+          },
+      ],
+    };
+  }
+
+  void clear() async {
+    final box = await _getBox();
+    box.delete(defaultPurchaseId);
+  }
 }
 
 @HiveType(typeId: 4)
