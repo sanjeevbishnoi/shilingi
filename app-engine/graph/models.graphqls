@@ -31,7 +31,7 @@ input ShoppingItemInput {
 
 input ShoppingInput {
   date: Time
-  vendor: VendorInput!
+  vendor: VendorIDInput!
   items: [ShoppingItemInput!]!
 }
 
@@ -73,8 +73,12 @@ type Vendor implements Node {
   purchases: [Shopping!]!
 }
 
-input VendorInput  {
+input VendorIDInput {
   id: Int!
+}
+
+input VendorInput  {
+  name: String!
 }
 
 type Tag implements Node {

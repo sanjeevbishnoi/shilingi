@@ -1062,7 +1062,7 @@ input ShoppingItemInput {
 
 input ShoppingInput {
   date: Time
-  vendor: VendorInput!
+  vendor: VendorIDInput!
   items: [ShoppingItemInput!]!
 }
 
@@ -1104,8 +1104,12 @@ type Vendor implements Node {
   purchases: [Shopping!]!
 }
 
-input VendorInput  {
+input VendorIDInput {
   id: Int!
+}
+
+input VendorInput  {
+  name: String!
 }
 
 type Tag implements Node {
@@ -6339,7 +6343,7 @@ func (ec *executionContext) unmarshalInputShoppingInput(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("vendor"))
-			it.Vendor, err = ec.unmarshalNVendorInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx, v)
+			it.Vendor, err = ec.unmarshalNVendorIDInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorIDInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6547,8 +6551,8 @@ func (ec *executionContext) unmarshalInputUpdateShoppingListItemInput(ctx contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputVendorInput(ctx context.Context, obj interface{}) (model.VendorInput, error) {
-	var it model.VendorInput
+func (ec *executionContext) unmarshalInputVendorIDInput(ctx context.Context, obj interface{}) (model.VendorIDInput, error) {
+	var it model.VendorIDInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -6561,6 +6565,29 @@ func (ec *executionContext) unmarshalInputVendorInput(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			it.ID, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputVendorInput(ctx context.Context, obj interface{}) (model.VendorInput, error) {
+	var it model.VendorInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -8478,14 +8505,14 @@ func (ec *executionContext) marshalNVendor2ᚖgithubᚗcomᚋkingzbauerᚋshilin
 	return ec._Vendor(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNVendorIDInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorIDInput(ctx context.Context, v interface{}) (*model.VendorIDInput, error) {
+	res, err := ec.unmarshalInputVendorIDInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNVendorInput2githubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx context.Context, v interface{}) (model.VendorInput, error) {
 	res, err := ec.unmarshalInputVendorInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNVendorInput2ᚖgithubᚗcomᚋkingzbauerᚋshilingiᚋappᚑengineᚋgraphᚋmodelᚐVendorInput(ctx context.Context, v interface{}) (*model.VendorInput, error) {
-	res, err := ec.unmarshalInputVendorInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
