@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:intl/intl.dart';
+import 'package:ms_undraw/ms_undraw.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import 'package:date_field/date_field.dart';
@@ -19,173 +20,180 @@ var _format = NumberFormat('#,##0', 'en_US');
 class NewPurchasePage2 extends HookWidget {
   const NewPurchasePage2({Key? key}) : super(key: key);
 
+  void _newItemModal(BuildContext context) async {
+    final item = await Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => const SelectItemPage(title: 'Add items')));
+    if (item is Item) {
+      final i = await showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (context) {
+          return ChangeNotifierProvider(
+            create: (context) => PurchaseItemModel(
+              item: item,
+              itemId: item.id!,
+              units: 1,
+            ),
+            builder: (context, child) {
+              return Padding(
+                padding: MediaQuery.of(context).viewInsets,
+                child: _NewItemModal(item: item),
+              );
+            },
+          );
+        },
+      );
+      if (i is ItemModel) {
+        Provider.of<NewPurchaseModel>(
+          context,
+          listen: false,
+        ).addItem(i);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => NewPurchaseModel(date: DateTime.now()),
       builder: (context, child) {
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('New purchase'),
+        return SafeArea(
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('New purchase'),
+              backgroundColor: mainScaffoldBg,
+              actions: [
+                IconButton(
+                  onPressed: () => _newItemModal(context),
+                  icon: const Icon(FeatherIcons.plusCircle),
+                  color: Colors.greenAccent,
+                  iconSize: 18.0,
+                ),
+                TextButton(
+                    onPressed: () {},
+                    child: const Text('SAVE',
+                        style: TextStyle(color: Colors.black87))),
+              ],
+            ),
             backgroundColor: mainScaffoldBg,
-            actions: [
-              IconButton(
-                onPressed: () async {
-                  final item = await Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              const SelectItemPage(title: 'Add items')));
-                  if (item is Item) {
-                    final i = await showModalBottomSheet(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      isScrollControlled: true,
-                      builder: (context) {
-                        return ChangeNotifierProvider(
-                          create: (context) => PurchaseItemModel(
-                            item: item,
-                            itemId: item.id!,
-                            units: 1,
-                          ),
-                          builder: (context, child) {
-                            return Padding(
-                              padding: MediaQuery.of(context).viewInsets,
-                              child: _NewItemModal(item: item),
-                            );
-                          },
-                        );
-                      },
-                    );
-                    if (i is ItemModel) {
-                      Provider.of<NewPurchaseModel>(
-                        context,
-                        listen: false,
-                      ).addItem(i);
-                    }
-                  }
-                },
-                icon: const Icon(FeatherIcons.plusCircle),
-                color: Colors.greenAccent,
-                iconSize: 18.0,
-              ),
-              TextButton(
-                  onPressed: () {},
-                  child: const Text('SAVE',
-                      style: TextStyle(color: Colors.black87))),
-            ],
-          ),
-          backgroundColor: mainScaffoldBg,
-          body: Padding(
-            padding: const EdgeInsets.only(left: 30.0, right: 30.0),
-            child: Consumer<NewPurchaseModel>(
-              builder: (context, model, child) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 15.0),
-                    _VendorInput(
-                      vendor: model.vendor,
-                      onChanged: (vendor) {
-                        Provider.of<NewPurchaseModel>(context, listen: false)
-                            .vendor = vendor;
-                      },
-                    ),
-                    const SizedBox(height: 16.0),
-                    DateTimeFormField(
-                      mode: DateTimeFieldPickerMode.date,
-                      decoration: InputDecoration(
-                        suffixIcon: const Icon(Icons.event_note),
-                        filled: true,
-                        fillColor: const Color(0xFFF3F3F3),
-                        border: UnderlineInputBorder(
-                          borderSide: BorderSide.none,
-                          borderRadius: BorderRadius.circular(20.0),
-                        ),
-                        labelText: 'Date of purchase',
+            body: Padding(
+              padding: const EdgeInsets.only(left: 30.0, right: 30.0),
+              child: Consumer<NewPurchaseModel>(
+                builder: (context, model, child) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 15.0),
+                      _VendorInput(
+                        vendor: model.vendor,
+                        onChanged: (vendor) {
+                          Provider.of<NewPurchaseModel>(context, listen: false)
+                              .vendor = vendor;
+                        },
                       ),
-                      validator: (date) {
-                        if (date == null) {
-                          return 'When did you make this purchase?';
-                        }
-                        return null;
-                      },
-                      onDateSelected: (d) {
-                        Provider.of<NewPurchaseModel>(context, listen: false)
-                            .date = d;
-                      },
-                      initialValue: model.date,
-                    ),
-                    const SizedBox(height: 16.0),
-                    Row(
-                      children: [
-                        const Text(
-                          'Added',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(width: 10.0),
-                        Text(
-                          model.items.length.toString() +
-                              ' item' +
-                              (model.items.length > 1 ? 's' : ''),
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                        Expanded(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              const Text('Total'),
-                              const SizedBox(width: 10.0),
-                              Text(
-                                _format.format(model.total),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16.0,
-                                ),
-                              ),
-                            ],
+                      const SizedBox(height: 16.0),
+                      DateTimeFormField(
+                        mode: DateTimeFieldPickerMode.date,
+                        decoration: InputDecoration(
+                          suffixIcon: const Icon(Icons.event_note),
+                          filled: true,
+                          fillColor: const Color(0xFFF3F3F3),
+                          border: UnderlineInputBorder(
+                            borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.circular(20.0),
                           ),
+                          labelText: 'Date of purchase',
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16.0),
-                    Expanded(
-                      child: ListView.builder(
-                          itemBuilder: (context, index) {
-                            return Dismissible(
-                              key: ValueKey(model.items[index].uuid),
-                              child: _ItemModelWidget(
-                                model: model.items[index],
-                              ),
-                              background: Container(
-                                margin: const EdgeInsets.only(bottom: 16.0),
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 14.0, horizontal: 14.0),
-                                decoration: BoxDecoration(
-                                  color: Colors.redAccent,
-                                  borderRadius: BorderRadius.circular(8.0),
+                        validator: (date) {
+                          if (date == null) {
+                            return 'When did you make this purchase?';
+                          }
+                          return null;
+                        },
+                        onDateSelected: (d) {
+                          Provider.of<NewPurchaseModel>(context, listen: false)
+                              .date = d;
+                        },
+                        initialValue: model.date,
+                      ),
+                      const SizedBox(height: 16.0),
+                      Row(
+                        children: [
+                          const Text(
+                            'Added',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(width: 10.0),
+                          Text(
+                            model.items.length.toString() +
+                                ' item' +
+                                (model.items.length > 1 ? 's' : ''),
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                const Text('Total'),
+                                const SizedBox(width: 10.0),
+                                Text(
+                                  _format.format(model.total),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16.0,
+                                  ),
                                 ),
-                                child: Row(
-                                  children: const [
-                                    Icon(FeatherIcons.trash),
-                                    SizedBox(width: 10.0),
-                                    Text('Remove'),
-                                  ],
-                                ),
-                              ),
-                              direction: DismissDirection.startToEnd,
-                              onDismissed: (direction) {
-                                Provider.of<NewPurchaseModel>(
-                                  context,
-                                  listen: false,
-                                ).removeItem(index);
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16.0),
+                      if (model.items.isNotEmpty)
+                        Expanded(
+                          child: ListView.builder(
+                              itemBuilder: (context, index) {
+                                return Dismissible(
+                                  key: ValueKey(model.items[index].uuid),
+                                  child: _ItemModelWidget(
+                                    model: model.items[index],
+                                  ),
+                                  background: Container(
+                                    margin: const EdgeInsets.only(bottom: 16.0),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14.0, horizontal: 14.0),
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent,
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                    child: Row(
+                                      children: const [
+                                        Icon(FeatherIcons.trash),
+                                        SizedBox(width: 10.0),
+                                        Text('Remove'),
+                                      ],
+                                    ),
+                                  ),
+                                  direction: DismissDirection.startToEnd,
+                                  onDismissed: (direction) {
+                                    Provider.of<NewPurchaseModel>(
+                                      context,
+                                      listen: false,
+                                    ).removeItem(index);
+                                  },
+                                );
                               },
-                            );
-                          },
-                          itemCount: model.items.length),
-                    ),
-                  ],
-                );
-              },
+                              itemCount: model.items.length),
+                        ),
+                      if (model.items.isEmpty)
+                        _EmptyItemList(
+                          onTap: () => _newItemModal(context),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         );
@@ -274,175 +282,182 @@ class _NewItemModal extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<PurchaseItemModel>(
       builder: (context, model, child) {
-        return Padding(
-          padding: const EdgeInsets.all(6.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: mainScaffoldBg,
-              borderRadius: BorderRadius.circular(6.0),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 10.0, top: 10.0),
-                      width: 30.0,
-                      height: 4.0,
-                      decoration: BoxDecoration(
-                        color: Colors.grey,
-                        borderRadius: BorderRadius.circular(20.0),
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(6.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: mainScaffoldBg,
+                borderRadius: BorderRadius.circular(6.0),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.center,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 10.0, top: 10.0),
+                        width: 30.0,
+                        height: 4.0,
+                        decoration: BoxDecoration(
+                          color: Colors.grey,
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
                       ),
                     ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(item.name,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 24.0)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 5.0),
-                        child: _AmountTextField(
-                          amount: model.pricePerUnit,
-                          onChanged: (pricePerUnit) {
-                            Provider.of<PurchaseItemModel>(
-                              context,
-                              listen: false,
-                            ).pricePerUnit = pricePerUnit;
-                          },
-                          error: model.errors['pricePerUnit'],
+                    Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(item.name,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 24.0)),
                         ),
-                      ),
-                      const SizedBox(width: 8.0),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(left: 15.0),
-                            child: Text('Items'),
-                          ),
-                          Builder(
-                            builder: (context) {
-                              return SpinBox(
-                                initial: model.units ?? 1,
-                                onChanged: (units) {
-                                  Provider.of<PurchaseItemModel>(
-                                    context,
-                                    listen: false,
-                                  ).units = units;
-                                },
+                      ],
+                    ),
+                    const SizedBox(height: 10.0),
+                    Column(
+                      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 5.0),
+                          child: _AmountTextField(
+                            amount: model.pricePerUnit,
+                            isAmountPerItem: model.isAmountPerItem,
+                            onChanged: (amountValue) {
+                              final provider = Provider.of<PurchaseItemModel>(
+                                context,
+                                listen: false,
                               );
+                              provider.pricePerUnit = amountValue.amount;
+                              provider.isAmountPerItem =
+                                  amountValue.isAmountPerItem;
+                            },
+                            error: model.errors['pricePerUnit'],
+                          ),
+                        ),
+                        const SizedBox(width: 8.0),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(left: 15.0),
+                              child: Text('Items'),
+                            ),
+                            Builder(
+                              builder: (context) {
+                                return SpinBox(
+                                  initial: model.units ?? 1,
+                                  onChanged: (units) {
+                                    Provider.of<PurchaseItemModel>(
+                                      context,
+                                      listen: false,
+                                    ).units = units;
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10.0),
+                    Row(
+                      children: const [
+                        Text('Optional fields',
+                            style: TextStyle(color: Colors.grey)),
+                        SizedBox(width: 10.0),
+                        Expanded(
+                          child: Divider(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: _QuantityField(
+                            quantity: model.quantity?.toString() ?? '',
+                            quantityType: model.quantityType,
+                            quantityChanged: (quantity) {
+                              Provider.of<PurchaseItemModel>(
+                                context,
+                                listen: false,
+                              ).quantity = quantity;
+                            },
+                            quantityTypeChanged: (quantityType) {
+                              Provider.of<PurchaseItemModel>(
+                                context,
+                                listen: false,
+                              ).quantityType = quantityType;
                             },
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10.0),
-                  Row(
-                    children: const [
-                      Text('Optional fields',
-                          style: TextStyle(color: Colors.grey)),
-                      SizedBox(width: 10.0),
-                      Expanded(
-                        child: Divider(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: _QuantityField(
-                          quantity: model.quantity?.toString() ?? '',
-                          quantityType: model.quantityType,
-                          quantityChanged: (quantity) {
-                            Provider.of<PurchaseItemModel>(
-                              context,
-                              listen: false,
-                            ).quantity = quantity;
-                          },
-                          quantityTypeChanged: (quantityType) {
-                            Provider.of<PurchaseItemModel>(
-                              context,
-                              listen: false,
-                            ).quantityType = quantityType;
-                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10.0),
-                  _BrandField(
-                    brand: model.brand,
-                    onChanged: (brand) {
-                      Provider.of<PurchaseItemModel>(
-                        context,
-                        listen: false,
-                      ).brand = brand;
-                    },
-                  ),
-                  const SizedBox(height: 10.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('Cancel',
-                              style: TextStyle(color: Colors.grey))),
-                      // if (storeItem != null) ...[
-                      // const SizedBox(width: 10.0),
-                      // TextButton(
-                      // onPressed: () {
-                      // onRemove();
-                      // },
-                      // child: const Text('Remove',
-                      // style: TextStyle(color: Colors.redAccent))),
-                      // ],
-                      const SizedBox(width: 10.0),
-                      Builder(builder: (context) {
-                        return ElevatedButton(
-                          onPressed: () {
-                            final provider = Provider.of<PurchaseItemModel>(
-                              context,
-                              listen: false,
-                            );
-                            if (provider.validate()) {
-                              Navigator.of(context).pop(provider.toItemModel());
-                            }
-                          },
-                          child: const Text('Save'),
-                          style: ButtonStyle(
-                            elevation: MaterialStateProperty.all<double>(0),
-                            shape: MaterialStateProperty.all<
-                                RoundedRectangleBorder>(
-                              RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30.0)),
+                      ],
+                    ),
+                    const SizedBox(height: 10.0),
+                    _BrandField(
+                      brand: model.brand,
+                      onChanged: (brand) {
+                        Provider.of<PurchaseItemModel>(
+                          context,
+                          listen: false,
+                        ).brand = brand;
+                      },
+                    ),
+                    const SizedBox(height: 10.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Cancel',
+                                style: TextStyle(color: Colors.grey))),
+                        // if (storeItem != null) ...[
+                        // const SizedBox(width: 10.0),
+                        // TextButton(
+                        // onPressed: () {
+                        // onRemove();
+                        // },
+                        // child: const Text('Remove',
+                        // style: TextStyle(color: Colors.redAccent))),
+                        // ],
+                        const SizedBox(width: 10.0),
+                        Builder(builder: (context) {
+                          return ElevatedButton(
+                            onPressed: () {
+                              final provider = Provider.of<PurchaseItemModel>(
+                                context,
+                                listen: false,
+                              );
+                              if (provider.validate()) {
+                                Navigator.of(context)
+                                    .pop(provider.toItemModel());
+                              }
+                            },
+                            child: const Text('Save'),
+                            style: ButtonStyle(
+                              elevation: MaterialStateProperty.all<double>(0),
+                              shape: MaterialStateProperty.all<
+                                  RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30.0)),
+                              ),
                             ),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ],
+                          );
+                        }),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -452,24 +467,37 @@ class _NewItemModal extends StatelessWidget {
   }
 }
 
+class _AmountValue {
+  const _AmountValue(this.amount, this.isAmountPerItem);
+
+  final double? amount;
+  final bool isAmountPerItem;
+}
+
 class _AmountTextField extends HookWidget {
-  const _AmountTextField({Key? key, this.amount, this.onChanged, this.error})
+  const _AmountTextField(
+      {Key? key,
+      this.amount,
+      this.onChanged,
+      this.error,
+      required this.isAmountPerItem})
       : super(key: key);
 
   final double? amount;
-  final ValueChanged<double?>? onChanged;
+  final ValueChanged<_AmountValue>? onChanged;
   final String? error;
+  final bool isAmountPerItem;
 
   @override
   Widget build(BuildContext context) {
-    final controller =
-        useTextEditingController(text: amount != null ? amount.toString() : '');
+    final controller = useTextEditingController(
+      text: amount != null ? amount.toString() : '',
+    );
+    final amountIsPerItem = useState<bool>(isAmountPerItem);
     controller.addListener(() {
-      if (onChanged != null && controller.text.isNotEmpty) {
+      if (onChanged != null) {
         final val = double.tryParse(controller.text);
-        onChanged!(val);
-      } else if (onChanged != null) {
-        onChanged!(null);
+        onChanged!(_AmountValue(val, amountIsPerItem.value));
       }
     });
     final focusNodeValue = useState<FocusNode>(FocusNode());
@@ -491,11 +519,12 @@ class _AmountTextField extends HookWidget {
           ),
           padding: const EdgeInsets.only(left: 15.0),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Text('Ksh'),
               const SizedBox(width: 10.0),
               Container(
-                width: 80.0,
+                width: 120.0,
                 padding: const EdgeInsets.only(left: 10.0, right: 10.0),
                 decoration: const BoxDecoration(
                   color: _textFieldBg,
@@ -511,6 +540,33 @@ class _AmountTextField extends HookWidget {
                     border: InputBorder.none,
                   ),
                 ),
+              ),
+            ],
+          ),
+        ),
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            amountIsPerItem.value = !amountIsPerItem.value;
+            final amt = double.tryParse(controller.text);
+            onChanged!(_AmountValue(amt, amountIsPerItem.value));
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Checkbox(
+                  value: amountIsPerItem.value,
+                  onChanged: (val) {
+                    if (val != null) {
+                      amountIsPerItem.value = val;
+                      final amt = double.tryParse(controller.text);
+                      onChanged!(_AmountValue(amt, amountIsPerItem.value));
+                    }
+                  }),
+              // const SizedBox(width: 5.0),
+              const Text(
+                'Is amount per item?',
+                style: TextStyle(fontSize: 12.0),
               ),
             ],
           ),
@@ -674,7 +730,7 @@ class _ItemModelWidget extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
       decoration: BoxDecoration(
-        color: Color(0xFFF0F0F0),
+        color: const Color(0xFFF0F0F0),
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Material(
@@ -683,7 +739,30 @@ class _ItemModelWidget extends StatelessWidget {
         child: InkWell(
           splashColor: Colors.black12,
           borderRadius: BorderRadius.circular(8.0),
-          onTap: () {},
+          onTap: () async {
+            final itemModel = await showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.transparent,
+              isScrollControlled: true,
+              builder: (context) {
+                return ChangeNotifierProvider(
+                  create: (context) => PurchaseItemModel.fromItemModel(model),
+                  builder: (context, child) {
+                    return Padding(
+                      padding: MediaQuery.of(context).viewInsets,
+                      child: _NewItemModal(item: model.item!),
+                    );
+                  },
+                );
+              },
+            );
+            if (itemModel is ItemModel) {
+              Provider.of<NewPurchaseModel>(
+                context,
+                listen: false,
+              ).updateItem(itemModel);
+            }
+          },
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8.0),
@@ -746,6 +825,47 @@ class _ItemModelWidget extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _EmptyItemList extends StatelessWidget {
+  const _EmptyItemList({Key? key, required this.onTap}) : super(key: key);
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Align(
+          child: UnDraw(
+            illustration: UnDrawIllustration.empty_cart,
+            color: Colors.greenAccent,
+            height: 150.0,
+          ),
+          alignment: Alignment.center,
+        ),
+        TextButton.icon(
+          onPressed: onTap,
+          icon: const Icon(
+            FeatherIcons.plusCircle,
+            color: Colors.greenAccent,
+          ),
+          label: const Text(
+            'Add first item',
+            style: TextStyle(color: Colors.greenAccent),
+          ),
+          style: ButtonStyle(
+            shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

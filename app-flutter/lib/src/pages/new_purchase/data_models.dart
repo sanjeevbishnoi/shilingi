@@ -4,7 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../models/model.dart';
 
-const uuid = Uuid();
+const _uuid = Uuid();
 
 class PurchaseItemModel extends ChangeNotifier {
   PurchaseItemModel({
@@ -14,22 +14,42 @@ class PurchaseItemModel extends ChangeNotifier {
     double? quantity,
     String? quantityType,
     String? brand,
+    this.uuid,
     this.item,
+    bool isAmountPerItem = false,
   })  : _units = units,
         _pricePerUnit = pricePerUnit,
         _quantity = quantity,
         _quantityType = quantityType,
-        _brand = brand;
+        _brand = brand,
+        _isAmountPerItem = isAmountPerItem;
+
+  factory PurchaseItemModel.fromItemModel(ItemModel model) {
+    return PurchaseItemModel(
+      itemId: model.itemId,
+      units: model.units,
+      pricePerUnit:
+          model.isAmountPerItem ? model.amount : model.amount * model.units,
+      quantity: model.quantity,
+      quantityType: model.quantityType,
+      brand: model.brand,
+      uuid: model.uuid,
+      item: model.item,
+      isAmountPerItem: model.isAmountPerItem,
+    );
+  }
 
   final Item? item;
   final int itemId;
+  final String? uuid;
   double? _pricePerUnit;
   int? _units = 1;
   double? _quantity;
   String? _quantityType;
   String? _brand;
+  bool _isAmountPerItem;
 
-  Map<String, String> _errors = {};
+  final Map<String, String> _errors = {};
 
   int? get units => _units;
   set units(int? units) {
@@ -61,6 +81,12 @@ class PurchaseItemModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get isAmountPerItem => _isAmountPerItem;
+  set isAmountPerItem(bool isAmountPerItem) {
+    _isAmountPerItem = isAmountPerItem;
+    notifyListeners();
+  }
+
   bool validate() {
     _errors.clear();
     if (_units == null) {
@@ -79,16 +105,32 @@ class PurchaseItemModel extends ChangeNotifier {
 
   Map<String, String> get errors => _errors;
 
-  ItemModel toItemModel() => ItemModel(
-        uuid: uuid.v1(),
+  ItemModel toItemModel() {
+    if (uuid == null) {
+      return ItemModel(
+        uuid: _uuid.v1(),
         item: item,
         itemId: itemId,
-        amount: _pricePerUnit!,
+        amount: _isAmountPerItem ? _pricePerUnit! : _pricePerUnit! / _units!,
         units: units!,
         quantity: _quantity,
         quantityType: _quantityType,
         brand: _brand,
+        isAmountPerItem: _isAmountPerItem,
       );
+    }
+    return ItemModel(
+      uuid: uuid!,
+      item: item,
+      itemId: itemId,
+      amount: _isAmountPerItem ? _pricePerUnit! : _pricePerUnit! / _units!,
+      units: units!,
+      quantity: _quantity,
+      quantityType: _quantityType,
+      brand: _brand,
+      isAmountPerItem: _isAmountPerItem,
+    );
+  }
 }
 
 class NewPurchaseModel extends ChangeNotifier {
@@ -125,6 +167,18 @@ class NewPurchaseModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// We could optionally use an index but that would mean we pass the index
+  /// to the child widget that is responsible for displaying a modal in the base
+  /// new page list view
+  /// We will just stick to using uuid here to indentify what needs to be replaced
+  void updateItem(ItemModel item) {
+    final index = _items.indexWhere((i) => item.uuid == i.uuid);
+    if (index != -1) {
+      _items[index] = item;
+      notifyListeners();
+    }
+  }
+
   void removeItem(int index) {
     _items = [...items.sublist(0, index), ...items.sublist(index + 1)];
     notifyListeners();
@@ -145,6 +199,7 @@ class ItemModel {
     required this.amount,
     required this.units,
     required this.uuid,
+    this.isAmountPerItem = false,
     this.quantity,
     this.quantityType,
     this.brand,
@@ -159,6 +214,7 @@ class ItemModel {
   final double? quantity;
   final String? quantityType;
   final String? brand;
+  final bool isAmountPerItem;
 
   double get total => units * amount;
 }
