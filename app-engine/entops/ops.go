@@ -23,48 +23,14 @@ import (
 
 // CreatePurchase verifies and creates a new purchase
 func CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shopping, error) {
-	vendorSlug := Slugify(input.Vendor.Name)
-	// check if a vendor with the slug exists, if not create a new one
 	cli := ent.FromContext(ctx)
-	var v *ent.Vendor
-	var err error
-	if exist, _ := cli.Vendor.Query().
-		Where(
-			vendor.Slug(vendorSlug),
-		).Exist(ctx); !exist {
-		if v, err = cli.Vendor.Create().
-			SetName(input.Vendor.Name).
-			SetSlug(vendorSlug).
-			Save(ctx); err != nil {
-			return nil, err
-		}
-	} else {
-		if v, err = cli.Vendor.Query().
-			Where(vendor.Slug(vendorSlug)).First(ctx); err != nil {
-			return nil, err
-		}
-	}
-
 	// Create a shopping/purchase entry
 	s, err := cli.Shopping.Create().
 		SetNillableDate(input.Date).
-		SetVendor(v).
+		SetVendorID(input.Vendor.ID).
 		Save(ctx)
 	if err != nil {
 		return nil, err
-	}
-
-	itemNames := make([]string, len(input.Items))
-	for i, name := range input.Items {
-		itemNames[i] = name.Item
-	}
-	items, err := GetOrCreateItemsByName(ctx, itemNames)
-	if err != nil {
-		return nil, err
-	}
-	itemMap := map[string]*ent.Item{}
-	for _, i := range items {
-		itemMap[i.Slug] = i
 	}
 
 	// TODO: Validate item id provided
@@ -77,7 +43,7 @@ func CreatePurchase(ctx context.Context, input model.ShoppingInput) (*ent.Shoppi
 			SetNillableUnits(item.Units).
 			SetNillableBrand(item.Brand).
 			SetPricePerUnit(item.PricePerUnit).
-			SetItem(itemMap[Slugify(item.Item)]).
+			SetItemID(item.Item).
 			SetShopping(s)
 		itemCreate = append(itemCreate, shoppingItem)
 	}

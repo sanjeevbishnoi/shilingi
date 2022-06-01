@@ -1057,8 +1057,7 @@ input ShoppingItemInput {
   units: Int = 1
   brand: String 
   pricePerUnit: Decimal!
-  # Add a validator for checking the provided id for an item exists
-  item: String!
+  item: Int!
 }
 
 input ShoppingInput {
@@ -1106,7 +1105,7 @@ type Vendor implements Node {
 }
 
 input VendorInput  {
-  name: String!
+  id: Int!
 }
 
 type Tag implements Node {
@@ -6415,7 +6414,7 @@ func (ec *executionContext) unmarshalInputShoppingItemInput(ctx context.Context,
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("item"))
-			it.Item, err = ec.unmarshalNString2string(ctx, v)
+			it.Item, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6557,11 +6556,11 @@ func (ec *executionContext) unmarshalInputVendorInput(ctx context.Context, obj i
 
 	for k, v := range asMap {
 		switch k {
-		case "name":
+		case "id":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}

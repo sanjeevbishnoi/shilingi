@@ -38,7 +38,7 @@ type ShoppingItemInput struct {
 	Units        *int            `json:"units"`
 	Brand        *string         `json:"brand"`
 	PricePerUnit decimal.Decimal `json:"pricePerUnit"`
-	Item         string          `json:"item"`
+	Item         int             `json:"item"`
 }
 
 type ShoppingListInput struct {
@@ -63,5 +63,5 @@ type UpdateShoppingListItemInput struct {
 }
 
 type VendorInput struct {
-	Name string `json:"name"`
+	ID int `json:"id"`
 }
