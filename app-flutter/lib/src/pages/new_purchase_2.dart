@@ -20,7 +20,9 @@ const _textFieldBg = Color(0XFFFAFAFA);
 var _format = NumberFormat('#,##0', 'en_US');
 
 class NewPurchasePage2 extends HookWidget {
-  const NewPurchasePage2({Key? key}) : super(key: key);
+  const NewPurchasePage2({Key? key, this.vendor}) : super(key: key);
+
+  final Vendor? vendor;
 
   void _newItemModal(BuildContext context) async {
     final item = await Navigator.of(context).push(MaterialPageRoute(
@@ -58,7 +60,7 @@ class NewPurchasePage2 extends HookWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<NewPurchaseModel>(
-      future: NewPurchaseModel.maybeRestore(context, null, DateTime.now()),
+      future: NewPurchaseModel.maybeRestore(context, vendor, DateTime.now()),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           return ChangeNotifierProvider<NewPurchaseModel>.value(
@@ -246,44 +248,67 @@ class NewPurchasePage2 extends HookWidget {
                               ],
                             ),
                             const SizedBox(height: 16.0),
-                            if (model.items.isNotEmpty)
-                              Expanded(
-                                child: ListView.builder(
-                                    itemBuilder: (context, index) {
-                                      return Dismissible(
-                                        key: ValueKey(model.items[index].uuid),
-                                        child: _ItemModelWidget(
-                                          model: model.items[index],
-                                        ),
-                                        background: Container(
-                                          margin: const EdgeInsets.only(
-                                              bottom: 16.0),
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 14.0, horizontal: 14.0),
-                                          decoration: BoxDecoration(
-                                            color: Colors.redAccent,
-                                            borderRadius:
-                                                BorderRadius.circular(8.0),
-                                          ),
-                                          child: Row(
-                                            children: const [
-                                              Icon(FeatherIcons.trash),
-                                              SizedBox(width: 10.0),
-                                              Text('Remove'),
-                                            ],
-                                          ),
-                                        ),
-                                        direction: DismissDirection.startToEnd,
-                                        onDismissed: (direction) {
-                                          Provider.of<NewPurchaseModel>(
-                                            context,
-                                            listen: false,
-                                          ).removeItem(index);
-                                        },
-                                      );
-                                    },
-                                    itemCount: model.items.length),
+                            if (model.items.isNotEmpty) ...[
+                              _SearchInput(
+                                onChanged: (searchString) {
+                                  Provider.of<NewPurchaseModel>(
+                                    context,
+                                    listen: false,
+                                  ).searchString = searchString;
+                                },
                               ),
+                              const SizedBox(height: 16.0),
+                              if (model.filteredItems.isNotEmpty)
+                                Expanded(
+                                  child: ListView.builder(
+                                      itemBuilder: (context, index) {
+                                        return Dismissible(
+                                          key: ValueKey(
+                                              model.filteredItems[index].uuid),
+                                          child: _ItemModelWidget(
+                                            model: model.filteredItems[index],
+                                          ),
+                                          background: Container(
+                                            margin: const EdgeInsets.only(
+                                                bottom: 16.0),
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 14.0,
+                                                horizontal: 14.0),
+                                            decoration: BoxDecoration(
+                                              color: Colors.redAccent,
+                                              borderRadius:
+                                                  BorderRadius.circular(8.0),
+                                            ),
+                                            child: Row(
+                                              children: const [
+                                                Icon(FeatherIcons.trash),
+                                                SizedBox(width: 10.0),
+                                                Text('Remove'),
+                                              ],
+                                            ),
+                                          ),
+                                          direction:
+                                              DismissDirection.startToEnd,
+                                          onDismissed: (direction) {
+                                            Provider.of<NewPurchaseModel>(
+                                              context,
+                                              listen: false,
+                                            ).removeItem(index);
+                                          },
+                                        );
+                                      },
+                                      itemCount: model.filteredItems.length),
+                                ),
+                              if (model.filteredItems.isEmpty &&
+                                  model.searchString.isNotEmpty)
+                                Row(
+                                  children: const [
+                                    Icon(FeatherIcons.filter),
+                                    SizedBox(width: 5.0),
+                                    Text('No items match your search'),
+                                  ],
+                                ),
+                            ],
                             if (model.items.isEmpty)
                               _EmptyItemList(
                                 onTap: () => _newItemModal(context),
@@ -1034,6 +1059,68 @@ class _ConfirmModal extends StatelessWidget {
         left: 24.0,
         right: 24.0,
         top: 24.0,
+      ),
+    );
+  }
+}
+
+class _SearchInput extends HookWidget {
+  final ValueChanged onChanged;
+
+  const _SearchInput({Key? key, required this.onChanged}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final showClear = useState<bool>(false);
+    final controller = useTextEditingController();
+    controller.addListener(() {
+      showClear.value = controller.text.isNotEmpty;
+      onChanged(controller.text);
+    });
+
+    return Container(
+      height: 40.0,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30.0),
+        color: Colors.white,
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 40.0,
+            height: 40.0,
+            child: Center(
+              child: Icon(FeatherIcons.search, size: 18.0),
+            ),
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Search',
+                focusedBorder: InputBorder.none,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.only(top: 8, bottom: 8, right: 14.0),
+              ),
+            ),
+          ),
+          if (showClear.value)
+            SizedBox(
+              width: 40.0,
+              height: 40.0,
+              child: Center(
+                child: IconButton(
+                  iconSize: 14.0,
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    controller.text = "";
+                    onChanged("");
+                  },
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

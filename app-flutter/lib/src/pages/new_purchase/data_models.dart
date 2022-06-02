@@ -148,7 +148,8 @@ class NewPurchaseModel extends ChangeNotifier {
       {Vendor? vendor, DateTime? date, List<ItemModel> items = const []})
       : _vendor = vendor,
         _date = date,
-        _items = items;
+        _items = items,
+        vendorId = vendor?.id;
 
   Vendor? _vendor;
 
@@ -164,6 +165,8 @@ class NewPurchaseModel extends ChangeNotifier {
 
   @HiveField(2)
   int? vendorId;
+
+  String _searchString = '';
 
   static Future<NewPurchaseModel> maybeRestore(
       BuildContext context, Vendor? vendor, DateTime? date) async {
@@ -263,6 +266,12 @@ class NewPurchaseModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  String get searchString => _searchString;
+  set searchString(String searchString) {
+    _searchString = searchString.trim();
+    notifyListeners();
+  }
+
   List<ItemModel> get items => _items;
   set items(List<ItemModel> items) {
     _items = items;
@@ -293,6 +302,17 @@ class NewPurchaseModel extends ChangeNotifier {
     _items = [...items.sublist(0, index), ...items.sublist(index + 1)];
     persistToStorage();
     notifyListeners();
+  }
+
+  List<ItemModel> get filteredItems {
+    if (_searchString.isEmpty) return _items;
+    return _items
+        .where((model) =>
+            model.item?.name
+                .toLowerCase()
+                .contains(_searchString.toLowerCase()) ??
+            false)
+        .toList();
   }
 
   double get total {
@@ -344,6 +364,11 @@ class NewPurchaseModel extends ChangeNotifier {
     _date = DateTime.now();
     _items = [];
     notifyListeners();
+  }
+
+  static Future<bool> hasStoredPurchase() async {
+    final box = await Hive.openBox<NewPurchaseModel>(newPurchaseBoxName);
+    return box.get(defaultPurchaseId) != null;
   }
 }
 
