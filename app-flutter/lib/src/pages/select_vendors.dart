@@ -229,6 +229,14 @@ class _SearchInput extends HookWidget {
       showClear.value = controller.text.isNotEmpty;
       onChanged(controller.text);
     });
+    final focusNodeValue = useState<FocusNode>(FocusNode());
+    final isMounted = useIsMounted();
+    useEffect(() {
+      if (isMounted()) {
+        focusNodeValue.value.requestFocus();
+      }
+      return;
+    }, [isMounted]);
 
     return Padding(
       padding: const EdgeInsets.only(left: 30.0, right: 30.0),
@@ -249,6 +257,7 @@ class _SearchInput extends HookWidget {
             ),
             Expanded(
               child: TextField(
+                focusNode: focusNodeValue.value,
                 controller: controller,
                 decoration: const InputDecoration(
                   hintText: 'Search',
