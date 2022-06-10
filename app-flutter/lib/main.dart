@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:hive/hive.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import './src/pages/pages.dart';
 import './src/constants/constants.dart';
 import 'package:shilingi/src/models/hive.dart';
 import './src/pages/new_purchase/data_models.dart';
+import './firebase_options.dart';
 
 const apiUrl = String.fromEnvironment('API_URL',
     defaultValue: 'http://localhost:8080/query');
@@ -25,6 +27,10 @@ void main() async {
       link: httpLink,
       cache: GraphQLCache(store: HiveStore()),
     ),
+  );
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
   );
 
   runApp(MyApp(client: client));
