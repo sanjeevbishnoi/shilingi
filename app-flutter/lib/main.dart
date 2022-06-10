@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
     return GraphQLProvider(
       client: client,
       child: MaterialApp(
-        title: 'Shilingi',
+        title: 'Shillingi',
         theme: ThemeData(
           primarySwatch: Colors.lightGreen,
           textTheme: GoogleFonts.rubikTextTheme(),
@@ -57,6 +57,7 @@ class MyApp extends StatelessWidget {
           cataloguePage: (context) => const CataloguePage(),
           shoppingItemPage: (context) => const ShoppingItemDetailPage(),
           shoppingListPage: (context) => const ShoppingListPage(),
+          '/login': ((context) => const LoginPage()),
         },
       ),
     );
