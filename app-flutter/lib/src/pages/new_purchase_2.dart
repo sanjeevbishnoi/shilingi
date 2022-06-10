@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import 'package:date_field/date_field.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:timeago_flutter/timeago_flutter.dart';
+import 'package:grouped_list/grouped_list.dart';
 
 import '../models/model.dart';
 import '../constants/constants.dart';
@@ -19,8 +21,15 @@ import '../gql/gql.dart';
 const _textFieldBg = Color(0XFFFAFAFA);
 var _format = NumberFormat('#,##0', 'en_US');
 
+enum _Grouping {
+  on,
+  off,
+}
+
 class NewPurchasePage2 extends HookWidget {
-  const NewPurchasePage2({Key? key}) : super(key: key);
+  const NewPurchasePage2({Key? key, this.vendor}) : super(key: key);
+
+  final Vendor? vendor;
 
   void _newItemModal(BuildContext context) async {
     final item = await Navigator.of(context).push(MaterialPageRoute(
@@ -50,15 +59,17 @@ class NewPurchasePage2 extends HookWidget {
         Provider.of<NewPurchaseModel>(
           context,
           listen: false,
-        ).addItem(i);
+        ).addItem(context, i);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final groupingEnabled = useState<bool>(false);
+
     return FutureBuilder<NewPurchaseModel>(
-      future: NewPurchaseModel.maybeRestore(context, null, DateTime.now()),
+      future: NewPurchaseModel.maybeRestore(context, vendor, DateTime.now()),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           return ChangeNotifierProvider<NewPurchaseModel>.value(
@@ -246,44 +257,157 @@ class NewPurchasePage2 extends HookWidget {
                               ],
                             ),
                             const SizedBox(height: 16.0),
-                            if (model.items.isNotEmpty)
-                              Expanded(
-                                child: ListView.builder(
-                                    itemBuilder: (context, index) {
-                                      return Dismissible(
-                                        key: ValueKey(model.items[index].uuid),
-                                        child: _ItemModelWidget(
-                                          model: model.items[index],
-                                        ),
-                                        background: Container(
-                                          margin: const EdgeInsets.only(
-                                              bottom: 16.0),
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 14.0, horizontal: 14.0),
-                                          decoration: BoxDecoration(
-                                            color: Colors.redAccent,
-                                            borderRadius:
-                                                BorderRadius.circular(8.0),
-                                          ),
-                                          child: Row(
-                                            children: const [
-                                              Icon(FeatherIcons.trash),
-                                              SizedBox(width: 10.0),
-                                              Text('Remove'),
-                                            ],
-                                          ),
-                                        ),
-                                        direction: DismissDirection.startToEnd,
-                                        onDismissed: (direction) {
-                                          Provider.of<NewPurchaseModel>(
-                                            context,
-                                            listen: false,
-                                          ).removeItem(index);
-                                        },
-                                      );
-                                    },
-                                    itemCount: model.items.length),
+                            if (model.items.isNotEmpty) ...[
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _SearchInput(
+                                      onChanged: (searchString) {
+                                        Provider.of<NewPurchaseModel>(
+                                          context,
+                                          listen: false,
+                                        ).searchString = searchString;
+                                      },
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: !groupingEnabled.value
+                                        ? () {
+                                            groupingEnabled.value = true;
+                                          }
+                                        : null,
+                                    icon: const Icon(FeatherIcons.layers),
+                                    iconSize: 18.0,
+                                    // color:
+                                    // groupingEnabled.value == _Grouping.off
+                                    // ? Colors.grey
+                                    // : null,
+                                  ),
+                                  IconButton(
+                                    onPressed: groupingEnabled.value
+                                        ? () {
+                                            groupingEnabled.value = false;
+                                          }
+                                        : null,
+                                    icon: const Icon(FeatherIcons.menu),
+                                    iconSize: 18.0,
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 16.0),
+                              if (model.filteredItems.isNotEmpty)
+                                if (!groupingEnabled.value)
+                                  Expanded(
+                                    child: ListView.builder(
+                                        itemBuilder: (context, index) {
+                                          return Dismissible(
+                                            key: ValueKey(model
+                                                .filteredItems[index].uuid),
+                                            child: _ItemModelWidget(
+                                              model: model.filteredItems[index],
+                                            ),
+                                            background: Container(
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16.0),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 14.0,
+                                                      horizontal: 14.0),
+                                              decoration: BoxDecoration(
+                                                color: Colors.redAccent,
+                                                borderRadius:
+                                                    BorderRadius.circular(8.0),
+                                              ),
+                                              child: Row(
+                                                children: const [
+                                                  Icon(FeatherIcons.trash),
+                                                  SizedBox(width: 10.0),
+                                                  Text('Remove'),
+                                                ],
+                                              ),
+                                            ),
+                                            direction:
+                                                DismissDirection.startToEnd,
+                                            onDismissed: (direction) {
+                                              Provider.of<NewPurchaseModel>(
+                                                context,
+                                                listen: false,
+                                              ).removeItem(index);
+                                            },
+                                          );
+                                        },
+                                        itemCount: model.filteredItems.length),
+                                  ),
+                              if (model.filteredItems.isNotEmpty)
+                                if (groupingEnabled.value)
+                                  Expanded(
+                                    child: GroupedListView<ItemModel, String>(
+                                      elements: model.filteredItems,
+                                      groupBy: (item) {
+                                        if (item.item!.tags?.isNotEmpty ??
+                                            false) {
+                                          return item.item!.tags![0].name;
+                                        }
+                                        return "uncategorized";
+                                      },
+                                      groupSeparatorBuilder: (group) => Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 5.0),
+                                        child: Text(
+                                          group.toUpperCase(),
+                                          style: const TextStyle(
+                                              color: Colors.black45,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 12.0),
+                                        ),
+                                      ),
+                                      itemBuilder: (context, model) {
+                                        return Dismissible(
+                                          key: ValueKey(model.uuid),
+                                          child: _ItemModelWidget(
+                                            model: model,
+                                          ),
+                                          background: Container(
+                                            margin: const EdgeInsets.only(
+                                                bottom: 16.0),
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 14.0,
+                                                horizontal: 14.0),
+                                            decoration: BoxDecoration(
+                                              color: Colors.redAccent,
+                                              borderRadius:
+                                                  BorderRadius.circular(8.0),
+                                            ),
+                                            child: Row(
+                                              children: const [
+                                                Icon(FeatherIcons.trash),
+                                                SizedBox(width: 10.0),
+                                                Text('Remove'),
+                                              ],
+                                            ),
+                                          ),
+                                          direction:
+                                              DismissDirection.startToEnd,
+                                          onDismissed: (direction) {
+                                            Provider.of<NewPurchaseModel>(
+                                              context,
+                                              listen: false,
+                                            ).removeItemByUUID(model.uuid);
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ),
+                              if (model.filteredItems.isEmpty &&
+                                  model.searchString.isNotEmpty)
+                                Row(
+                                  children: const [
+                                    Icon(FeatherIcons.filter),
+                                    SizedBox(width: 5.0),
+                                    Text('No items match your search'),
+                                  ],
+                                ),
+                            ],
                             if (model.items.isEmpty)
                               _EmptyItemList(
                                 onTap: () => _newItemModal(context),
@@ -875,6 +999,7 @@ class _ItemModelWidget extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
+                  flex: 1,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -919,7 +1044,69 @@ class _ItemModelWidget extends StatelessWidget {
                     ],
                   ),
                 ),
-                Text('Ksh ' + _format.format(model.total)),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          style: const TextStyle(color: Colors.black87),
+                          children: [
+                            TextSpan(
+                                text: 'Ksh ${_format.format(model.total)} '),
+                            if (diff != null && diff != 0) ...[
+                              TextSpan(
+                                text: '${diff! > 0 ? '+' : ''}$diff',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: diff! > 0
+                                      ? Colors.redAccent
+                                      : Colors.greenAccent,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      // Text('Ksh ' + _format.format(model.total)),
+                      if (_purchaseHistory != null)
+                        RichText(
+                          text: TextSpan(
+                            style: const TextStyle(fontSize: 12),
+                            children: [
+                              WidgetSpan(
+                                child: Timeago(
+                                    locale: 'en_short',
+                                    builder: (_, value) => Tooltip(
+                                          child: Text(value,
+                                              style: const TextStyle(
+                                                  color: Colors.grey,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 12)),
+                                          message:
+                                              DateFormat("EEE, MMM d, ''y'")
+                                                  .format(_purchaseHistory!
+                                                      .shopping!.date),
+                                        ),
+                                    date: _purchaseHistory!.shopping!.date),
+                              ),
+                              const TextSpan(
+                                  text: ' ago for ',
+                                  style: TextStyle(color: Colors.black45)),
+                              TextSpan(
+                                text: NumberFormat('#,##0/=', 'en_US')
+                                    .format(_purchaseHistory!.total),
+                                style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w600),
+                              )
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
                 const SizedBox(width: 5.0),
                 const Icon(FeatherIcons.chevronRight),
               ],
@@ -928,6 +1115,22 @@ class _ItemModelWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  PurchaseItem? get _purchaseHistory {
+    final hasHistory = model.item?.purchases?.edges?.isNotEmpty ?? false;
+    if (!hasHistory) return null;
+
+    return model.item!.purchases!.edges![0].node!;
+  }
+
+  int? get diff {
+    final last = _purchaseHistory;
+    if (last == null) {
+      return null;
+    }
+
+    return (model.units * model.amount - last.total).toInt();
   }
 }
 
@@ -1034,6 +1237,68 @@ class _ConfirmModal extends StatelessWidget {
         left: 24.0,
         right: 24.0,
         top: 24.0,
+      ),
+    );
+  }
+}
+
+class _SearchInput extends HookWidget {
+  final ValueChanged onChanged;
+
+  const _SearchInput({Key? key, required this.onChanged}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final showClear = useState<bool>(false);
+    final controller = useTextEditingController();
+    controller.addListener(() {
+      showClear.value = controller.text.isNotEmpty;
+      onChanged(controller.text);
+    });
+
+    return Container(
+      height: 40.0,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30.0),
+        color: Colors.white,
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 40.0,
+            height: 40.0,
+            child: Center(
+              child: Icon(FeatherIcons.search, size: 18.0),
+            ),
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Search',
+                focusedBorder: InputBorder.none,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.only(top: 8, bottom: 8, right: 14.0),
+              ),
+            ),
+          ),
+          if (showClear.value)
+            SizedBox(
+              width: 40.0,
+              height: 40.0,
+              child: Center(
+                child: IconButton(
+                  iconSize: 14.0,
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    controller.text = "";
+                    onChanged("");
+                  },
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

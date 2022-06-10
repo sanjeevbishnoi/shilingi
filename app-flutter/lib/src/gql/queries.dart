@@ -324,3 +324,32 @@ var savedNewPurchaseQuery = gql(r'''
       }
     }
 ''');
+
+var nodeItemQuery = gql(r'''
+    query nodeItem($id: Int!) {
+      node(id: $id) {
+        ... on Item {
+          id
+          name
+          purchases(first: 1) {
+            edges {
+              node {
+                id
+                total
+                pricePerUnit
+                units
+                shopping {
+                  id
+                  date
+                }
+              }
+            }
+          }
+          tags {
+            id
+            name
+          }
+        }
+      }
+    }
+''');

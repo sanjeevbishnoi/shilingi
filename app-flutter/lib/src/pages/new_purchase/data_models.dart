@@ -148,7 +148,8 @@ class NewPurchaseModel extends ChangeNotifier {
       {Vendor? vendor, DateTime? date, List<ItemModel> items = const []})
       : _vendor = vendor,
         _date = date,
-        _items = items;
+        _items = items,
+        vendorId = vendor?.id;
 
   Vendor? _vendor;
 
@@ -164,6 +165,8 @@ class NewPurchaseModel extends ChangeNotifier {
 
   @HiveField(2)
   int? vendorId;
+
+  String _searchString = '';
 
   static Future<NewPurchaseModel> maybeRestore(
       BuildContext context, Vendor? vendor, DateTime? date) async {
@@ -263,6 +266,12 @@ class NewPurchaseModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  String get searchString => _searchString;
+  set searchString(String searchString) {
+    _searchString = searchString.trim();
+    notifyListeners();
+  }
+
   List<ItemModel> get items => _items;
   set items(List<ItemModel> items) {
     _items = items;
@@ -270,10 +279,41 @@ class NewPurchaseModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addItem(ItemModel item) {
+  void addItem(BuildContext context, ItemModel item) {
     _items = [...items, item];
     persistToStorage();
     notifyListeners();
+    _fetchItemDetails(context, item);
+  }
+
+  /// This method should query the API for more information on the item such as
+  /// the last purchase done.
+  /// We only need to query this information:
+  ///   1. When the user has confirmed to add the item to the list of items
+  ///   2. When retrieving purchase from the store
+  void _fetchItemDetails(BuildContext context, ItemModel item) async {
+    final cli = GraphQLProvider.of(context).value;
+    final result = await cli.query(
+      QueryOptions(document: nodeItemQuery, variables: {
+        'id': item.itemId,
+      }),
+    );
+    if (result.hasException) {
+      return;
+    }
+    final i = Item.fromJson(result.data!['node']);
+    item = ItemModel(
+      uuid: item.uuid,
+      item: i,
+      itemId: i.id!,
+      amount: item.amount,
+      units: item.units,
+      quantity: item.quantity,
+      quantityType: item.quantityType,
+      brand: item.brand,
+      isAmountPerItem: item.isAmountPerItem,
+    );
+    updateItem(item);
   }
 
   /// We could optionally use an index but that would mean we pass the index
@@ -293,6 +333,25 @@ class NewPurchaseModel extends ChangeNotifier {
     _items = [...items.sublist(0, index), ...items.sublist(index + 1)];
     persistToStorage();
     notifyListeners();
+  }
+
+  void removeItemByUUID(String uuid) {
+    final i = _items.indexWhere((model) => model.uuid == uuid);
+    if (i != -1) {
+      _items = [..._items.sublist(0, i), ..._items.sublist(i + 1)];
+      notifyListeners();
+    }
+  }
+
+  List<ItemModel> get filteredItems {
+    if (_searchString.isEmpty) return _items;
+    return _items
+        .where((model) =>
+            model.item?.name
+                .toLowerCase()
+                .contains(_searchString.toLowerCase()) ??
+            false)
+        .toList();
   }
 
   double get total {
@@ -344,6 +403,11 @@ class NewPurchaseModel extends ChangeNotifier {
     _date = DateTime.now();
     _items = [];
     notifyListeners();
+  }
+
+  static Future<bool> hasStoredPurchase() async {
+    final box = await Hive.openBox<NewPurchaseModel>(newPurchaseBoxName);
+    return box.get(defaultPurchaseId) != null;
   }
 }
 

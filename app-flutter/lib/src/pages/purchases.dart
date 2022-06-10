@@ -13,6 +13,9 @@ import '../constants/constants.dart';
 import '../style/style.dart';
 import './date_range_analytics.dart';
 import './settings/settings.dart';
+import './new_purchase/data_models.dart';
+import './new_purchase_2.dart';
+import './select_vendors.dart';
 
 var formatAmt = NumberFormat('#,##0.00', 'en_US');
 var formatAmtWithoutDecimal =
@@ -217,8 +220,25 @@ class _PurchasesPageState extends State<PurchasesPage> {
         ),
         floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.add_shopping_cart_outlined),
-          onPressed: () {
-            Navigator.pushNamed(context, '/new-purchase');
+          onPressed: () async {
+            final hasStoredPurchase =
+                await NewPurchaseModel.hasStoredPurchase();
+            if (hasStoredPurchase) {
+              Navigator.pushNamed(context, '/new-purchase');
+            } else {
+              // Select a vendor first, then redirect to new purchase page
+              final v = await Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => const SelectVendorPage(
+                      title: 'Select place of purchase')));
+              model.Vendor? vendor = v is model.Vendor ? v : null;
+              if (vendor != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => NewPurchasePage2(vendor: vendor),
+                  ),
+                );
+              }
+            }
           },
         ),
         bottomNavigationBar: const ClassicBottomNavigation(),
