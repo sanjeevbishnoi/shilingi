@@ -57,6 +57,8 @@ dependencies:
   uuid: 3.0.6
   firebase_auth: ^3.3.19
   firebase_core: ^1.17.1
+  email_validator: ^2.0.1
+  firebase_dynamic_links: ^4.2.5
 
 dev_dependencies:
   flutter_test:

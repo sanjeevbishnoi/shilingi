@@ -12,6 +12,7 @@ import './src/constants/constants.dart';
 import 'package:shilingi/src/models/hive.dart';
 import './src/pages/new_purchase/data_models.dart';
 import './firebase_options.dart';
+import './src/pages/login/route.dart';
 
 const apiUrl = String.fromEnvironment('API_URL',
     defaultValue: 'http://localhost:8080/query');
@@ -98,14 +99,19 @@ class MyApp extends StatelessWidget {
             }
             // Check if user is logged in
             if (snapshot.data == null) {
-              return MaterialApp(
+              return MaterialApp.router(
                 title: 'Shillingi',
                 theme: ThemeData(
                   primarySwatch: Colors.lightGreen,
                   textTheme: GoogleFonts.rubikTextTheme(),
                   appBarTheme: AppBarTheme.of(context).copyWith(elevation: 0),
                 ),
-                home: const LoginPage(),
+                routeInformationParser: LoginInformationParser(),
+                routerDelegate: LoginRouteDelegate(),
+                routeInformationProvider: PlatformRouteInformationProvider(
+                  initialRouteInformation:
+                      const RouteInformation(location: '/'),
+                ),
               );
             }
 
@@ -128,7 +134,6 @@ class MyApp extends StatelessWidget {
                   cataloguePage: (context) => const CataloguePage(),
                   shoppingItemPage: (context) => const ShoppingItemDetailPage(),
                   shoppingListPage: (context) => const ShoppingListPage(),
-                  '/login': ((context) => const LoginPage()),
                 },
               ),
             );
