@@ -1,4 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 
 class ClassicBottomNavigation extends StatelessWidget {
   const ClassicBottomNavigation({Key? key}) : super(key: key);
@@ -21,6 +24,8 @@ class ClassicBottomNavigation extends StatelessWidget {
 
     return BottomNavigationBar(
       currentIndex: currentIndex,
+      unselectedItemColor: Colors.black54,
+      selectedItemColor: Colors.lightGreen,
       items: const [
         BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today_rounded), label: 'Purchases'),
@@ -28,6 +33,8 @@ class ClassicBottomNavigation extends StatelessWidget {
             icon: Icon(Icons.amp_stories), label: 'Catalogue'),
         BottomNavigationBarItem(
             icon: Icon(Icons.checklist), label: 'Shopping lists'),
+        BottomNavigationBarItem(
+            icon: Icon(FeatherIcons.logOut), label: 'Logout'),
       ],
       onTap: (index) {
         switch (index) {
@@ -39,6 +46,9 @@ class ClassicBottomNavigation extends StatelessWidget {
             break;
           case 2:
             Navigator.of(context).pushReplacementNamed('/shopping-list');
+            break;
+          case 3:
+            FirebaseAuth.instance.signOut();
             break;
         }
       },

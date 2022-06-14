@@ -1,36 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:shilingi/src/pages/login/register.dart';
 
 import './login.dart';
-import './authorize.dart';
-
-class LoginRoutePath {
-  const LoginRoutePath({this.isAuthorize = false});
-
-  final bool isAuthorize;
-}
+import './register.dart';
+import './routepath.dart';
 
 class LoginInformationParser extends RouteInformationParser<LoginRoutePath> {
   @override
   Future<LoginRoutePath> parseRouteInformation(
       RouteInformation routeInformation) async {
     if (routeInformation.location == null) {
-      return const LoginRoutePath();
+      return const LoginRoutePath.login();
     }
 
     final uri = Uri.parse(routeInformation.location!);
-    if (uri.pathSegments.length == 1 && uri.pathSegments[0] == '/authorize') {
-      return const LoginRoutePath(isAuthorize: true);
+    if (uri.pathSegments.length == 1 && uri.pathSegments[0] == '/register') {
+      return const LoginRoutePath.register();
     }
-    return const LoginRoutePath();
+    return const LoginRoutePath.login();
   }
 
   @override
   RouteInformation? restoreRouteInformation(LoginRoutePath configuration) {
-    if (configuration.isAuthorize) {
-      return const RouteInformation(location: '/authorize');
+    switch (configuration.route) {
+      case LoginRoute.login:
+        return const RouteInformation(location: '/');
+      case LoginRoute.register:
+        return const RouteInformation(location: 'register');
     }
-
-    return const RouteInformation(location: '/');
   }
 }
 
@@ -38,41 +35,44 @@ class LoginRouteDelegate extends RouterDelegate<LoginRoutePath>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin<LoginRoutePath> {
   LoginRouteDelegate() : navigatorKey = GlobalKey<NavigatorState>();
 
-  bool isAuthorize = false;
+  LoginRoute route = LoginRoute.login;
 
   @override
   final GlobalKey<NavigatorState> navigatorKey;
 
   @override
   LoginRoutePath? get currentConfiguration {
-    if (isAuthorize) {
-      return const LoginRoutePath(isAuthorize: true);
-    }
-    return const LoginRoutePath();
+    return LoginRoutePath(route: route);
   }
 
   @override
   Future<void> setNewRoutePath(LoginRoutePath configuration) async {
-    if (configuration.isAuthorize) {
-      isAuthorize = true;
-    }
+    route = configuration.route;
   }
 
   @override
   Widget build(BuildContext context) {
     return Navigator(
+      key: navigatorKey,
       pages: [
-        const MaterialPage(child: LoginPage(), key: ValueKey('login')),
-        if (isAuthorize)
+        MaterialPage(
+            child: LoginPage(
+              goTo: (LoginRoute route) {
+                this.route = route;
+                notifyListeners();
+              },
+            ),
+            key: const ValueKey('login')),
+        if (route == LoginRoute.register)
           const MaterialPage(
-              child: AuthorizePage(), key: ValueKey('authorize')),
+              child: RegistrationPage(), key: ValueKey('authorize')),
       ],
       onPopPage: (route, result) {
         if (!route.didPop(result)) {
           return false;
         }
 
-        isAuthorize = false;
+        this.route = LoginRoute.login;
         notifyListeners();
         return true;
       },

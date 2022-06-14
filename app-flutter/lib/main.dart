@@ -99,20 +99,29 @@ class MyApp extends StatelessWidget {
             }
             // Check if user is logged in
             if (snapshot.data == null) {
-              return MaterialApp.router(
-                title: 'Shillingi',
-                theme: ThemeData(
-                  primarySwatch: Colors.lightGreen,
-                  textTheme: GoogleFonts.rubikTextTheme(),
-                  appBarTheme: AppBarTheme.of(context).copyWith(elevation: 0),
-                ),
-                routeInformationParser: LoginInformationParser(),
-                routerDelegate: LoginRouteDelegate(),
-                routeInformationProvider: PlatformRouteInformationProvider(
-                  initialRouteInformation:
-                      const RouteInformation(location: '/'),
-                ),
-              );
+              final routeDelegate = LoginRouteDelegate();
+              final informationParser = LoginInformationParser();
+
+              return AnimatedBuilder(
+                  animation: routeDelegate,
+                  builder: (context, child) {
+                    return MaterialApp.router(
+                      title: 'Shillingi',
+                      theme: ThemeData(
+                        primarySwatch: Colors.lightGreen,
+                        textTheme: GoogleFonts.rubikTextTheme(),
+                        appBarTheme:
+                            AppBarTheme.of(context).copyWith(elevation: 0),
+                      ),
+                      routeInformationParser: informationParser,
+                      routerDelegate: routeDelegate,
+                      routeInformationProvider:
+                          PlatformRouteInformationProvider(
+                        initialRouteInformation:
+                            const RouteInformation(location: '/'),
+                      ),
+                    );
+                  });
             }
 
             return GraphQLProvider(
