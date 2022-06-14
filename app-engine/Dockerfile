@@ -16,6 +16,7 @@ FROM scratch
 WORKDIR /usr/bin
 
 COPY --from=base $APP_DIR/app-engine ./
+COPY --from=base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 EXPOSE 8080
 

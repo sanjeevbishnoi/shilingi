@@ -24,25 +24,15 @@ void main() async {
   Hive.registerAdapter(NewPurchaseModelAdapter());
   Hive.registerAdapter(ItemModelAdapter());
 
-  final HttpLink httpLink = HttpLink(apiUrl);
-  ValueNotifier<GraphQLClient> client = ValueNotifier(
-    GraphQLClient(
-      link: httpLink,
-      cache: GraphQLCache(store: HiveStore()),
-    ),
-  );
-
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(MyApp(client: client));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final ValueNotifier<GraphQLClient> client;
-
-  const MyApp({Key? key, required this.client}) : super(key: key);
+  const MyApp({Key? key}) : super(key: key);
 
   // This widget is the root of your application.
   @override
@@ -123,6 +113,18 @@ class MyApp extends StatelessWidget {
                     );
                   });
             }
+            final user = snapshot.data!;
+
+            final HttpLink httpLink = HttpLink(apiUrl);
+            final AuthLink authLink = AuthLink(
+                getToken: () async => 'Bearer ${await user.getIdToken()}');
+            final Link link = authLink.concat(httpLink);
+            ValueNotifier<GraphQLClient> client = ValueNotifier(
+              GraphQLClient(
+                link: link,
+                cache: GraphQLCache(store: HiveStore()),
+              ),
+            );
 
             return GraphQLProvider(
               client: client,

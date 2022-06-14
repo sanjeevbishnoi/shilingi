@@ -9,10 +9,12 @@ services:
       context: .
     volumes:
       - ./shilingi.db:/usr/bin/shilingi.db:rw
+      - ./files/:/etc/shillingi/files/
     environment:
       # DB_URI: mysql://zva5rzr6ftk3:pscale_pw_PrvLfFOiDyq4OLwPHSqy5j3hoInhtVSideodBb5W_bA@tcp(kvw7zun0y7sm.us-east-4.psdb.cloud)/shilingi?sslaccept=strict&tls=skip-verify
       DB_URI: file:shilingi.db?mode=rwc&_fk=1&cache=shared
       DB_TYPE: sqlite3
+      FIREBASE_PRIV_KEY_PATH: '/etc/shillingi/files/shilling-eb2a5-firebase-adminsdk-bh1e4-75b1607a67.json'
     ports:
       - '8080:8080'
     networks:

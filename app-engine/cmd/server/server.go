@@ -22,6 +22,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/migrate"
 	_ "github.com/kingzbauer/shilingi/app-engine/ent/runtime"
 	"github.com/kingzbauer/shilingi/app-engine/graph"
+	"github.com/kingzbauer/shilingi/app-engine/middlewares"
 )
 
 const defaultPort = "8080"
@@ -60,7 +61,7 @@ func main() {
 	})
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	http.Handle("/query", middlewares.NewAuthClient(middlewares.Auth(srv)))
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
