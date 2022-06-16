@@ -113,6 +113,18 @@ func (t *TagQuery) collectField(ctx *graphql.OperationContext, field graphql.Col
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (u *UserQuery) CollectFields(ctx context.Context, satisfies ...string) *UserQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		u = u.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return u
+}
+
+func (u *UserQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *UserQuery {
+	return u
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (v *VendorQuery) CollectFields(ctx context.Context, satisfies ...string) *VendorQuery {
 	if fc := graphql.GetFieldContext(ctx); fc != nil {
 		v = v.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)

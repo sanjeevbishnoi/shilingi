@@ -192,6 +192,24 @@ var (
 			},
 		},
 	}
+	// UsersColumns holds the columns for the "users" table.
+	UsersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "external_id", Type: field.TypeString, Unique: true, Nullable: true},
+		{Name: "first_name", Type: field.TypeString, Nullable: true},
+		{Name: "other_names", Type: field.TypeString, Nullable: true},
+		{Name: "email", Type: field.TypeString, Unique: true},
+		{Name: "is_email_verified", Type: field.TypeBool},
+		{Name: "external_source", Type: field.TypeEnum, Enums: []string{"FIREBASE"}, Default: "FIREBASE"},
+	}
+	// UsersTable holds the schema information for the "users" table.
+	UsersTable = &schema.Table{
+		Name:       "users",
+		Columns:    UsersColumns,
+		PrimaryKey: []*schema.Column{UsersColumns[0]},
+	}
 	// VendorsColumns holds the columns for the "vendors" table.
 	VendorsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -240,6 +258,7 @@ var (
 		ShoppingListItemsTable,
 		SubLabelsTable,
 		TagsTable,
+		UsersTable,
 		VendorsTable,
 		ItemTagsTable,
 	}

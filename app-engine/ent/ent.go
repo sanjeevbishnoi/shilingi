@@ -15,6 +15,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppinglistitem"
 	"github.com/kingzbauer/shilingi/app-engine/ent/sublabel"
 	"github.com/kingzbauer/shilingi/app-engine/ent/tag"
+	"github.com/kingzbauer/shilingi/app-engine/ent/user"
 	"github.com/kingzbauer/shilingi/app-engine/ent/vendor"
 )
 
@@ -43,6 +44,7 @@ func columnChecker(table string) func(string) error {
 		shoppinglistitem.Table: shoppinglistitem.ValidColumn,
 		sublabel.Table:         sublabel.ValidColumn,
 		tag.Table:              tag.ValidColumn,
+		user.Table:             user.ValidColumn,
 		vendor.Table:           vendor.ValidColumn,
 	}
 	check, ok := checks[table]

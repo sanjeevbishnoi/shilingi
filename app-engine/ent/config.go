@@ -31,6 +31,7 @@ type hooks struct {
 	ShoppingListItem []ent.Hook
 	SubLabel         []ent.Hook
 	Tag              []ent.Hook
+	User             []ent.Hook
 	Vendor           []ent.Hook
 }
 

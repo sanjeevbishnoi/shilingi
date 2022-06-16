@@ -26,6 +26,8 @@ type Tx struct {
 	SubLabel *SubLabelClient
 	// Tag is the client for interacting with the Tag builders.
 	Tag *TagClient
+	// User is the client for interacting with the User builders.
+	User *UserClient
 	// Vendor is the client for interacting with the Vendor builders.
 	Vendor *VendorClient
 
@@ -170,6 +172,7 @@ func (tx *Tx) init() {
 	tx.ShoppingListItem = NewShoppingListItemClient(tx.config)
 	tx.SubLabel = NewSubLabelClient(tx.config)
 	tx.Tag = NewTagClient(tx.config)
+	tx.User = NewUserClient(tx.config)
 	tx.Vendor = NewVendorClient(tx.config)
 }
 
