@@ -21,6 +21,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/migrate"
 	_ "github.com/kingzbauer/shilingi/app-engine/ent/runtime"
+	"github.com/kingzbauer/shilingi/app-engine/entops"
 	"github.com/kingzbauer/shilingi/app-engine/graph"
 	"github.com/kingzbauer/shilingi/app-engine/middlewares"
 )
@@ -51,14 +52,6 @@ func main() {
 		migrate.WithGlobalUniqueID(true),
 	)
 
-	cliMiddleware := func(handler http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := ent.NewContext(r.Context(), cli)
-			r = r.WithContext(ctx)
-			handler.ServeHTTP(w, r)
-		})
-	}
-
 	srv := handler.NewDefaultServer(graph.NewSchema(cli))
 	srv.Use(entgql.Transactioner{TxOpener: cli})
 	srv.SetErrorPresenter(func(ctx context.Context, err error) *gqlerror.Error {
@@ -70,7 +63,7 @@ func main() {
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query",
-		cliMiddleware(
+		entops.Middleware(cli)(
 			middlewares.NewAuthClient(
 				middlewares.Auth(srv))))
 

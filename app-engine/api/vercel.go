@@ -17,6 +17,7 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 	"github.com/kingzbauer/shilingi/app-engine/ent/migrate"
 	_ "github.com/kingzbauer/shilingi/app-engine/ent/runtime"
+	"github.com/kingzbauer/shilingi/app-engine/entops"
 	"github.com/kingzbauer/shilingi/app-engine/graph"
 	"github.com/kingzbauer/shilingi/app-engine/middlewares"
 )
@@ -50,7 +51,7 @@ func init() {
 		fmt.Printf("Error: %s\n", err)
 		return graphQLErr
 	})
-	api = middlewares.NewAuthClient(middlewares.Auth(http.Handler(srv)))
+	api = entops.Middleware(cli)(middlewares.NewAuthClient(middlewares.Auth(http.Handler(srv))))
 }
 
 // Shilingi serves as a Serveless Entrypoint for vercel
