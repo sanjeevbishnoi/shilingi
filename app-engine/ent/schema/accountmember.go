@@ -34,6 +34,7 @@ func (AccountMember) Edges() []ent.Edge {
 			Ref("memberships").
 			Unique().
 			Required(),
+		edge.To("invite", AccountInvite.Type),
 	}
 }
 

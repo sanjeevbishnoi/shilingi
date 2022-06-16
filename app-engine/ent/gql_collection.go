@@ -9,6 +9,42 @@ import (
 )
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (a *AccountQuery) CollectFields(ctx context.Context, satisfies ...string) *AccountQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		a = a.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return a
+}
+
+func (a *AccountQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *AccountQuery {
+	return a
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (ai *AccountInviteQuery) CollectFields(ctx context.Context, satisfies ...string) *AccountInviteQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		ai = ai.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return ai
+}
+
+func (ai *AccountInviteQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *AccountInviteQuery {
+	return ai
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (am *AccountMemberQuery) CollectFields(ctx context.Context, satisfies ...string) *AccountMemberQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		am = am.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return am
+}
+
+func (am *AccountMemberQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *AccountMemberQuery {
+	return am
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (i *ItemQuery) CollectFields(ctx context.Context, satisfies ...string) *ItemQuery {
 	if fc := graphql.GetFieldContext(ctx); fc != nil {
 		i = i.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)

@@ -9,6 +9,85 @@ import (
 )
 
 var (
+	// AccountsColumns holds the columns for the "accounts" table.
+	AccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString, Size: 255},
+	}
+	// AccountsTable holds the schema information for the "accounts" table.
+	AccountsTable = &schema.Table{
+		Name:       "accounts",
+		Columns:    AccountsColumns,
+		PrimaryKey: []*schema.Column{AccountsColumns[0]},
+	}
+	// AccountInvitesColumns holds the columns for the "account_invites" table.
+	AccountInvitesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "email", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"PENDING", "DECLINED", "ACCEPTED"}, Default: "PENDING"},
+		{Name: "account_invites", Type: field.TypeInt, Nullable: true},
+		{Name: "account_member_invite", Type: field.TypeInt, Nullable: true},
+		{Name: "user_invites", Type: field.TypeInt, Nullable: true},
+	}
+	// AccountInvitesTable holds the schema information for the "account_invites" table.
+	AccountInvitesTable = &schema.Table{
+		Name:       "account_invites",
+		Columns:    AccountInvitesColumns,
+		PrimaryKey: []*schema.Column{AccountInvitesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "account_invites_accounts_invites",
+				Columns:    []*schema.Column{AccountInvitesColumns[5]},
+				RefColumns: []*schema.Column{AccountsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "account_invites_account_members_invite",
+				Columns:    []*schema.Column{AccountInvitesColumns[6]},
+				RefColumns: []*schema.Column{AccountMembersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "account_invites_users_invites",
+				Columns:    []*schema.Column{AccountInvitesColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// AccountMembersColumns holds the columns for the "account_members" table.
+	AccountMembersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"OWNER", "MEMBER"}},
+		{Name: "account_members", Type: field.TypeInt, Nullable: true},
+		{Name: "user_memberships", Type: field.TypeInt, Nullable: true},
+	}
+	// AccountMembersTable holds the schema information for the "account_members" table.
+	AccountMembersTable = &schema.Table{
+		Name:       "account_members",
+		Columns:    AccountMembersColumns,
+		PrimaryKey: []*schema.Column{AccountMembersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "account_members_accounts_members",
+				Columns:    []*schema.Column{AccountMembersColumns[4]},
+				RefColumns: []*schema.Column{AccountsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "account_members_users_memberships",
+				Columns:    []*schema.Column{AccountMembersColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// ItemsColumns holds the columns for the "items" table.
 	ItemsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -251,6 +330,9 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AccountsTable,
+		AccountInvitesTable,
+		AccountMembersTable,
 		ItemsTable,
 		ShoppingsTable,
 		ShoppingItemsTable,
@@ -265,6 +347,11 @@ var (
 )
 
 func init() {
+	AccountInvitesTable.ForeignKeys[0].RefTable = AccountsTable
+	AccountInvitesTable.ForeignKeys[1].RefTable = AccountMembersTable
+	AccountInvitesTable.ForeignKeys[2].RefTable = UsersTable
+	AccountMembersTable.ForeignKeys[0].RefTable = AccountsTable
+	AccountMembersTable.ForeignKeys[1].RefTable = UsersTable
 	ItemsTable.ForeignKeys[0].RefTable = SubLabelsTable
 	ItemsTable.Annotation = &entsql.Annotation{
 		Charset:   "utf8mb4",

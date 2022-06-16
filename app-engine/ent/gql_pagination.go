@@ -14,6 +14,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/errcode"
+	"github.com/kingzbauer/shilingi/app-engine/ent/account"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountinvite"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountmember"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
@@ -239,6 +242,687 @@ const (
 	pageInfoField   = "pageInfo"
 	totalCountField = "totalCount"
 )
+
+// AccountEdge is the edge representation of Account.
+type AccountEdge struct {
+	Node   *Account `json:"node"`
+	Cursor Cursor   `json:"cursor"`
+}
+
+// AccountConnection is the connection containing edges to Account.
+type AccountConnection struct {
+	Edges      []*AccountEdge `json:"edges"`
+	PageInfo   PageInfo       `json:"pageInfo"`
+	TotalCount int            `json:"totalCount"`
+}
+
+// AccountPaginateOption enables pagination customization.
+type AccountPaginateOption func(*accountPager) error
+
+// WithAccountOrder configures pagination ordering.
+func WithAccountOrder(order *AccountOrder) AccountPaginateOption {
+	if order == nil {
+		order = DefaultAccountOrder
+	}
+	o := *order
+	return func(pager *accountPager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultAccountOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithAccountFilter configures pagination filter.
+func WithAccountFilter(filter func(*AccountQuery) (*AccountQuery, error)) AccountPaginateOption {
+	return func(pager *accountPager) error {
+		if filter == nil {
+			return errors.New("AccountQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type accountPager struct {
+	order  *AccountOrder
+	filter func(*AccountQuery) (*AccountQuery, error)
+}
+
+func newAccountPager(opts []AccountPaginateOption) (*accountPager, error) {
+	pager := &accountPager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultAccountOrder
+	}
+	return pager, nil
+}
+
+func (p *accountPager) applyFilter(query *AccountQuery) (*AccountQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *accountPager) toCursor(a *Account) Cursor {
+	return p.order.Field.toCursor(a)
+}
+
+func (p *accountPager) applyCursors(query *AccountQuery, after, before *Cursor) *AccountQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultAccountOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *accountPager) applyOrder(query *AccountQuery, reverse bool) *AccountQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultAccountOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultAccountOrder.Field.field))
+	}
+	return query
+}
+
+// Paginate executes the query and returns a relay based cursor connection to Account.
+func (a *AccountQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...AccountPaginateOption,
+) (*AccountConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newAccountPager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if a, err = pager.applyFilter(a); err != nil {
+		return nil, err
+	}
+
+	conn := &AccountConnection{Edges: []*AccountEdge{}}
+	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
+		if hasCollectedField(ctx, totalCountField) ||
+			hasCollectedField(ctx, pageInfoField) {
+			count, err := a.Count(ctx)
+			if err != nil {
+				return nil, err
+			}
+			conn.TotalCount = count
+			conn.PageInfo.HasNextPage = first != nil && count > 0
+			conn.PageInfo.HasPreviousPage = last != nil && count > 0
+		}
+		return conn, nil
+	}
+
+	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
+		count, err := a.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		conn.TotalCount = count
+	}
+
+	a = pager.applyCursors(a, after, before)
+	a = pager.applyOrder(a, last != nil)
+	var limit int
+	if first != nil {
+		limit = *first + 1
+	} else if last != nil {
+		limit = *last + 1
+	}
+	if limit > 0 {
+		a = a.Limit(limit)
+	}
+
+	if field := getCollectedField(ctx, edgesField, nodeField); field != nil {
+		a = a.collectField(graphql.GetOperationContext(ctx), *field)
+	}
+
+	nodes, err := a.All(ctx)
+	if err != nil || len(nodes) == 0 {
+		return conn, err
+	}
+
+	if len(nodes) == limit {
+		conn.PageInfo.HasNextPage = first != nil
+		conn.PageInfo.HasPreviousPage = last != nil
+		nodes = nodes[:len(nodes)-1]
+	}
+
+	var nodeAt func(int) *Account
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *Account {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *Account {
+			return nodes[i]
+		}
+	}
+
+	conn.Edges = make([]*AccountEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		conn.Edges[i] = &AccountEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+
+	conn.PageInfo.StartCursor = &conn.Edges[0].Cursor
+	conn.PageInfo.EndCursor = &conn.Edges[len(conn.Edges)-1].Cursor
+	if conn.TotalCount == 0 {
+		conn.TotalCount = len(nodes)
+	}
+
+	return conn, nil
+}
+
+// AccountOrderField defines the ordering field of Account.
+type AccountOrderField struct {
+	field    string
+	toCursor func(*Account) Cursor
+}
+
+// AccountOrder defines the ordering of Account.
+type AccountOrder struct {
+	Direction OrderDirection     `json:"direction"`
+	Field     *AccountOrderField `json:"field"`
+}
+
+// DefaultAccountOrder is the default ordering of Account.
+var DefaultAccountOrder = &AccountOrder{
+	Direction: OrderDirectionAsc,
+	Field: &AccountOrderField{
+		field: account.FieldID,
+		toCursor: func(a *Account) Cursor {
+			return Cursor{ID: a.ID}
+		},
+	},
+}
+
+// ToEdge converts Account into AccountEdge.
+func (a *Account) ToEdge(order *AccountOrder) *AccountEdge {
+	if order == nil {
+		order = DefaultAccountOrder
+	}
+	return &AccountEdge{
+		Node:   a,
+		Cursor: order.Field.toCursor(a),
+	}
+}
+
+// AccountInviteEdge is the edge representation of AccountInvite.
+type AccountInviteEdge struct {
+	Node   *AccountInvite `json:"node"`
+	Cursor Cursor         `json:"cursor"`
+}
+
+// AccountInviteConnection is the connection containing edges to AccountInvite.
+type AccountInviteConnection struct {
+	Edges      []*AccountInviteEdge `json:"edges"`
+	PageInfo   PageInfo             `json:"pageInfo"`
+	TotalCount int                  `json:"totalCount"`
+}
+
+// AccountInvitePaginateOption enables pagination customization.
+type AccountInvitePaginateOption func(*accountInvitePager) error
+
+// WithAccountInviteOrder configures pagination ordering.
+func WithAccountInviteOrder(order *AccountInviteOrder) AccountInvitePaginateOption {
+	if order == nil {
+		order = DefaultAccountInviteOrder
+	}
+	o := *order
+	return func(pager *accountInvitePager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultAccountInviteOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithAccountInviteFilter configures pagination filter.
+func WithAccountInviteFilter(filter func(*AccountInviteQuery) (*AccountInviteQuery, error)) AccountInvitePaginateOption {
+	return func(pager *accountInvitePager) error {
+		if filter == nil {
+			return errors.New("AccountInviteQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type accountInvitePager struct {
+	order  *AccountInviteOrder
+	filter func(*AccountInviteQuery) (*AccountInviteQuery, error)
+}
+
+func newAccountInvitePager(opts []AccountInvitePaginateOption) (*accountInvitePager, error) {
+	pager := &accountInvitePager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultAccountInviteOrder
+	}
+	return pager, nil
+}
+
+func (p *accountInvitePager) applyFilter(query *AccountInviteQuery) (*AccountInviteQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *accountInvitePager) toCursor(ai *AccountInvite) Cursor {
+	return p.order.Field.toCursor(ai)
+}
+
+func (p *accountInvitePager) applyCursors(query *AccountInviteQuery, after, before *Cursor) *AccountInviteQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultAccountInviteOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *accountInvitePager) applyOrder(query *AccountInviteQuery, reverse bool) *AccountInviteQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultAccountInviteOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultAccountInviteOrder.Field.field))
+	}
+	return query
+}
+
+// Paginate executes the query and returns a relay based cursor connection to AccountInvite.
+func (ai *AccountInviteQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...AccountInvitePaginateOption,
+) (*AccountInviteConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newAccountInvitePager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if ai, err = pager.applyFilter(ai); err != nil {
+		return nil, err
+	}
+
+	conn := &AccountInviteConnection{Edges: []*AccountInviteEdge{}}
+	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
+		if hasCollectedField(ctx, totalCountField) ||
+			hasCollectedField(ctx, pageInfoField) {
+			count, err := ai.Count(ctx)
+			if err != nil {
+				return nil, err
+			}
+			conn.TotalCount = count
+			conn.PageInfo.HasNextPage = first != nil && count > 0
+			conn.PageInfo.HasPreviousPage = last != nil && count > 0
+		}
+		return conn, nil
+	}
+
+	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
+		count, err := ai.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		conn.TotalCount = count
+	}
+
+	ai = pager.applyCursors(ai, after, before)
+	ai = pager.applyOrder(ai, last != nil)
+	var limit int
+	if first != nil {
+		limit = *first + 1
+	} else if last != nil {
+		limit = *last + 1
+	}
+	if limit > 0 {
+		ai = ai.Limit(limit)
+	}
+
+	if field := getCollectedField(ctx, edgesField, nodeField); field != nil {
+		ai = ai.collectField(graphql.GetOperationContext(ctx), *field)
+	}
+
+	nodes, err := ai.All(ctx)
+	if err != nil || len(nodes) == 0 {
+		return conn, err
+	}
+
+	if len(nodes) == limit {
+		conn.PageInfo.HasNextPage = first != nil
+		conn.PageInfo.HasPreviousPage = last != nil
+		nodes = nodes[:len(nodes)-1]
+	}
+
+	var nodeAt func(int) *AccountInvite
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *AccountInvite {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *AccountInvite {
+			return nodes[i]
+		}
+	}
+
+	conn.Edges = make([]*AccountInviteEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		conn.Edges[i] = &AccountInviteEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+
+	conn.PageInfo.StartCursor = &conn.Edges[0].Cursor
+	conn.PageInfo.EndCursor = &conn.Edges[len(conn.Edges)-1].Cursor
+	if conn.TotalCount == 0 {
+		conn.TotalCount = len(nodes)
+	}
+
+	return conn, nil
+}
+
+// AccountInviteOrderField defines the ordering field of AccountInvite.
+type AccountInviteOrderField struct {
+	field    string
+	toCursor func(*AccountInvite) Cursor
+}
+
+// AccountInviteOrder defines the ordering of AccountInvite.
+type AccountInviteOrder struct {
+	Direction OrderDirection           `json:"direction"`
+	Field     *AccountInviteOrderField `json:"field"`
+}
+
+// DefaultAccountInviteOrder is the default ordering of AccountInvite.
+var DefaultAccountInviteOrder = &AccountInviteOrder{
+	Direction: OrderDirectionAsc,
+	Field: &AccountInviteOrderField{
+		field: accountinvite.FieldID,
+		toCursor: func(ai *AccountInvite) Cursor {
+			return Cursor{ID: ai.ID}
+		},
+	},
+}
+
+// ToEdge converts AccountInvite into AccountInviteEdge.
+func (ai *AccountInvite) ToEdge(order *AccountInviteOrder) *AccountInviteEdge {
+	if order == nil {
+		order = DefaultAccountInviteOrder
+	}
+	return &AccountInviteEdge{
+		Node:   ai,
+		Cursor: order.Field.toCursor(ai),
+	}
+}
+
+// AccountMemberEdge is the edge representation of AccountMember.
+type AccountMemberEdge struct {
+	Node   *AccountMember `json:"node"`
+	Cursor Cursor         `json:"cursor"`
+}
+
+// AccountMemberConnection is the connection containing edges to AccountMember.
+type AccountMemberConnection struct {
+	Edges      []*AccountMemberEdge `json:"edges"`
+	PageInfo   PageInfo             `json:"pageInfo"`
+	TotalCount int                  `json:"totalCount"`
+}
+
+// AccountMemberPaginateOption enables pagination customization.
+type AccountMemberPaginateOption func(*accountMemberPager) error
+
+// WithAccountMemberOrder configures pagination ordering.
+func WithAccountMemberOrder(order *AccountMemberOrder) AccountMemberPaginateOption {
+	if order == nil {
+		order = DefaultAccountMemberOrder
+	}
+	o := *order
+	return func(pager *accountMemberPager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultAccountMemberOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithAccountMemberFilter configures pagination filter.
+func WithAccountMemberFilter(filter func(*AccountMemberQuery) (*AccountMemberQuery, error)) AccountMemberPaginateOption {
+	return func(pager *accountMemberPager) error {
+		if filter == nil {
+			return errors.New("AccountMemberQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type accountMemberPager struct {
+	order  *AccountMemberOrder
+	filter func(*AccountMemberQuery) (*AccountMemberQuery, error)
+}
+
+func newAccountMemberPager(opts []AccountMemberPaginateOption) (*accountMemberPager, error) {
+	pager := &accountMemberPager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultAccountMemberOrder
+	}
+	return pager, nil
+}
+
+func (p *accountMemberPager) applyFilter(query *AccountMemberQuery) (*AccountMemberQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *accountMemberPager) toCursor(am *AccountMember) Cursor {
+	return p.order.Field.toCursor(am)
+}
+
+func (p *accountMemberPager) applyCursors(query *AccountMemberQuery, after, before *Cursor) *AccountMemberQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultAccountMemberOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *accountMemberPager) applyOrder(query *AccountMemberQuery, reverse bool) *AccountMemberQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultAccountMemberOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultAccountMemberOrder.Field.field))
+	}
+	return query
+}
+
+// Paginate executes the query and returns a relay based cursor connection to AccountMember.
+func (am *AccountMemberQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...AccountMemberPaginateOption,
+) (*AccountMemberConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newAccountMemberPager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if am, err = pager.applyFilter(am); err != nil {
+		return nil, err
+	}
+
+	conn := &AccountMemberConnection{Edges: []*AccountMemberEdge{}}
+	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
+		if hasCollectedField(ctx, totalCountField) ||
+			hasCollectedField(ctx, pageInfoField) {
+			count, err := am.Count(ctx)
+			if err != nil {
+				return nil, err
+			}
+			conn.TotalCount = count
+			conn.PageInfo.HasNextPage = first != nil && count > 0
+			conn.PageInfo.HasPreviousPage = last != nil && count > 0
+		}
+		return conn, nil
+	}
+
+	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
+		count, err := am.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		conn.TotalCount = count
+	}
+
+	am = pager.applyCursors(am, after, before)
+	am = pager.applyOrder(am, last != nil)
+	var limit int
+	if first != nil {
+		limit = *first + 1
+	} else if last != nil {
+		limit = *last + 1
+	}
+	if limit > 0 {
+		am = am.Limit(limit)
+	}
+
+	if field := getCollectedField(ctx, edgesField, nodeField); field != nil {
+		am = am.collectField(graphql.GetOperationContext(ctx), *field)
+	}
+
+	nodes, err := am.All(ctx)
+	if err != nil || len(nodes) == 0 {
+		return conn, err
+	}
+
+	if len(nodes) == limit {
+		conn.PageInfo.HasNextPage = first != nil
+		conn.PageInfo.HasPreviousPage = last != nil
+		nodes = nodes[:len(nodes)-1]
+	}
+
+	var nodeAt func(int) *AccountMember
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *AccountMember {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *AccountMember {
+			return nodes[i]
+		}
+	}
+
+	conn.Edges = make([]*AccountMemberEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		conn.Edges[i] = &AccountMemberEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+
+	conn.PageInfo.StartCursor = &conn.Edges[0].Cursor
+	conn.PageInfo.EndCursor = &conn.Edges[len(conn.Edges)-1].Cursor
+	if conn.TotalCount == 0 {
+		conn.TotalCount = len(nodes)
+	}
+
+	return conn, nil
+}
+
+// AccountMemberOrderField defines the ordering field of AccountMember.
+type AccountMemberOrderField struct {
+	field    string
+	toCursor func(*AccountMember) Cursor
+}
+
+// AccountMemberOrder defines the ordering of AccountMember.
+type AccountMemberOrder struct {
+	Direction OrderDirection           `json:"direction"`
+	Field     *AccountMemberOrderField `json:"field"`
+}
+
+// DefaultAccountMemberOrder is the default ordering of AccountMember.
+var DefaultAccountMemberOrder = &AccountMemberOrder{
+	Direction: OrderDirectionAsc,
+	Field: &AccountMemberOrderField{
+		field: accountmember.FieldID,
+		toCursor: func(am *AccountMember) Cursor {
+			return Cursor{ID: am.ID}
+		},
+	},
+}
+
+// ToEdge converts AccountMember into AccountMemberEdge.
+func (am *AccountMember) ToEdge(order *AccountMemberOrder) *AccountMemberEdge {
+	if order == nil {
+		order = DefaultAccountMemberOrder
+	}
+	return &AccountMemberEdge{
+		Node:   am,
+		Cursor: order.Field.toCursor(am),
+	}
+}
 
 // ItemEdge is the edge representation of Item.
 type ItemEdge struct {

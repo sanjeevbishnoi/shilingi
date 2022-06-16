@@ -8,6 +8,9 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/kingzbauer/shilingi/app-engine/ent/account"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountinvite"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountmember"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
@@ -37,6 +40,9 @@ type OrderFunc func(*sql.Selector)
 // columnChecker returns a function indicates if the column exists in the given column.
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
+		account.Table:          account.ValidColumn,
+		accountinvite.Table:    accountinvite.ValidColumn,
+		accountmember.Table:    accountmember.ValidColumn,
 		item.Table:             item.ValidColumn,
 		shopping.Table:         shopping.ValidColumn,
 		shoppingitem.Table:     shoppingitem.ValidColumn,

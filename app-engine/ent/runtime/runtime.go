@@ -5,6 +5,9 @@ package runtime
 import (
 	"time"
 
+	"github.com/kingzbauer/shilingi/app-engine/ent/account"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountinvite"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountmember"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/schema"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
@@ -21,6 +24,55 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	accountMixin := schema.Account{}.Mixin()
+	accountMixinFields0 := accountMixin[0].Fields()
+	_ = accountMixinFields0
+	accountFields := schema.Account{}.Fields()
+	_ = accountFields
+	// accountDescCreateTime is the schema descriptor for create_time field.
+	accountDescCreateTime := accountMixinFields0[0].Descriptor()
+	// account.DefaultCreateTime holds the default value on creation for the create_time field.
+	account.DefaultCreateTime = accountDescCreateTime.Default.(func() time.Time)
+	// accountDescUpdateTime is the schema descriptor for update_time field.
+	accountDescUpdateTime := accountMixinFields0[1].Descriptor()
+	// account.DefaultUpdateTime holds the default value on creation for the update_time field.
+	account.DefaultUpdateTime = accountDescUpdateTime.Default.(func() time.Time)
+	// account.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	account.UpdateDefaultUpdateTime = accountDescUpdateTime.UpdateDefault.(func() time.Time)
+	// accountDescName is the schema descriptor for name field.
+	accountDescName := accountFields[0].Descriptor()
+	// account.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	account.NameValidator = accountDescName.Validators[0].(func(string) error)
+	accountinviteMixin := schema.AccountInvite{}.Mixin()
+	accountinviteMixinFields0 := accountinviteMixin[0].Fields()
+	_ = accountinviteMixinFields0
+	accountinviteFields := schema.AccountInvite{}.Fields()
+	_ = accountinviteFields
+	// accountinviteDescCreateTime is the schema descriptor for create_time field.
+	accountinviteDescCreateTime := accountinviteMixinFields0[0].Descriptor()
+	// accountinvite.DefaultCreateTime holds the default value on creation for the create_time field.
+	accountinvite.DefaultCreateTime = accountinviteDescCreateTime.Default.(func() time.Time)
+	// accountinviteDescUpdateTime is the schema descriptor for update_time field.
+	accountinviteDescUpdateTime := accountinviteMixinFields0[1].Descriptor()
+	// accountinvite.DefaultUpdateTime holds the default value on creation for the update_time field.
+	accountinvite.DefaultUpdateTime = accountinviteDescUpdateTime.Default.(func() time.Time)
+	// accountinvite.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	accountinvite.UpdateDefaultUpdateTime = accountinviteDescUpdateTime.UpdateDefault.(func() time.Time)
+	accountmemberMixin := schema.AccountMember{}.Mixin()
+	accountmemberMixinFields0 := accountmemberMixin[0].Fields()
+	_ = accountmemberMixinFields0
+	accountmemberFields := schema.AccountMember{}.Fields()
+	_ = accountmemberFields
+	// accountmemberDescCreateTime is the schema descriptor for create_time field.
+	accountmemberDescCreateTime := accountmemberMixinFields0[0].Descriptor()
+	// accountmember.DefaultCreateTime holds the default value on creation for the create_time field.
+	accountmember.DefaultCreateTime = accountmemberDescCreateTime.Default.(func() time.Time)
+	// accountmemberDescUpdateTime is the schema descriptor for update_time field.
+	accountmemberDescUpdateTime := accountmemberMixinFields0[1].Descriptor()
+	// accountmember.DefaultUpdateTime holds the default value on creation for the update_time field.
+	accountmember.DefaultUpdateTime = accountmemberDescUpdateTime.Default.(func() time.Time)
+	// accountmember.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	accountmember.UpdateDefaultUpdateTime = accountmemberDescUpdateTime.UpdateDefault.(func() time.Time)
 	itemMixin := schema.Item{}.Mixin()
 	itemMixinFields0 := itemMixin[0].Fields()
 	_ = itemMixinFields0

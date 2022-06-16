@@ -10,6 +10,8 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountinvite"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountmember"
 	"github.com/kingzbauer/shilingi/app-engine/ent/user"
 )
 
@@ -114,6 +116,36 @@ func (uc *UserCreate) SetNillableExternalSource(us *user.ExternalSource) *UserCr
 		uc.SetExternalSource(*us)
 	}
 	return uc
+}
+
+// AddInviteIDs adds the "invites" edge to the AccountInvite entity by IDs.
+func (uc *UserCreate) AddInviteIDs(ids ...int) *UserCreate {
+	uc.mutation.AddInviteIDs(ids...)
+	return uc
+}
+
+// AddInvites adds the "invites" edges to the AccountInvite entity.
+func (uc *UserCreate) AddInvites(a ...*AccountInvite) *UserCreate {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uc.AddInviteIDs(ids...)
+}
+
+// AddMembershipIDs adds the "memberships" edge to the AccountMember entity by IDs.
+func (uc *UserCreate) AddMembershipIDs(ids ...int) *UserCreate {
+	uc.mutation.AddMembershipIDs(ids...)
+	return uc
+}
+
+// AddMemberships adds the "memberships" edges to the AccountMember entity.
+func (uc *UserCreate) AddMemberships(a ...*AccountMember) *UserCreate {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uc.AddMembershipIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -313,6 +345,44 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Column: user.FieldExternalSource,
 		})
 		_node.ExternalSource = value
+	}
+	if nodes := uc.mutation.InvitesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.InvitesTable,
+			Columns: []string{user.InvitesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: accountinvite.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.MembershipsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.MembershipsTable,
+			Columns: []string{user.MembershipsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: accountmember.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

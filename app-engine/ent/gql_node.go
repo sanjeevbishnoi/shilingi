@@ -15,6 +15,9 @@ import (
 	"entgo.io/ent/dialect/sql/schema"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/hashicorp/go-multierror"
+	"github.com/kingzbauer/shilingi/app-engine/ent/account"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountinvite"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountmember"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
@@ -52,6 +55,199 @@ type Edge struct {
 	Type string `json:"type,omitempty"` // edge type.
 	Name string `json:"name,omitempty"` // edge name.
 	IDs  []int  `json:"ids,omitempty"`  // node ids (where this edge point to).
+}
+
+func (a *Account) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     a.ID,
+		Type:   "Account",
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 2),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(a.CreateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "create_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(a.UpdateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "update_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(a.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "AccountMember",
+		Name: "members",
+	}
+	err = a.QueryMembers().
+		Select(accountmember.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "AccountInvite",
+		Name: "invites",
+	}
+	err = a.QueryInvites().
+		Select(accountinvite.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (ai *AccountInvite) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     ai.ID,
+		Type:   "AccountInvite",
+		Fields: make([]*Field, 4),
+		Edges:  make([]*Edge, 3),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(ai.CreateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "create_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(ai.UpdateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "update_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(ai.Email); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "email",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(ai.Status); err != nil {
+		return nil, err
+	}
+	node.Fields[3] = &Field{
+		Type:  "accountinvite.Status",
+		Name:  "status",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Account",
+		Name: "account",
+	}
+	err = ai.QueryAccount().
+		Select(account.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "User",
+		Name: "user",
+	}
+	err = ai.QueryUser().
+		Select(user.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[2] = &Edge{
+		Type: "AccountMember",
+		Name: "member",
+	}
+	err = ai.QueryMember().
+		Select(accountmember.FieldID).
+		Scan(ctx, &node.Edges[2].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (am *AccountMember) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     am.ID,
+		Type:   "AccountMember",
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 3),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(am.CreateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "create_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(am.UpdateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "update_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(am.Type); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "accountmember.Type",
+		Name:  "type",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Account",
+		Name: "account",
+	}
+	err = am.QueryAccount().
+		Select(account.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "User",
+		Name: "user",
+	}
+	err = am.QueryUser().
+		Select(user.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[2] = &Edge{
+		Type: "AccountInvite",
+		Name: "invite",
+	}
+	err = am.QueryInvite().
+		Select(accountinvite.FieldID).
+		Scan(ctx, &node.Edges[2].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
 }
 
 func (i *Item) Node(ctx context.Context) (node *Node, err error) {
@@ -518,7 +714,7 @@ func (u *User) Node(ctx context.Context) (node *Node, err error) {
 		ID:     u.ID,
 		Type:   "User",
 		Fields: make([]*Field, 8),
-		Edges:  make([]*Edge, 0),
+		Edges:  make([]*Edge, 2),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(u.CreateTime); err != nil {
@@ -584,6 +780,26 @@ func (u *User) Node(ctx context.Context) (node *Node, err error) {
 		Type:  "user.ExternalSource",
 		Name:  "external_source",
 		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "AccountInvite",
+		Name: "invites",
+	}
+	err = u.QueryInvites().
+		Select(accountinvite.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "AccountMember",
+		Name: "memberships",
+	}
+	err = u.QueryMemberships().
+		Select(accountmember.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
 	}
 	return node, nil
 }
@@ -708,6 +924,33 @@ func (c *Client) Noder(ctx context.Context, id int, opts ...NodeOption) (_ Noder
 
 func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error) {
 	switch table {
+	case account.Table:
+		n, err := c.Account.Query().
+			Where(account.ID(id)).
+			CollectFields(ctx, "Account").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case accountinvite.Table:
+		n, err := c.AccountInvite.Query().
+			Where(accountinvite.ID(id)).
+			CollectFields(ctx, "AccountInvite").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case accountmember.Table:
+		n, err := c.AccountMember.Query().
+			Where(accountmember.ID(id)).
+			CollectFields(ctx, "AccountMember").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case item.Table:
 		n, err := c.Item.Query().
 			Where(item.ID(id)).
@@ -862,6 +1105,45 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		idmap[id] = append(idmap[id], &noders[i])
 	}
 	switch table {
+	case account.Table:
+		nodes, err := c.Account.Query().
+			Where(account.IDIn(ids...)).
+			CollectFields(ctx, "Account").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case accountinvite.Table:
+		nodes, err := c.AccountInvite.Query().
+			Where(accountinvite.IDIn(ids...)).
+			CollectFields(ctx, "AccountInvite").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case accountmember.Table:
+		nodes, err := c.AccountMember.Query().
+			Where(accountmember.IDIn(ids...)).
+			CollectFields(ctx, "AccountMember").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
 	case item.Table:
 		nodes, err := c.Item.Query().
 			Where(item.IDIn(ids...)).

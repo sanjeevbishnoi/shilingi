@@ -30,8 +30,26 @@ const (
 	FieldIsEmailVerified = "is_email_verified"
 	// FieldExternalSource holds the string denoting the external_source field in the database.
 	FieldExternalSource = "external_source"
+	// EdgeInvites holds the string denoting the invites edge name in mutations.
+	EdgeInvites = "invites"
+	// EdgeMemberships holds the string denoting the memberships edge name in mutations.
+	EdgeMemberships = "memberships"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// InvitesTable is the table that holds the invites relation/edge.
+	InvitesTable = "account_invites"
+	// InvitesInverseTable is the table name for the AccountInvite entity.
+	// It exists in this package in order to avoid circular dependency with the "accountinvite" package.
+	InvitesInverseTable = "account_invites"
+	// InvitesColumn is the table column denoting the invites relation/edge.
+	InvitesColumn = "user_invites"
+	// MembershipsTable is the table that holds the memberships relation/edge.
+	MembershipsTable = "account_members"
+	// MembershipsInverseTable is the table name for the AccountMember entity.
+	// It exists in this package in order to avoid circular dependency with the "accountmember" package.
+	MembershipsInverseTable = "account_members"
+	// MembershipsColumn is the table column denoting the memberships relation/edge.
+	MembershipsColumn = "user_memberships"
 )
 
 // Columns holds all SQL columns for user fields.

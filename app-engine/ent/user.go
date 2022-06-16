@@ -34,6 +34,38 @@ type User struct {
 	IsEmailVerified bool `json:"is_email_verified,omitempty"`
 	// ExternalSource holds the value of the "external_source" field.
 	ExternalSource user.ExternalSource `json:"external_source,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges UserEdges `json:"edges"`
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// Invites holds the value of the invites edge.
+	Invites []*AccountInvite `json:"invites,omitempty"`
+	// Memberships holds the value of the memberships edge.
+	Memberships []*AccountMember `json:"memberships,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [2]bool
+}
+
+// InvitesOrErr returns the Invites value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) InvitesOrErr() ([]*AccountInvite, error) {
+	if e.loadedTypes[0] {
+		return e.Invites, nil
+	}
+	return nil, &NotLoadedError{edge: "invites"}
+}
+
+// MembershipsOrErr returns the Memberships value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) MembershipsOrErr() ([]*AccountMember, error) {
+	if e.loadedTypes[1] {
+		return e.Memberships, nil
+	}
+	return nil, &NotLoadedError{edge: "memberships"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -121,6 +153,16 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 		}
 	}
 	return nil
+}
+
+// QueryInvites queries the "invites" edge of the User entity.
+func (u *User) QueryInvites() *AccountInviteQuery {
+	return (&UserClient{config: u.config}).QueryInvites(u)
+}
+
+// QueryMemberships queries the "memberships" edge of the User entity.
+func (u *User) QueryMemberships() *AccountMemberQuery {
+	return (&UserClient{config: u.config}).QueryMemberships(u)
 }
 
 // Update returns a builder for updating this User.

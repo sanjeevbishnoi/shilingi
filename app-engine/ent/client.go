@@ -9,6 +9,9 @@ import (
 
 	"github.com/kingzbauer/shilingi/app-engine/ent/migrate"
 
+	"github.com/kingzbauer/shilingi/app-engine/ent/account"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountinvite"
+	"github.com/kingzbauer/shilingi/app-engine/ent/accountmember"
 	"github.com/kingzbauer/shilingi/app-engine/ent/item"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shopping"
 	"github.com/kingzbauer/shilingi/app-engine/ent/shoppingitem"
@@ -29,6 +32,12 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Account is the client for interacting with the Account builders.
+	Account *AccountClient
+	// AccountInvite is the client for interacting with the AccountInvite builders.
+	AccountInvite *AccountInviteClient
+	// AccountMember is the client for interacting with the AccountMember builders.
+	AccountMember *AccountMemberClient
 	// Item is the client for interacting with the Item builders.
 	Item *ItemClient
 	// Shopping is the client for interacting with the Shopping builders.
@@ -62,6 +71,9 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Account = NewAccountClient(c.config)
+	c.AccountInvite = NewAccountInviteClient(c.config)
+	c.AccountMember = NewAccountMemberClient(c.config)
 	c.Item = NewItemClient(c.config)
 	c.Shopping = NewShoppingClient(c.config)
 	c.ShoppingItem = NewShoppingItemClient(c.config)
@@ -104,6 +116,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:              ctx,
 		config:           cfg,
+		Account:          NewAccountClient(cfg),
+		AccountInvite:    NewAccountInviteClient(cfg),
+		AccountMember:    NewAccountMemberClient(cfg),
 		Item:             NewItemClient(cfg),
 		Shopping:         NewShoppingClient(cfg),
 		ShoppingItem:     NewShoppingItemClient(cfg),
@@ -131,6 +146,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
 		config:           cfg,
+		Account:          NewAccountClient(cfg),
+		AccountInvite:    NewAccountInviteClient(cfg),
+		AccountMember:    NewAccountMemberClient(cfg),
 		Item:             NewItemClient(cfg),
 		Shopping:         NewShoppingClient(cfg),
 		ShoppingItem:     NewShoppingItemClient(cfg),
@@ -146,7 +164,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Item.
+//		Account.
 //		Query().
 //		Count(ctx)
 //
@@ -169,6 +187,9 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Account.Use(hooks...)
+	c.AccountInvite.Use(hooks...)
+	c.AccountMember.Use(hooks...)
 	c.Item.Use(hooks...)
 	c.Shopping.Use(hooks...)
 	c.ShoppingItem.Use(hooks...)
@@ -178,6 +199,404 @@ func (c *Client) Use(hooks ...Hook) {
 	c.Tag.Use(hooks...)
 	c.User.Use(hooks...)
 	c.Vendor.Use(hooks...)
+}
+
+// AccountClient is a client for the Account schema.
+type AccountClient struct {
+	config
+}
+
+// NewAccountClient returns a client for the Account from the given config.
+func NewAccountClient(c config) *AccountClient {
+	return &AccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `account.Hooks(f(g(h())))`.
+func (c *AccountClient) Use(hooks ...Hook) {
+	c.hooks.Account = append(c.hooks.Account, hooks...)
+}
+
+// Create returns a create builder for Account.
+func (c *AccountClient) Create() *AccountCreate {
+	mutation := newAccountMutation(c.config, OpCreate)
+	return &AccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Account entities.
+func (c *AccountClient) CreateBulk(builders ...*AccountCreate) *AccountCreateBulk {
+	return &AccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Account.
+func (c *AccountClient) Update() *AccountUpdate {
+	mutation := newAccountMutation(c.config, OpUpdate)
+	return &AccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AccountClient) UpdateOne(a *Account) *AccountUpdateOne {
+	mutation := newAccountMutation(c.config, OpUpdateOne, withAccount(a))
+	return &AccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AccountClient) UpdateOneID(id int) *AccountUpdateOne {
+	mutation := newAccountMutation(c.config, OpUpdateOne, withAccountID(id))
+	return &AccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Account.
+func (c *AccountClient) Delete() *AccountDelete {
+	mutation := newAccountMutation(c.config, OpDelete)
+	return &AccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *AccountClient) DeleteOne(a *Account) *AccountDeleteOne {
+	return c.DeleteOneID(a.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *AccountClient) DeleteOneID(id int) *AccountDeleteOne {
+	builder := c.Delete().Where(account.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AccountDeleteOne{builder}
+}
+
+// Query returns a query builder for Account.
+func (c *AccountClient) Query() *AccountQuery {
+	return &AccountQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Account entity by its id.
+func (c *AccountClient) Get(ctx context.Context, id int) (*Account, error) {
+	return c.Query().Where(account.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AccountClient) GetX(ctx context.Context, id int) *Account {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryMembers queries the members edge of a Account.
+func (c *AccountClient) QueryMembers(a *Account) *AccountMemberQuery {
+	query := &AccountMemberQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, id),
+			sqlgraph.To(accountmember.Table, accountmember.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, account.MembersTable, account.MembersColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryInvites queries the invites edge of a Account.
+func (c *AccountClient) QueryInvites(a *Account) *AccountInviteQuery {
+	query := &AccountInviteQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, id),
+			sqlgraph.To(accountinvite.Table, accountinvite.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, account.InvitesTable, account.InvitesColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AccountClient) Hooks() []Hook {
+	return c.hooks.Account
+}
+
+// AccountInviteClient is a client for the AccountInvite schema.
+type AccountInviteClient struct {
+	config
+}
+
+// NewAccountInviteClient returns a client for the AccountInvite from the given config.
+func NewAccountInviteClient(c config) *AccountInviteClient {
+	return &AccountInviteClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `accountinvite.Hooks(f(g(h())))`.
+func (c *AccountInviteClient) Use(hooks ...Hook) {
+	c.hooks.AccountInvite = append(c.hooks.AccountInvite, hooks...)
+}
+
+// Create returns a create builder for AccountInvite.
+func (c *AccountInviteClient) Create() *AccountInviteCreate {
+	mutation := newAccountInviteMutation(c.config, OpCreate)
+	return &AccountInviteCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AccountInvite entities.
+func (c *AccountInviteClient) CreateBulk(builders ...*AccountInviteCreate) *AccountInviteCreateBulk {
+	return &AccountInviteCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AccountInvite.
+func (c *AccountInviteClient) Update() *AccountInviteUpdate {
+	mutation := newAccountInviteMutation(c.config, OpUpdate)
+	return &AccountInviteUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AccountInviteClient) UpdateOne(ai *AccountInvite) *AccountInviteUpdateOne {
+	mutation := newAccountInviteMutation(c.config, OpUpdateOne, withAccountInvite(ai))
+	return &AccountInviteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AccountInviteClient) UpdateOneID(id int) *AccountInviteUpdateOne {
+	mutation := newAccountInviteMutation(c.config, OpUpdateOne, withAccountInviteID(id))
+	return &AccountInviteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AccountInvite.
+func (c *AccountInviteClient) Delete() *AccountInviteDelete {
+	mutation := newAccountInviteMutation(c.config, OpDelete)
+	return &AccountInviteDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *AccountInviteClient) DeleteOne(ai *AccountInvite) *AccountInviteDeleteOne {
+	return c.DeleteOneID(ai.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *AccountInviteClient) DeleteOneID(id int) *AccountInviteDeleteOne {
+	builder := c.Delete().Where(accountinvite.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AccountInviteDeleteOne{builder}
+}
+
+// Query returns a query builder for AccountInvite.
+func (c *AccountInviteClient) Query() *AccountInviteQuery {
+	return &AccountInviteQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a AccountInvite entity by its id.
+func (c *AccountInviteClient) Get(ctx context.Context, id int) (*AccountInvite, error) {
+	return c.Query().Where(accountinvite.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AccountInviteClient) GetX(ctx context.Context, id int) *AccountInvite {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAccount queries the account edge of a AccountInvite.
+func (c *AccountInviteClient) QueryAccount(ai *AccountInvite) *AccountQuery {
+	query := &AccountQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := ai.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(accountinvite.Table, accountinvite.FieldID, id),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, accountinvite.AccountTable, accountinvite.AccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(ai.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a AccountInvite.
+func (c *AccountInviteClient) QueryUser(ai *AccountInvite) *UserQuery {
+	query := &UserQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := ai.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(accountinvite.Table, accountinvite.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, accountinvite.UserTable, accountinvite.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(ai.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryMember queries the member edge of a AccountInvite.
+func (c *AccountInviteClient) QueryMember(ai *AccountInvite) *AccountMemberQuery {
+	query := &AccountMemberQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := ai.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(accountinvite.Table, accountinvite.FieldID, id),
+			sqlgraph.To(accountmember.Table, accountmember.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, accountinvite.MemberTable, accountinvite.MemberColumn),
+		)
+		fromV = sqlgraph.Neighbors(ai.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AccountInviteClient) Hooks() []Hook {
+	return c.hooks.AccountInvite
+}
+
+// AccountMemberClient is a client for the AccountMember schema.
+type AccountMemberClient struct {
+	config
+}
+
+// NewAccountMemberClient returns a client for the AccountMember from the given config.
+func NewAccountMemberClient(c config) *AccountMemberClient {
+	return &AccountMemberClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `accountmember.Hooks(f(g(h())))`.
+func (c *AccountMemberClient) Use(hooks ...Hook) {
+	c.hooks.AccountMember = append(c.hooks.AccountMember, hooks...)
+}
+
+// Create returns a create builder for AccountMember.
+func (c *AccountMemberClient) Create() *AccountMemberCreate {
+	mutation := newAccountMemberMutation(c.config, OpCreate)
+	return &AccountMemberCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AccountMember entities.
+func (c *AccountMemberClient) CreateBulk(builders ...*AccountMemberCreate) *AccountMemberCreateBulk {
+	return &AccountMemberCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AccountMember.
+func (c *AccountMemberClient) Update() *AccountMemberUpdate {
+	mutation := newAccountMemberMutation(c.config, OpUpdate)
+	return &AccountMemberUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AccountMemberClient) UpdateOne(am *AccountMember) *AccountMemberUpdateOne {
+	mutation := newAccountMemberMutation(c.config, OpUpdateOne, withAccountMember(am))
+	return &AccountMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AccountMemberClient) UpdateOneID(id int) *AccountMemberUpdateOne {
+	mutation := newAccountMemberMutation(c.config, OpUpdateOne, withAccountMemberID(id))
+	return &AccountMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AccountMember.
+func (c *AccountMemberClient) Delete() *AccountMemberDelete {
+	mutation := newAccountMemberMutation(c.config, OpDelete)
+	return &AccountMemberDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *AccountMemberClient) DeleteOne(am *AccountMember) *AccountMemberDeleteOne {
+	return c.DeleteOneID(am.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *AccountMemberClient) DeleteOneID(id int) *AccountMemberDeleteOne {
+	builder := c.Delete().Where(accountmember.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AccountMemberDeleteOne{builder}
+}
+
+// Query returns a query builder for AccountMember.
+func (c *AccountMemberClient) Query() *AccountMemberQuery {
+	return &AccountMemberQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a AccountMember entity by its id.
+func (c *AccountMemberClient) Get(ctx context.Context, id int) (*AccountMember, error) {
+	return c.Query().Where(accountmember.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AccountMemberClient) GetX(ctx context.Context, id int) *AccountMember {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAccount queries the account edge of a AccountMember.
+func (c *AccountMemberClient) QueryAccount(am *AccountMember) *AccountQuery {
+	query := &AccountQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := am.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(accountmember.Table, accountmember.FieldID, id),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, accountmember.AccountTable, accountmember.AccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(am.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a AccountMember.
+func (c *AccountMemberClient) QueryUser(am *AccountMember) *UserQuery {
+	query := &UserQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := am.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(accountmember.Table, accountmember.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, accountmember.UserTable, accountmember.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(am.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryInvite queries the invite edge of a AccountMember.
+func (c *AccountMemberClient) QueryInvite(am *AccountMember) *AccountInviteQuery {
+	query := &AccountInviteQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := am.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(accountmember.Table, accountmember.FieldID, id),
+			sqlgraph.To(accountinvite.Table, accountinvite.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, accountmember.InviteTable, accountmember.InviteColumn),
+		)
+		fromV = sqlgraph.Neighbors(am.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AccountMemberClient) Hooks() []Hook {
+	return c.hooks.AccountMember
 }
 
 // ItemClient is a client for the Item schema.
@@ -1198,6 +1617,38 @@ func (c *UserClient) GetX(ctx context.Context, id int) *User {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryInvites queries the invites edge of a User.
+func (c *UserClient) QueryInvites(u *User) *AccountInviteQuery {
+	query := &AccountInviteQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(accountinvite.Table, accountinvite.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.InvitesTable, user.InvitesColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryMemberships queries the memberships edge of a User.
+func (c *UserClient) QueryMemberships(u *User) *AccountMemberQuery {
+	query := &AccountMemberQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(accountmember.Table, accountmember.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.MembershipsTable, user.MembershipsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

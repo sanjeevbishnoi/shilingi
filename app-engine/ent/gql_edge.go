@@ -4,6 +4,70 @@ package ent
 
 import "context"
 
+func (a *Account) Members(ctx context.Context) ([]*AccountMember, error) {
+	result, err := a.Edges.MembersOrErr()
+	if IsNotLoaded(err) {
+		result, err = a.QueryMembers().All(ctx)
+	}
+	return result, err
+}
+
+func (a *Account) Invites(ctx context.Context) ([]*AccountInvite, error) {
+	result, err := a.Edges.InvitesOrErr()
+	if IsNotLoaded(err) {
+		result, err = a.QueryInvites().All(ctx)
+	}
+	return result, err
+}
+
+func (ai *AccountInvite) Account(ctx context.Context) (*Account, error) {
+	result, err := ai.Edges.AccountOrErr()
+	if IsNotLoaded(err) {
+		result, err = ai.QueryAccount().Only(ctx)
+	}
+	return result, err
+}
+
+func (ai *AccountInvite) User(ctx context.Context) (*User, error) {
+	result, err := ai.Edges.UserOrErr()
+	if IsNotLoaded(err) {
+		result, err = ai.QueryUser().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (ai *AccountInvite) Member(ctx context.Context) (*AccountMember, error) {
+	result, err := ai.Edges.MemberOrErr()
+	if IsNotLoaded(err) {
+		result, err = ai.QueryMember().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (am *AccountMember) Account(ctx context.Context) (*Account, error) {
+	result, err := am.Edges.AccountOrErr()
+	if IsNotLoaded(err) {
+		result, err = am.QueryAccount().Only(ctx)
+	}
+	return result, err
+}
+
+func (am *AccountMember) User(ctx context.Context) (*User, error) {
+	result, err := am.Edges.UserOrErr()
+	if IsNotLoaded(err) {
+		result, err = am.QueryUser().Only(ctx)
+	}
+	return result, err
+}
+
+func (am *AccountMember) Invite(ctx context.Context) ([]*AccountInvite, error) {
+	result, err := am.Edges.InviteOrErr()
+	if IsNotLoaded(err) {
+		result, err = am.QueryInvite().All(ctx)
+	}
+	return result, err
+}
+
 func (i *Item) Purchases(ctx context.Context) ([]*ShoppingItem, error) {
 	result, err := i.Edges.PurchasesOrErr()
 	if IsNotLoaded(err) {
@@ -152,6 +216,22 @@ func (t *Tag) Children(ctx context.Context) ([]*SubLabel, error) {
 	result, err := t.Edges.ChildrenOrErr()
 	if IsNotLoaded(err) {
 		result, err = t.QueryChildren().All(ctx)
+	}
+	return result, err
+}
+
+func (u *User) Invites(ctx context.Context) ([]*AccountInvite, error) {
+	result, err := u.Edges.InvitesOrErr()
+	if IsNotLoaded(err) {
+		result, err = u.QueryInvites().All(ctx)
+	}
+	return result, err
+}
+
+func (u *User) Memberships(ctx context.Context) ([]*AccountMember, error) {
+	result, err := u.Edges.MembershipsOrErr()
+	if IsNotLoaded(err) {
+		result, err = u.QueryMemberships().All(ctx)
 	}
 	return result, err
 }

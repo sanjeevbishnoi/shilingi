@@ -9,6 +9,45 @@ import (
 	"github.com/kingzbauer/shilingi/app-engine/ent"
 )
 
+// The AccountFunc type is an adapter to allow the use of ordinary
+// function as Account mutator.
+type AccountFunc func(context.Context, *ent.AccountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.AccountMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AccountMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The AccountInviteFunc type is an adapter to allow the use of ordinary
+// function as AccountInvite mutator.
+type AccountInviteFunc func(context.Context, *ent.AccountInviteMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AccountInviteFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.AccountInviteMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AccountInviteMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The AccountMemberFunc type is an adapter to allow the use of ordinary
+// function as AccountMember mutator.
+type AccountMemberFunc func(context.Context, *ent.AccountMemberMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AccountMemberFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.AccountMemberMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AccountMemberMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The ItemFunc type is an adapter to allow the use of ordinary
 // function as Item mutator.
 type ItemFunc func(context.Context, *ent.ItemMutation) (ent.Value, error)

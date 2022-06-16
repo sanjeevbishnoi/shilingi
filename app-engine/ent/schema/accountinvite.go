@@ -23,7 +23,7 @@ func (AccountInvite) Fields() []ent.Field {
 				"Declined", "DECLINED",
 				"Accepted", "ACCEPTED",
 			).
-			Default("Pending"),
+			Default("PENDING"),
 	}
 }
 
