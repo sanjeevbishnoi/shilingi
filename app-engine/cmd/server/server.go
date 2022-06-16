@@ -51,6 +51,14 @@ func main() {
 		migrate.WithGlobalUniqueID(true),
 	)
 
+	cliMiddleware := func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := ent.NewContext(r.Context(), cli)
+			r = r.WithContext(ctx)
+			handler.ServeHTTP(w, r)
+		})
+	}
+
 	srv := handler.NewDefaultServer(graph.NewSchema(cli))
 	srv.Use(entgql.Transactioner{TxOpener: cli})
 	srv.SetErrorPresenter(func(ctx context.Context, err error) *gqlerror.Error {
@@ -61,7 +69,10 @@ func main() {
 	})
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", middlewares.NewAuthClient(middlewares.Auth(srv)))
+	http.Handle("/query",
+		cliMiddleware(
+			middlewares.NewAuthClient(
+				middlewares.Auth(srv))))
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

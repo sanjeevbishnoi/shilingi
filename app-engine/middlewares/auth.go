@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/api/option"
 
+	sAuth "github.com/kingzbauer/shilingi/app-engine/auth"
 	"github.com/kingzbauer/shilingi/app-engine/config"
 )
 
@@ -17,14 +18,14 @@ import (
 func Auth(view http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// For now we just log the Authorization header
-		auth := r.Header.Get("authorization")
-		if strings.HasPrefix(auth, "Bearer ") {
-			parts := strings.Split(auth, " ")
+		bearer := r.Header.Get("authorization")
+		if strings.HasPrefix(bearer, "Bearer ") {
+			parts := strings.Split(bearer, " ")
 			if len(parts) == 1 {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			auth = strings.TrimSpace(parts[1])
+			bearer = strings.TrimSpace(parts[1])
 		}
 
 		cli, exists := AuthClientFromContext(r.Context())
@@ -32,11 +33,20 @@ func Auth(view http.Handler) http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		_, err := cli.VerifyIDToken(r.Context(), auth)
+		token, err := cli.VerifyIDToken(r.Context(), bearer)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+		u, err := sAuth.GetUserFromFirebaseToken(r.Context(), token)
+		if err != nil {
+			zap.S().Errorf("unable to retrieve user: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		ctx := sAuth.UserContext(r.Context(), u)
+		r = r.WithContext(ctx)
 
 		view.ServeHTTP(w, r)
 	})
